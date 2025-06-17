@@ -85,10 +85,18 @@
 			isMenuOpen ? 'flex' : 'hidden'
 		} lg:flex`}
 	>
+		<div>
+			<a href="/#menu">
+				<button class="btn btn-ghost text-lg">Menu</button>
+			</a>
+		</div>
 		{#each menuItems as item}
 			<a
 				href={getHref(item.id)}
 				class="btn btn-ghost nav-link text-lg font-semibold normal-case"
+				class:bg-white={item.id === 'signup'}
+				class:text-blue-700={item.id === 'signup'}
+				class:ml-2={item.id === 'signup'}
 				onclick={() => (isMenuOpen = false)}>{item.label}</a
 			>
 		{/each}
@@ -102,15 +110,9 @@
 	<div class="drawer-side sm:hidden">
 		<label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 		<!-- svelte-ignore a11y_missing_attribute -->
-		<ul class="menu bg-base-200 min-h-full w-80 p-4 text-black">
+		<ul class="menu min-h-full w-80 bg-blue-800 p-4 text-lg text-white">
 			<li>
-				<a onclick={closeSideBar} href="/"
-					><button
-						class:bg-primary={$currentPath === '/'}
-						class:text-white={$currentPath === '/'}
-						class="rounded-lg p-2">Home</button
-					></a
-				>
+				<a onclick={closeSideBar} href="/#menu"><button class="rounded-lg p-2">Menu</button></a>
 			</li>
 			<!-- <li>
 				<a onclick={closeSideBar} href="#menu"
@@ -122,21 +124,15 @@
 				>
 			</li> -->
 			<li>
-				<a onclick={closeSideBar} href="/about"
-					><button
-						class:bg-primary={$currentPath === '/about'}
-						class:text-white={$currentPath === '/about'}
-						class="rounded-lg p-2">About</button
-					></a
+				<a onclick={closeSideBar} href="/about"><button class="rounded-lg p-2">About</button></a>
+			</li>
+			<li>
+				<a onclick={closeSideBar} href="/contact"><button class="rounded-lg p-2">Contact</button></a
 				>
 			</li>
 			<li>
-				<a onclick={closeSideBar} href="/contact"
-					><button
-						class:bg-primary={$currentPath === '/contact'}
-						class:text-white={$currentPath === '/contact'}
-						class="rounded-lg p-2">Contact</button
-					></a
+				<a onclick={closeSideBar} href="/signup"
+					><button class="rounded-lg p-2">Signup/Login</button></a
 				>
 			</li>
 		</ul>

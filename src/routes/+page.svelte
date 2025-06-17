@@ -87,7 +87,7 @@
 		class="hero bg-base-200 md:px-20l flex min-h-[75vh] flex-col items-center justify-center overflow-hidden px-6 text-center md:px-0"
 	>
 		<h1
-			class="font-playfair text-primary mt-15 mb-4 text-6xl font-bold drop-shadow-md md:text-7xl"
+			class="font-playfair text-primary mt-22 mb-4 text-6xl font-bold drop-shadow-md md:text-7xl"
 			in:fly={{ y: -100, duration: 800 }}
 		>
 			Taste the Tradition
@@ -116,7 +116,18 @@
 			Our Menu
 		</h2>
 
-		<div class="right-0 mb-6 gap-2">
+		<form action="" class="flex items-center justify-center gap-2">
+			<input
+				type="text"
+				placeholder="Search for a meal"
+				class="border-secondary w-[300px] rounded-lg border p-2 focus:ring-2 focus:ring-red-500 focus:outline-none"
+				required
+			/>
+
+			<button class="btn btn-secondary">Search</button>
+		</form>
+
+		<div class="right-0 mt-6 mb-6 gap-2">
 			<!-- <input type="checkbox" checked="checked" class="checkbox checkbox-primary" /> -->
 			<h3 class="mb-2 font-semibold">Filter by:</h3>
 			<form class="mb-4 space-y-2 filter">
@@ -190,6 +201,16 @@
 									<h4 class="card-title text-primary font-playfair">{dish.name}</h4>
 									<p class="text-base-content">{dish.description}</p>
 
+									<div class="space-x-2">
+										<label for="quantity" class=" text-lg">Quantity</label>
+										<input
+											type="number"
+											class="h-[25px] w-[50px] border p-1"
+											defaultValue="1"
+											min="1"
+										/>
+									</div>
+
 									<div class="mr-3 flex justify-between">
 										<p class="text-secondary mt-2 font-semibold">{dish.price}</p>
 
@@ -220,25 +241,13 @@
 												<svg
 													class="transition-transform duration-700 hover:text-red-500"
 													xmlns="http://www.w3.org/2000/svg"
-													width="24"
-													height="24"
+													width="28"
+													height="28"
 													viewBox="0 0 24 24"
 													><path
-														fill="none"
-														stroke="currentColor"
-														stroke-dasharray="32"
-														stroke-dashoffset="32"
-														stroke-linecap="round"
-														stroke-linejoin="round"
-														stroke-width="2"
-														d="M12 8c0 0 0 0 -0.76 -1c-0.88 -1.16 -2.18 -2 -3.74 -2c-2.49 0 -4.5 2.01 -4.5 4.5c0 0.93 0.28 1.79 0.76 2.5c0.81 1.21 8.24 9 8.24 9M12 8c0 0 0 0 0.76 -1c0.88 -1.16 2.18 -2 3.74 -2c2.49 0 4.5 2.01 4.5 4.5c0 0.93 -0.28 1.79 -0.76 2.5c-0.81 1.21 -8.24 9 -8.24 9"
-														><animate
-															fill="freeze"
-															attributeName="stroke-dashoffset"
-															dur="0.7s"
-															values="32;0"
-														/></path
-													></svg
+														fill="currentColor"
+														d="M7.308 21.116q-.633 0-1.067-.434t-.433-1.066t.433-1.067q.434-.433 1.067-.433t1.066.433t.434 1.067t-.434 1.066t-1.066.434m9.384 0q-.632 0-1.066-.434t-.434-1.066t.434-1.067q.434-.433 1.066-.433t1.067.433q.433.434.433 1.067q0 .632-.433 1.066q-.434.434-1.067.434M5.881 5.5l2.669 5.616h6.635q.173 0 .307-.087q.135-.087.231-.24l2.616-4.75q.115-.212.019-.375q-.097-.164-.327-.164zm-.489-1h13.02q.651 0 .98.532q.33.531.035 1.095l-2.858 5.208q-.217.365-.564.573t-.763.208H8.1l-1.215 2.23q-.154.231-.01.5t.433.27h10.384q.214 0 .357.143t.143.357t-.143.356t-.357.144H7.308q-.875 0-1.306-.738t-.021-1.482l1.504-2.68L3.808 3.5H2.5q-.213 0-.357-.143T2 3t.143-.357T2.5 2.5h1.433q.236 0 .429.121q.192.121.298.338zm3.158 6.616h7z"
+													/></svg
 												>
 											</div>
 										</div>
@@ -267,6 +276,11 @@
 					<div class="card-body">
 						<h4 class="card-title text-primary font-playfair">{item.name}</h4>
 						<p class="text-base-content">{item.description}</p>
+
+						<div class="space-x-2">
+							<label for="quantity" class=" text-lg">Quantity</label>
+							<input type="number" class="h-[25px] w-[50px] border p-1" defaultValue="1" min="1" />
+						</div>
 
 						<div class="mr-3 flex justify-between">
 							<p class="text-secondary mt-2 font-semibold">{item.price}</p>
@@ -298,25 +312,13 @@
 									<svg
 										class="transition-transform duration-700 hover:text-red-500"
 										xmlns="http://www.w3.org/2000/svg"
-										width="24"
-										height="24"
+										width="28"
+										height="28"
 										viewBox="0 0 24 24"
 										><path
-											fill="none"
-											stroke="currentColor"
-											stroke-dasharray="32"
-											stroke-dashoffset="32"
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M12 8c0 0 0 0 -0.76 -1c-0.88 -1.16 -2.18 -2 -3.74 -2c-2.49 0 -4.5 2.01 -4.5 4.5c0 0.93 0.28 1.79 0.76 2.5c0.81 1.21 8.24 9 8.24 9M12 8c0 0 0 0 0.76 -1c0.88 -1.16 2.18 -2 3.74 -2c2.49 0 4.5 2.01 4.5 4.5c0 0.93 -0.28 1.79 -0.76 2.5c-0.81 1.21 -8.24 9 -8.24 9"
-											><animate
-												fill="freeze"
-												attributeName="stroke-dashoffset"
-												dur="0.7s"
-												values="32;0"
-											/></path
-										></svg
+											fill="currentColor"
+											d="M7.308 21.116q-.633 0-1.067-.434t-.433-1.066t.433-1.067q.434-.433 1.067-.433t1.066.433t.434 1.067t-.434 1.066t-1.066.434m9.384 0q-.632 0-1.066-.434t-.434-1.066t.434-1.067q.434-.433 1.066-.433t1.067.433q.433.434.433 1.067q0 .632-.433 1.066q-.434.434-1.067.434M5.881 5.5l2.669 5.616h6.635q.173 0 .307-.087q.135-.087.231-.24l2.616-4.75q.115-.212.019-.375q-.097-.164-.327-.164zm-.489-1h13.02q.651 0 .98.532q.33.531.035 1.095l-2.858 5.208q-.217.365-.564.573t-.763.208H8.1l-1.215 2.23q-.154.231-.01.5t.433.27h10.384q.214 0 .357.143t.143.357t-.143.356t-.357.144H7.308q-.875 0-1.306-.738t-.021-1.482l1.504-2.68L3.808 3.5H2.5q-.213 0-.357-.143T2 3t.143-.357T2.5 2.5h1.433q.236 0 .429.121q.192.121.298.338zm3.158 6.616h7z"
+										/></svg
 									>
 								</div>
 							</div>
