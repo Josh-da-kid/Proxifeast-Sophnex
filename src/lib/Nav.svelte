@@ -58,6 +58,7 @@
 	<div class="flex-1 px-1">
 		<a href="/" class="font-playfair text-2xl font-bold normal-case md:text-3xl">
 			Chef Zhanga Foods
+			<!-- Native Delicacies -->
 		</a>
 	</div>
 
@@ -101,6 +102,14 @@
 			>
 		{/each}
 	</div>
+
+	<div>
+		<a href="https://whatsapp.com" target="_blank">
+			<button class="btn btn-ghost bg-secondary ml-2 hidden text-lg md:flex"
+				>Book Reservation</button
+			>
+		</a>
+	</div>
 </nav>
 
 <!-- drawer side bar -->
@@ -133,6 +142,11 @@
 			<li>
 				<a onclick={closeSideBar} href="/signup"
 					><button class="rounded-lg p-2">Signup/Login</button></a
+				>
+			</li>
+			<li>
+				<a onclick={closeSideBar} href="https://whatsapp.com" target="_blank"
+					><button class="rounded-lg p-2">Book Reservation</button></a
 				>
 			</li>
 		</ul>
