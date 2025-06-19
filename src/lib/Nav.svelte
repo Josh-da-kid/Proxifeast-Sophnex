@@ -104,7 +104,7 @@
 	</div>
 
 	<div>
-		<a href="https://whatsapp.com" target="_blank">
+		<a href="/reservation">
 			<button class="btn btn-ghost bg-secondary ml-2 hidden text-lg md:flex"
 				>Book Reservation</button
 			>
@@ -145,7 +145,7 @@
 				>
 			</li>
 			<li>
-				<a onclick={closeSideBar} href="https://whatsapp.com" target="_blank"
+				<a onclick={closeSideBar} href="/reservation"
 					><button class="rounded-lg p-2">Book Reservation</button></a
 				>
 			</li>

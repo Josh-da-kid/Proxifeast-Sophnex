@@ -20,6 +20,13 @@
 		<label for="my-drawer-4" aria-label="close sidebar" class="drawer-overlay"></label>
 
 		<div class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4">
+			<div>
+				<button
+					onclick={closeSideBar}
+					class="hover:text-secondary items-start justify-start hover:underline"
+					><span class="text-secondary">&lt&lt</span> Back</button
+				>
+			</div>
 			<h2 class="mb-2 text-xl font-bold">Your Cart</h2>
 
 			{#if $cart.length > 0}

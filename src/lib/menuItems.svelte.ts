@@ -9,4 +9,5 @@ export const toggleMenu = () => (isMenuOpen = !isMenuOpen);
 		{ id: 'about', label: 'About' },
 		{ id: 'contact', label: 'Contact' },
 		{ id: 'signup', label: 'Signup/Login' }
+		// { id: 'reservation', label: 'Book Reservation' }
 	];
