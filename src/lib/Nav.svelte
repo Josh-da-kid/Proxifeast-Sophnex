@@ -1,8 +1,19 @@
 <script lang="ts">
 	import { derived } from 'svelte/store';
-	import { menuItems, toggleMenu } from './menuItems.svelte';
+	import { menuItems, toggleMenu, getHref, isAdminPage } from './menuItems.svelte';
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
+	import { get } from 'svelte/store'; // You might not need get() if you use derived directly
+
+	let isAdmin = false;
+
+	// Keep it reactive using subscription
+	const unsubscribe = isAdminPage.subscribe((val) => {
+		isAdmin = val;
+	});
+
+	onDestroy(unsubscribe);
+
 	let isMenuOpen = $state(false);
 
 	let previousScrollY = 0;
@@ -28,27 +39,9 @@
 		return () => window.removeEventListener('scroll', handleScroll);
 	});
 
-	const currentPath = derived(page, ($page) => $page.url.pathname);
-	const currentHash = derived(page, ($page) => $page.url.hash);
-
-	// const isActive = (target:any) => {
-	// 		// target can be a hash (like "#menu") or path (like "/about")
-	// 		const { pathname, hash } = $page.url;
-	// 		if (target.startsWith('#')) {
-	// 			return hash === target;
-	// 		} else {
-	// 			return pathname === target;
-	// 		}
-	// 	};
-
-	function getHref(id: any) {
-		if (id === 'home') return '/';
-		// if (id === 'menu') return '#menu';
-		return `/${id}`;
-	}
+	// Directly use the derived user store for reactivity
+	const user = derived(page, ($page) => $page.data.user);
 </script>
-
-<!-- Navbar -->
 
 <nav
 	class="navbar bg-primary text-primary-content sticky top-0 z-50 flex items-center justify-center rounded-b-3xl px-5 shadow-lg transition-transform duration-300 ease-in-out"
@@ -58,7 +51,6 @@
 	<div class="flex-1 px-1">
 		<a href="/" class="font-playfair text-2xl font-bold normal-case md:text-3xl">
 			Chef Zhanga Foods
-			<!-- Native Delicacies -->
 		</a>
 	</div>
 
@@ -81,57 +73,87 @@
 		</label>
 	</div>
 
-	<div
-		class={`bg-primary flex-none flex-col p-6 lg:flex lg:flex-row lg:bg-transparent lg:p-0 ${
-			isMenuOpen ? 'flex' : 'hidden'
-		} lg:flex`}
-	>
+	{#if $isAdminPage}
+		<nav class="flex">
+			<a href="/admin" class="btn btn-ghost">Dashboard</a>
+			<a href="/admin/admin-menu" class="btn btn-ghost">Menu</a>
+			<a href="/admin/admin-order" class="btn btn-ghost">Orders</a>
+			<a href="/admin/admin-reservation" class="btn btn-ghost">Reservations</a>
+		</nav>
+	{:else}
+		<div
+			class={`bg-primary flex-none flex-col p-6 lg:flex lg:flex-row lg:bg-transparent lg:p-0 ${
+				isMenuOpen ? 'flex' : 'hidden'
+			} lg:flex`}
+		>
+			<div>
+				<a href="/#menu">
+					<button class="btn btn-ghost text-lg">Menu</button>
+				</a>
+			</div>
+
+			{#each menuItems as item}
+				<a
+					href={getHref(item.id)}
+					class="btn btn-ghost nav-link text-lg font-semibold normal-case"
+					onclick={() => (isMenuOpen = false)}>{item.label}</a
+				>
+			{/each}
+		</div>
+
 		<div>
-			<a href="/#menu">
-				<button class="btn btn-ghost text-lg">Menu</button>
+			<a href="/reservation">
+				<button class="btn btn-ghost bg-secondary ml-2 hidden text-lg md:flex">
+					Book Reservation
+				</button>
 			</a>
 		</div>
-		{#each menuItems as item}
-			<a
-				href={getHref(item.id)}
-				class="btn btn-ghost nav-link text-lg font-semibold normal-case"
-				class:bg-white={item.id === 'signup'}
-				class:text-blue-700={item.id === 'signup'}
-				class:ml-2={item.id === 'signup'}
-				onclick={() => (isMenuOpen = false)}>{item.label}</a
-			>
-		{/each}
-	</div>
 
-	<div>
-		<a href="/reservation">
-			<button class="btn btn-ghost bg-secondary ml-2 hidden text-lg md:flex"
-				>Book Reservation</button
-			>
-		</a>
-	</div>
+		<div>
+			{#if $user}
+				<!-- <form action="/logout" method="POST"> -->
+				<button
+					onclick={my_modal_1.showModal()}
+					class="btn btn-ghost ml-2 hidden bg-white text-lg text-blue-700 md:flex"
+				>
+					Logout
+				</button>
+				<!-- </form> -->
+
+				<dialog id="my_modal_1" class="modal">
+					<div class="modal-box text-black">
+						<h3 class="text-lg font-bold">Hey <span class="text-secondary">{$user.name}!</span></h3>
+						<p class="py-4">Are you sure you want to logout?</p>
+						<div class="modal-action">
+							<form method="dialog">
+								<button class="btn btn-primary">Cancel</button>
+							</form>
+							<form action="/logout" method="POST">
+								<!-- if there is a button in form, it will close the modal -->
+								<button class="btn btn-secondary">Logout</button>
+							</form>
+						</div>
+					</div>
+				</dialog>
+			{:else}
+				<a href="/login">
+					<button class="btn btn-ghost ml-2 hidden bg-white text-lg text-blue-700 md:flex">
+						Signup/Login
+					</button>
+				</a>
+			{/if}
+		</div>
+	{/if}
 </nav>
-
-<!-- drawer side bar -->
 
 <div class="relative inset-0 z-100 mx-auto overflow-hidden">
 	<input id="my-drawer" type="checkbox" class="drawer-toggle" />
 	<div class="drawer-side sm:hidden">
 		<label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
-		<!-- svelte-ignore a11y_missing_attribute -->
 		<ul class="menu min-h-full w-80 bg-blue-800 p-4 text-lg text-white">
 			<li>
 				<a onclick={closeSideBar} href="/#menu"><button class="rounded-lg p-2">Menu</button></a>
 			</li>
-			<!-- <li>
-				<a onclick={closeSideBar} href="#menu"
-					><button
-						class:bg-primary={$currentHash === '#menu'}
-						class:text-white={$currentHash === '#menu'}
-						class="rounded-lg p-2">Menu</button
-					></a
-				>
-			</li> -->
 			<li>
 				<a onclick={closeSideBar} href="/about"><button class="rounded-lg p-2">About</button></a>
 			</li>
@@ -139,16 +161,25 @@
 				<a onclick={closeSideBar} href="/contact"><button class="rounded-lg p-2">Contact</button></a
 				>
 			</li>
-			<li>
-				<a onclick={closeSideBar} href="/signup"
-					><button class="rounded-lg p-2">Signup/Login</button></a
-				>
-			</li>
+
 			<li>
 				<a onclick={closeSideBar} href="/reservation"
 					><button class="rounded-lg p-2">Book Reservation</button></a
 				>
 			</li>
+			{#if $user}
+				<li>
+					<form action="/logout" method="POST">
+						<button class="rounded-lg p-2">Logout</button>
+					</form>
+				</li>
+			{:else}
+				<li>
+					<a onclick={closeSideBar} href="/signup"
+						><button class="rounded-lg p-2">Signup/Login</button></a
+					>
+				</li>
+			{/if}
 		</ul>
 	</div>
 </div>

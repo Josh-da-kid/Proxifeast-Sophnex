@@ -4,6 +4,8 @@
 	import Nav from '$lib/Nav.svelte';
 	// Import cart and total stores
 	import { addToCart, cart, total } from '$lib/stores/cart';
+	import { derived } from 'svelte/store';
+	import { page } from '$app/stores';
 
 	// 1. Define the interface for a single dish item
 	interface DishItem {
@@ -35,21 +37,24 @@
 					name: 'Smoked Turkey and Chips',
 					description: 'Spicy, flavorful, and a customer favorite.',
 					image: '/photo_2025-06-18_12-13-36.jpg',
-					price: '₦15,000'
+					price: '₦15,000',
+					cancelled: '₦25,000'
 				},
 				{
 					name: 'Pounded Yam & Egusi Soup',
 					description: 'Traditional and hearty, a local delight.',
 					image:
 						'https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=400&q=80',
-					price: '₦20,000'
+					price: '₦20,000',
+					cancelled: '₦35,000'
 				},
 				{
 					name: 'Zhanga Sauce Rice with Smoked Beef and Fish',
 					description: 'Freshly caught and perfectly grilled with spices.',
 					image:
 						'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
-					price: '₦35,000'
+					price: '₦35,000',
+					cancelled: '₦45,000'
 				}
 			]
 		},
@@ -61,20 +66,23 @@
 					description: 'Freshly caught and perfectly grilled with spices.',
 					image:
 						'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
-					price: '₦25,000'
+					price: '₦25,000',
+					cancelled: '₦40,000'
 				},
 				{
 					name: 'Mixed Seafood Rice with Plantains',
 					description: 'Freshly caught and perfectly grilled with spices.',
 					image:
 						'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
-					price: '₦45,000'
+					price: '₦45,000',
+					cancelled: '₦55,000'
 				},
 				{
 					name: 'Snails and King prawns Sauce with Ofada Rice or Basmatic with Plantains',
 					description: 'Tender snails cooked in spicy sauce.',
 					image: 'https://i.pinimg.com/736x/20/3c/1f/203c1f0d3cbece307cdb0ae9055fa574.jpg',
-					price: '₦35,000'
+					price: '₦35,000',
+					cancelled: '₦5,000'
 				}
 			]
 		},
@@ -85,19 +93,22 @@
 					name: 'Zobo Drink',
 					description: 'Refreshing hibiscus flower drink.',
 					image: 'https://i.pinimg.com/736x/96/85/f8/9685f801957a8b6a08dbca3dc70d0da5.jpg',
-					price: '₦2,000'
+					price: '₦2,000',
+					cancelled: '₦4,500'
 				},
 				{
 					name: 'Fried Plantain',
 					description: 'Sweet and crispy, perfect side.',
 					image: 'https://i.pinimg.com/736x/5d/c4/6c/5dc46c5c92f95c74ba268e78d3e80c66.jpg',
-					price: '₦13,000'
+					price: '₦13,000',
+					cancelled: '₦22,000'
 				},
 				{
 					name: 'Fanta',
 					description: 'Sweet beverage for fun moments.',
 					image: 'https://i.pinimg.com/736x/3b/4e/8a/3b4e8a0da4a5fefa30739f578343411b.jpg',
-					price: '₦1,500'
+					price: '₦1,500',
+					cancelled: '₦2,500'
 				}
 			]
 		}
@@ -165,12 +176,14 @@
 			alert = false;
 		}, 2500);
 	}
+	const user = derived(page, ($page) => $page.data.user);
 </script>
 
 <div class="text-base-content flex min-h-screen flex-col">
+	<h3 class="ml-4 text-secondary mt-4 animate-bounce font-bold">Hi {$user?.name || 'there'}!!</h3>
 	<section
 		id="home"
-		class="hero bg-base-200 md:px-20l flex min-h-[75vh] flex-col items-center justify-center overflow-hidden px-6 text-center md:px-0"
+		class="hero md:px-20l flex min-h-[75vh] flex-col items-center justify-center overflow-hidden px-6 text-center md:px-0"
 	>
 		<h1
 			class="font-playfair text-primary mt-22 mb-4 text-6xl font-bold drop-shadow-md md:text-7xl"
@@ -377,7 +390,12 @@
 											/>
 										</div>
 										<div class="mr-3 flex justify-between">
-											<p class="text-secondary mt-2 font-semibold">{item.price}</p>
+											<div class="flex gap-2">
+												<p class="text-secondary mt-2 font-semibold">{item.price}</p>
+												<p class="mt-2 font-semibold text-gray-400 line-through">
+													{item.cancelled}
+												</p>
+											</div>
 											<div class="flex gap-3">
 												<div class="tooltip" data-tip="view"></div>
 												<div class="tooltip" data-tip="add to cart">

@@ -51,7 +51,7 @@
 
 					<div class="flex gap-2">
 						<input type="radio" placeholder="" name="payment" id="transfer" />
-						<label for="transfer" class="label">Transfer</label>
+						<label for="transfer" class="label">Bank Transfer</label>
 					</div>
 				</div>
 				<p>
