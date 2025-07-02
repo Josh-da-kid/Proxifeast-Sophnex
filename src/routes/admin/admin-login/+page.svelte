@@ -46,7 +46,7 @@
 <div class="hero bg-base-200 min-h-screen">
 	<div class="hero-content flex-col lg:flex-row-reverse">
 		<div class="text-center md:w-[500px] lg:text-left">
-			<h1 class="text-5xl font-bold">Login now!</h1>
+			<h1 class="text-5xl font-bold">Welcome to Admin Login Page!</h1>
 			<p class="py-6">
 				Provident cupiditate voluptatem et in. Quaerat fugiat ut assumenda excepturi exercitationem
 				quasi. In deleniti eaque aut repudiandae et a id nisi.
