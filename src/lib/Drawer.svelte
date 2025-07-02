@@ -30,10 +30,10 @@
 
 {#if $isAdminPage && $isLoggedIn}
 	<div class="drawer drawer-end z-[9999]">
-		<input id="my-drawer-4" type="checkbox" class="drawer-toggle" />
+		<input id="my-drawer-5" type="checkbox" class="drawer-toggle" />
 		<div class="drawer-content"></div>
 		<div class="drawer-side">
-			<label for="my-drawer-4" aria-label="close sidebar" class="drawer-overlay"></label>
+			<label for="my-drawer-5" aria-label="close sidebar" class="drawer-overlay"></label>
 
 			<div
 				class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4 pl-6 md:min-w-1/3"
@@ -138,10 +138,10 @@
 	</div>
 {:else if $isAdminPage && !$isLoggedIn}
 	<div class="drawer drawer-end z-[9999]">
-		<input id="my-drawer-4" type="checkbox" class="drawer-toggle" />
+		<input id="my-drawer-5" type="checkbox" class="drawer-toggle" />
 		<div class="drawer-content"></div>
 		<div class="drawer-side">
-			<label for="my-drawer-4" aria-label="close sidebar" class="drawer-overlay"></label>
+			<label for="my-drawer-5" aria-label="close sidebar" class="drawer-overlay"></label>
 
 			<div
 				class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4 pl-6 md:min-w-1/3"
@@ -181,10 +181,10 @@
 	</div>
 {:else}
 	<div class="drawer drawer-end z-[9999]">
-		<input id="my-drawer-4" type="checkbox" class="drawer-toggle" />
+		<input id="my-drawer-5" type="checkbox" class="drawer-toggle" />
 		<div class="drawer-content"></div>
 		<div class="drawer-side">
-			<label for="my-drawer-4" aria-label="close sidebar" class="drawer-overlay"></label>
+			<label for="my-drawer-5" aria-label="close sidebar" class="drawer-overlay"></label>
 
 			<div class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4">
 				<div>

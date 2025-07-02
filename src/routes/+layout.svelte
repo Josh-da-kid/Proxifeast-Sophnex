@@ -41,7 +41,7 @@
 
 {#if $isAdminPage}
 	<!-- Cart FAB Icon -->
-	<label for="my-drawer-4">
+	<label for="my-drawer-5">
 		<div
 			class="tooltip indicator bg-secondary fixed top-28 right-4 z-10 cursor-pointer rounded-full p-4 text-white shadow-xl transition-transform duration-300 hover:scale-105"
 			data-tip="Add Dish"
@@ -60,7 +60,7 @@
 	</label>
 {:else}
 	<!-- Cart FAB Icon -->
-	<label for="my-drawer-4">
+	<label for="my-drawer-5">
 		<div
 			class="tooltip indicator bg-secondary fixed top-28 right-4 z-10 cursor-pointer rounded-full p-4 text-white shadow-xl transition-transform duration-300 hover:scale-105"
 			data-tip="view cart"

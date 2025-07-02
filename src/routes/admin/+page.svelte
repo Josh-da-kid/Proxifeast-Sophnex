@@ -29,7 +29,7 @@
 {#if successAlert}
 	<div
 		role="alert"
-		class="alert alert-success fixed mb-4 ml-2 px-6"
+		class="alert alert-success fixed top-1/2 z-20 mb-4 ml-2 px-6"
 		in:fly={{ y: -20, duration: 300 }}
 		out:fly={{ y: -20, duration: 300 }}
 	>
@@ -53,7 +53,7 @@
 {#if errorAlert}
 	<div
 		role="alert"
-		class="alert alert-error fixed mb-4"
+		class="alert alert-error fixed top-1/2 z-20 mb-4"
 		in:fly={{ y: -20, duration: 300 }}
 		out:fly={{ y: -20, duration: 300 }}
 	>

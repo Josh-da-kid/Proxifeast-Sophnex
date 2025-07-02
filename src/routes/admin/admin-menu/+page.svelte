@@ -1,75 +1,311 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { addToCart } from '$lib/stores/cart';
+	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 
 	// Optional: rename for clarity
 	const dishes = $page.data.dishes;
+
+	// Group dishes by category
+	// const groupedDishes = {
+	// 	'Main Dish': [],
+	// 	'Seafood': [],
+	// 	'Drinks & Sides': []
+	// };
+
+	let selectedDish = {
+		id: '',
+		name: '',
+		description: '',
+		category: '',
+		image: '',
+		quantity: 1,
+		defaultAmount: '',
+		promoAmount: ''
+	};
+	// Dynamically group by category
+	const groupedDishes: Record<string, typeof dishes> = {};
+
+	for (const dish of dishes) {
+		if (dish.category) {
+			if (!groupedDishes[dish.category]) {
+				groupedDishes[dish.category] = [];
+			}
+			groupedDishes[dish.category].push(dish);
+		}
+	}
+
+	console.log('Grouped dishes:', groupedDishes);
+
+	function openEditDrawer(dish: any) {
+		selectedDish = { ...dish };
+		const drawer = document.getElementById('my-drawer-4') as HTMLInputElement;
+		if (drawer) drawer.checked = true;
+	}
+
+	function closeSideBar() {
+		const drawer = document.getElementById('my-drawer-4') as HTMLInputElement;
+		if (drawer) drawer.checked = false;
+	}
+
+	let successAlert = false;
+	let errorAlert = false;
+	if ($page.form?.success) {
+		successAlert = true;
+	} else if ($page.form?.error) {
+		errorAlert = true;
+	}
+
+	onMount(() => {
+		if (successAlert) {
+			setTimeout(() => {
+				successAlert = false;
+			}, 2000); // Hide after 4 seconds
+		}
+		if (errorAlert) {
+			setTimeout(() => {
+				errorAlert = false;
+			}, 2000); // Hide after 4 seconds
+		}
+	});
 </script>
 
-<h2 class="mb-4 ml-4 text-xl font-bold">All Dishes</h2>
-{#if dishes.length > 0}
-	<div class="grid grid-cols-1 space-y-4 space-x-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
-		{#each dishes as dish}
-			<article
-				class="card card-compact bg-base-200 transform cursor-pointer overflow-hidden rounded-xl shadow-lg transition-transform duration-300 hover:scale-105"
-				in:fly={{ y: 50, duration: 600 }}
-			>
-				<figure>
-					<img src={dish.image} alt={dish.name} class="h-48 w-full object-cover" />
-				</figure>
+{#if successAlert}
+	<div
+		role="alert"
+		class="alert alert-success fixed top-1/2 z-20 mb-4 ml-2 px-6"
+		in:fly={{ y: -20, duration: 300 }}
+		out:fly={{ y: -20, duration: 300 }}
+	>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			class="h-6 w-6 shrink-0 stroke-current"
+			fill="none"
+			viewBox="0 0 24 24"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M9 12l2 2l4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+			/>
+		</svg>
+		<span>Dish edited successfully!</span>
+	</div>
+{/if}
 
-				<div class="card-body">
-					<h4 class="card-title text-primary font-playfair">{dish.name}</h4>
-					<p class="text-base-content">{dish.description}</p>
+{#if errorAlert}
+	<div
+		role="alert"
+		class="alert alert-error fixed top-1/2 z-20 mb-4"
+		in:fly={{ y: -20, duration: 300 }}
+		out:fly={{ y: -20, duration: 300 }}
+	>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			class="h-6 w-6 shrink-0 stroke-current"
+			fill="none"
+			viewBox="0 0 24 24"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M12 9v2m0 4h.01M12 5a7 7 0 100 14 7 7 0 000-14z"
+			/>
+		</svg>
+		<span>{$page.form.error}</span>
+	</div>
+{/if}
 
-					<div class="mr-3 flex justify-between">
-						<div class="flex items-baseline gap-2">
-							{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
-								<p class="text-secondary font-bold">
-									₦{Number(dish.promoAmount).toLocaleString()}
-								</p>
-								<p class="text-gray-400 line-through">
-									₦{Number(dish.defaultAmount).toLocaleString()}
-								</p>
+<h2 class="mb-4 ml-4 text-center text-4xl font-bold">All Dishes</h2>
+{#each Object.entries(groupedDishes).sort( (a, b) => a[0].localeCompare(b[0]) ) as [category, dishesInCategory]}
+	<section class="mb-10 p-6">
+		<div class="text-secondary mb-6 ml-4 w-fit text-3xl">
+			<h3 class="font-semibold">{category}</h3>
+			<div class="border-2 underline"></div>
+		</div>
 
-								<span class="badge badge-accent">
-									-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
-								</span>
-							{:else}
-								<p class="font-bold text-neutral-700">
-									₦{Number(dish.defaultAmount).toLocaleString()}
-								</p>
-							{/if}
-						</div>
+		<div class="grid grid-cols-1 gap-6 px-4 sm:grid-cols-2 lg:grid-cols-3">
+			{#each dishesInCategory as dish}
+				<article
+					class="card card-compact bg-base-200 transform overflow-hidden rounded-xl shadow-lg transition-transform duration-300 hover:scale-105"
+					in:fly={{ y: 50, duration: 600 }}
+				>
+					<figure>
+						<img src={dish.image} alt={dish.name} class="h-48 w-full object-cover" />
+					</figure>
 
-						<div class="flex gap-3">
-							<div class="tooltip" data-tip="view"></div>
+					<div class="card-body">
+						<h4 class="card-title text-primary font-playfair">{dish.name}</h4>
+						<p class="text-base-content">{dish.description}</p>
 
-							<!-- svelte-ignore a11y_click_events_have_key_events -->
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<div class="tooltip" data-tip="edit dish">
-								<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-									><g
-										fill="none"
-										stroke="currentColor"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="1.5"
-										><path
-											d="M19.09 14.441v4.44a2.37 2.37 0 0 1-2.369 2.369H5.12a2.37 2.37 0 0 1-2.369-2.383V7.279a2.356 2.356 0 0 1 2.37-2.37H9.56"
-										/><path
-											d="M6.835 15.803v-2.165c.002-.357.144-.7.395-.953l9.532-9.532a1.36 1.36 0 0 1 1.934 0l2.151 2.151a1.36 1.36 0 0 1 0 1.934l-9.532 9.532a1.36 1.36 0 0 1-.953.395H8.197a1.36 1.36 0 0 1-1.362-1.362M19.09 8.995l-4.085-4.086"
-										/></g
-									></svg
-								>
+						<div class="mr-3 flex justify-between">
+							<div class="flexx items-baseline gap-2">
+								{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
+									<div class="flex gap-2">
+										<p class="text-secondary font-bold">
+											₦{Number(dish.promoAmount).toLocaleString()}
+										</p>
+										<p class="text-gray-400 line-through">
+											₦{Number(dish.defaultAmount).toLocaleString()}
+										</p>
+									</div>
+									<span class="badge badge-accent mt-1">
+										-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
+									</span>
+								{:else}
+									<p class="text-secondary font-bold">
+										₦{Number(dish.defaultAmount).toLocaleString()}
+									</p>
+								{/if}
+							</div>
+
+							<!-- Icons or actions -->
+							<div class="flex gap-3">
+								<!-- View, Edit, etc. -->
+
+								<div class="tooltip" data-tip="edit dish">
+									<!-- svelte-ignore a11y_click_events_have_key_events -->
+									<!-- svelte-ignore a11y_no_static_element_interactions -->
+									<svg
+										class="cursor-pointer"
+										xmlns="http://www.w3.org/2000/svg"
+										width="24"
+										height="24"
+										viewBox="0 0 24 24"
+										onclick={() => openEditDrawer(dish)}
+										><g
+											fill="none"
+											stroke="currentColor"
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											><path d="M7 7H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-1" /><path
+												d="M20.385 6.585a2.1 2.1 0 0 0-2.97-2.97L9 12v3h3zM16 5l3 3"
+											/></g
+										></svg
+									>
+								</div>
 							</div>
 						</div>
 					</div>
+				</article>
+			{/each}
+		</div>
+	</section>
+{/each}
+
+<div class="drawer drawer-end z-[9999]">
+	<input id="my-drawer-4" type="checkbox" class="drawer-toggle" />
+	<div class="drawer-content"></div>
+	<div class="drawer-side">
+		<label for="my-drawer-4" aria-label="close sidebar" class="drawer-overlay"></label>
+
+		<div class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4 pl-6 md:min-w-1/3">
+			<div>
+				<button
+					onclick={closeSideBar}
+					class="hover:text-secondary items-start justify-start hover:underline"
+					><span class="text-secondary">&lt&lt</span> Back</button
+				>
+			</div>
+			<h2 class="mb-2 text-xl font-bold">Edit Your Dish</h2>
+
+			<form action="?/editDish" method="POST">
+				<input type="hidden" name="id" value={selectedDish.id} />
+				<div class="flex flex-col">
+					<label for="name" class="">Name of Dish</label>
+					<input
+						type="text"
+						id="name"
+						name="name"
+						placeholder="Name of Dish"
+						bind:value={selectedDish.name}
+						class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
+						required
+					/>
 				</div>
-			</article>
-		{/each}
+
+				<div class="mt-2 flex flex-col">
+					<label for="description" class="">Dish Description</label>
+					<textarea
+						id="description"
+						name="description"
+						bind:value={selectedDish.description}
+						placeholder="e.g. creamy and tasty"
+						class="textarea focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
+						required
+					></textarea>
+				</div>
+
+				<select
+					class="select border-secondary focus:ring-secondary mt-2 border focus:ring-2 focus:outline-none"
+					name="category"
+					bind:value={selectedDish.category}
+					required
+				>
+					<option value="" disabled selected>Select Dish Category</option>
+					<option value="Main Dish">Main Dish</option>
+					<option value="Seafood">Seafood</option>
+					<option value="Drinks & Sides">Drinks & Sides</option>
+				</select>
+
+				<div class="mt-2 flex flex-col">
+					<label for="image" class="">Image of Dish</label>
+					<input
+						type="text"
+						id="image"
+						name="image"
+						bind:value={selectedDish.image}
+						placeholder="e.g. https://friedricensauce.img"
+						class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
+						required
+					/>
+				</div>
+
+				<div class="mt-2 flex flex-col">
+					<label for="quantity" class="">Quantity of Dish</label>
+					<input
+						type="number"
+						id="quantity"
+						name="quantity"
+						bind:value={selectedDish.quantity}
+						defaultValue="1"
+						min="1"
+						class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
+						required
+					/>
+				</div>
+
+				<div class="mt-2 flex flex-col">
+					<label for="defaultAmount" class="">Dish Amount</label>
+					<input
+						type="text"
+						name="defaultAmount"
+						id="defaultAmount"
+						bind:value={selectedDish.defaultAmount}
+						placeholder="e.g. 5500"
+						class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
+						required
+					/>
+				</div>
+
+				<div class="mt-2 flex flex-col">
+					<label for="promoAmount" class="">Promo Amount(Optional)</label>
+					<input
+						type="text"
+						id="promoAmount"
+						name="promoAmount"
+						bind:value={selectedDish.promoAmount}
+						placeholder="e.g. 2500"
+						class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
+					/>
+				</div>
+
+				<button type="submit" name="editDish" class="btn btn-secondary mt-4">Save Edit</button>
+			</form>
+		</div>
 	</div>
-{:else}
-	<p>No orders yet.</p>
-{/if}
+</div>
