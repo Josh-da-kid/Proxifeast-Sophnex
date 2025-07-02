@@ -1,11 +1,14 @@
 <script>
 	import { page } from '$app/stores';
+	export let data;
+	const user = data.user;
 </script>
 
-<h1 class="mb-4 flex items-center justify-center text-3xl font-bold md:text-4xl">
+<h1 class="mb-4 flex items-center justify-center text-center text-3xl font-bold md:text-4xl">
 	Welcome to Admin Dashboard
 </h1>
-<div class="flex justify-center">
+<h3 class="text-secondary flex justify-center text-center text-2xl">{user?.name || ''}</h3>
+<div class="mt-4 flex justify-center">
 	<!-- Sidebar -->
 	<!-- <aside class="w-64 p-4"> -->
 	<nav class="flex gap-2">

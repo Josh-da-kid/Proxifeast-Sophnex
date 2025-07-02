@@ -35,7 +35,7 @@
 
 {#if showSuccess}
 	<div
-		class="alert alert-success fixed mb-4 ml-4"
+		class="alert alert-success fixed z-5 mb-4 ml-4"
 		in:fly={{ y: -20, duration: 300 }}
 		out:fly={{ y: -20, duration: 300 }}
 	>
@@ -58,7 +58,7 @@
 
 {#if logoutSuccess}
 	<div
-		class="alert alert-success fixed mb-4 ml-4"
+		class="alert alert-success fixed z-5 mb-4 ml-4"
 		in:fly={{ y: -20, duration: 300 }}
 		out:fly={{ y: -20, duration: 300 }}
 	>
@@ -110,7 +110,7 @@
 						/>
 
 						{#if form?.error}
-							<p class="mt-2 text-sm text-red-500">{form.message} Incorrect login credentials</p>
+							<p class="mt-2 text-sm text-red-500">{form.message}</p>
 						{/if}
 
 						<button name="login" type="submit" class="btn btn-neutral mt-4 w-full">Login</button>

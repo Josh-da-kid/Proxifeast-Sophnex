@@ -9,28 +9,17 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals }) => {
 		throw redirect(302, '/admin/admin-login?redirectTo=' + url.pathname);
 	}
 
-	// // ✅ Get all orders
-	// const orders = await locals.pb.collection('orders').getFullList();
 
-	// // ✅ For each order, get items and expand dishes
-	// const ordersWithItems = await Promise.all(
-	// 	orders.map(async (order) => {
-	// 		const items = await locals.pb.collection('order_items').getFullList({
-	// 			filter: `order="${order.id}"`,
-	// 			expand: 'dish'
-	// 		});
-	// 		return {
-	// 			...order,
-	// 			items
-	// 		};
-	// 	})
-	// );
 
-	// return {
-	// 	orders: ordersWithItems
-	// };
+	if (!locals.user) {
+		return {
+			user: null
+		};
+	}
 
-	return {}
+	return {
+		user: locals.user
+	};
 };
 
 

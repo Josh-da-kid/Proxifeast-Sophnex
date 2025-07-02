@@ -74,11 +74,48 @@
 	</div>
 
 	{#if $isAdminPage}
-		<nav class="flex">
+		<nav class="hidden md:flex">
 			<a href="/admin" class="btn btn-ghost">Dashboard</a>
 			<a href="/admin/admin-menu" class="btn btn-ghost">Menu</a>
 			<a href="/admin/admin-order" class="btn btn-ghost">Orders</a>
 			<a href="/admin/admin-reservation" class="btn btn-ghost">Reservations</a>
+
+			<div>
+				{#if $user}
+					<!-- <form action="/logout" method="POST"> -->
+					<button
+						onclick={my_modal_2.showModal()}
+						class="btn btn-ghost ml-2 hidden bg-white text-lg text-blue-700 md:flex"
+					>
+						Logout
+					</button>
+					<!-- </form> -->
+
+					<dialog id="my_modal_2" class="modal">
+						<div class="modal-box text-black">
+							<h3 class="text-lg font-bold">
+								Hey <span class="text-secondary">{$user.name}!</span>
+							</h3>
+							<p class="py-4">Are you sure you want to logout?</p>
+							<div class="modal-action">
+								<form method="dialog">
+									<button class="btn btn-primary">Cancel</button>
+								</form>
+								<form action="admin/admin-logout" method="POST">
+									<!-- if there is a button in form, it will close the modal -->
+									<button class="btn btn-secondary">Logout</button>
+								</form>
+							</div>
+						</div>
+					</dialog>
+				{:else}
+					<a href="/admin/admin-login">
+						<button class="btn btn-ghost ml-2 hidden bg-white text-lg text-blue-700 md:flex">
+							Login
+						</button>
+					</a>
+				{/if}
+			</div>
 		</nav>
 	{:else}
 		<div
@@ -146,40 +183,136 @@
 	{/if}
 </nav>
 
-<div class="relative inset-0 z-100 mx-auto overflow-hidden">
-	<input id="my-drawer" type="checkbox" class="drawer-toggle" />
-	<div class="drawer-side sm:hidden">
-		<label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
-		<ul class="menu min-h-full w-80 bg-blue-800 p-4 text-lg text-white">
-			<li>
-				<a onclick={closeSideBar} href="/#menu"><button class="rounded-lg p-2">Menu</button></a>
-			</li>
-			<li>
-				<a onclick={closeSideBar} href="/about"><button class="rounded-lg p-2">About</button></a>
-			</li>
-			<li>
-				<a onclick={closeSideBar} href="/contact"><button class="rounded-lg p-2">Contact</button></a
-				>
-			</li>
-
-			<li>
-				<a onclick={closeSideBar} href="/reservation"
-					><button class="rounded-lg p-2">Book Reservation</button></a
-				>
-			</li>
-			{#if $user}
+{#if $isAdminPage}
+	<div class="relative inset-0 z-100 mx-auto overflow-hidden">
+		<input id="my-drawer" type="checkbox" class="drawer-toggle" />
+		<div class="drawer-side sm:hidden">
+			<label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+			<ul class="menu min-h-full w-80 bg-blue-800 p-4 text-lg text-white">
 				<li>
-					<form action="/logout" method="POST">
-						<button class="rounded-lg p-2">Logout</button>
-					</form>
-				</li>
-			{:else}
-				<li>
-					<a onclick={closeSideBar} href="/signup"
-						><button class="rounded-lg p-2">Signup/Login</button></a
+					<a onclick={closeSideBar} href="/admin"
+						><button class="rounded-lg p-2">Dashboard</button></a
 					>
 				</li>
-			{/if}
-		</ul>
+				<li>
+					<a onclick={closeSideBar} href="/admin/admin-menu"
+						><button class="rounded-lg p-2">Menu</button></a
+					>
+				</li>
+				<li>
+					<a onclick={closeSideBar} href="/admin/admin-order"
+						><button class="rounded-lg p-2">Orders</button></a
+					>
+				</li>
+
+				<li>
+					<a onclick={closeSideBar} href="/admin/admin-reservation"
+						><button class="rounded-lg p-2">Reservations</button></a
+					>
+				</li>
+				<li>
+					{#if $user}
+						<!-- <form action="/logout" method="POST"> -->
+						<button
+							onclick={my_modal_1.showModal()}
+							class="btn btn-ghost ml-2 bg-white text-lg text-blue-700 md:flex"
+						>
+							Logout
+						</button>
+						<!-- </form> -->
+
+						<dialog id="my_modal_1" class="modal">
+							<div class="modal-box text-black">
+								<h3 class="text-lg font-bold">
+									Hey <span class="text-secondary">{$user.name}!</span>
+								</h3>
+								<p class="py-4">Are you sure you want to logout?</p>
+								<div class="modal-action">
+									<form method="dialog">
+										<button class="btn btn-primary">Cancel</button>
+									</form>
+									<form action="/admin/admin-logout" method="POST">
+										<!-- if there is a button in form, it will close the modal -->
+										<button class="btn btn-secondary">Logout</button>
+									</form>
+								</div>
+							</div>
+						</dialog>
+					{:else}
+						<!-- svelte-ignore node_invalid_placement_ssr -->
+						<!-- <form onclick={closeSideBar} action="/admin/admin-login">
+					<button class="rounded-lg p-2 btn text-lg text-blue-700">Login</button>
+				</form> -->
+						<a
+							onclick={closeSideBar}
+							class="btn rounded-lg p-2 text-blue-700"
+							href="/admin/admin-login">Login</a
+						>
+					{/if}
+				</li>
+			</ul>
+		</div>
 	</div>
-</div>
+{:else}
+	<div class="relative inset-0 z-100 mx-auto overflow-hidden">
+		<input id="my-drawer" type="checkbox" class="drawer-toggle" />
+		<div class="drawer-side sm:hidden">
+			<label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+			<ul class="menu min-h-full w-80 bg-blue-800 p-4 text-lg text-white">
+				<li>
+					<a onclick={closeSideBar} href="/#menu"><button class="rounded-lg p-2">Menu</button></a>
+				</li>
+				<li>
+					<a onclick={closeSideBar} href="/about"><button class="rounded-lg p-2">About</button></a>
+				</li>
+				<li>
+					<a onclick={closeSideBar} href="/contact"
+						><button class="rounded-lg p-2">Contact</button></a
+					>
+				</li>
+
+				<li>
+					<a onclick={closeSideBar} href="/reservation"
+						><button class="rounded-lg p-2">Book Reservation</button></a
+					>
+				</li>
+				<li>
+					{#if $user}
+						<!-- <form action="/logout" method="POST"> -->
+						<button
+							onclick={my_modal_2.showModal()}
+							class="btn btn-ghost ml-2 bg-white text-lg text-blue-700 md:flex"
+						>
+							Logout
+						</button>
+						<!-- </form> -->
+
+						<dialog id="my_modal_2" class="modal">
+							<div class="modal-box text-black">
+								<h3 class="text-lg font-bold">
+									Hey <span class="text-secondary">{$user.name}!</span>
+								</h3>
+								<p class="py-4">Are you sure you want to logout?</p>
+								<div class="modal-action">
+									<form method="dialog">
+										<button class="btn btn-primary">Cancel</button>
+									</form>
+									<form action="admin/admin-logout" method="POST">
+										<!-- if there is a button in form, it will close the modal -->
+										<button class="btn btn-secondary">Logout</button>
+									</form>
+								</div>
+							</div>
+						</dialog>
+					{:else}
+						<!-- svelte-ignore node_invalid_placement_ssr -->
+
+						<a onclick={closeSideBar} href="/login" class="btn rounded-lg p-2 text-lg text-blue-700"
+							>Signup/Login</a
+						>
+					{/if}
+				</li>
+			</ul>
+		</div>
+	</div>
+{/if}

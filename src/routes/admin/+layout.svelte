@@ -1,5 +1,6 @@
 <script>
 	import { page } from '$app/stores';
+	import { isAdminPage } from '$lib/menuItems.svelte';
 
 	let { children } = $props();
 </script>

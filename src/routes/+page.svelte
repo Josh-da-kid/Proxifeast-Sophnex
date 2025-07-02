@@ -180,7 +180,7 @@
 </script>
 
 <div class="text-base-content flex min-h-screen flex-col">
-	<h3 class="ml-4 text-secondary mt-4 animate-bounce font-bold">Hi {$user?.name || 'there'}!!</h3>
+	<h3 class="text-secondary mt-4 ml-4 animate-bounce font-bold">Hi {$user?.name || 'there'}!!</h3>
 	<section
 		id="home"
 		class="hero md:px-20l flex min-h-[75vh] flex-col items-center justify-center overflow-hidden px-6 text-center md:px-0"
