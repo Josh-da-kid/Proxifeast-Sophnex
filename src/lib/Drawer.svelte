@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { page } from '$app/stores';
+	import { derived } from 'svelte/store';
 	import { isAdminPage } from './menuItems.svelte';
 	import { cart, clearCart, removeFromCart, total } from './stores/cart';
 
@@ -19,9 +21,14 @@
 	const unsubscribe = isAdminPage.subscribe((val) => {
 		isAdmin = val;
 	});
+
+	// $: isLoggedIn = $page.data.user !== null;
+	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
+
+	console.log($page.data.user);
 </script>
 
-{#if $isAdminPage}
+{#if $isAdminPage && $isLoggedIn}
 	<div class="drawer drawer-end z-[9999]">
 		<input id="my-drawer-4" type="checkbox" class="drawer-toggle" />
 		<div class="drawer-content"></div>
@@ -63,6 +70,17 @@
 							required
 						></textarea>
 					</div>
+
+					<select
+						class="select border-secondary focus:ring-secondary mt-2 border focus:ring-2 focus:outline-none"
+						name="category"
+						required
+					>
+						<option value="" disabled selected>Select Dish Category</option>
+						<option value="Main Dish">Main Dish</option>
+						<option value="Seafood">Seafood</option>
+						<option value="Drinks & Sides">Drinks & Sides</option>
+					</select>
 
 					<div class="mt-2 flex flex-col">
 						<label for="image" class="">Image of Dish</label>
@@ -115,6 +133,49 @@
 					<button type="submit" name="createDish" class="btn btn-secondary mt-4">Create Dish</button
 					>
 				</form>
+			</div>
+		</div>
+	</div>
+{:else if $isAdminPage && !$isLoggedIn}
+	<div class="drawer drawer-end z-[9999]">
+		<input id="my-drawer-4" type="checkbox" class="drawer-toggle" />
+		<div class="drawer-content"></div>
+		<div class="drawer-side">
+			<label for="my-drawer-4" aria-label="close sidebar" class="drawer-overlay"></label>
+
+			<div
+				class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4 pl-6 md:min-w-1/3"
+			>
+				<div>
+					<button
+						onclick={closeSideBar}
+						class="hover:text-secondary items-start justify-start hover:underline"
+						><span class="text-secondary">&lt&lt</span> Back</button
+					>
+				</div>
+				<h2 class="mb-2 text-xl font-bold">Create New Dish</h2>
+
+				<div role="alert" class="alert alert-info mt-4">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+						class="h-6 w-6 shrink-0 stroke-current"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						></path>
+					</svg>
+					<span>You must be logged as an admin in to create a Dish.</span>
+					<div>
+						<a onclick={closeSideBar} href="/admin/admin-login">
+							<button class="btn btn-sm btn-primary">Login</button>
+						</a>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
