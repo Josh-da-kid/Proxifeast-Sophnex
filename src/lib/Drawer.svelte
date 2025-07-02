@@ -47,7 +47,7 @@
 				</div>
 				<h2 class="mb-2 text-xl font-bold">Create New Dish</h2>
 
-				<form action="?/createDish" method="POST">
+				<form action="/admin?/createDish" method="POST">
 					<div class="flex flex-col">
 						<label for="name" class="">Name of Dish</label>
 						<input
