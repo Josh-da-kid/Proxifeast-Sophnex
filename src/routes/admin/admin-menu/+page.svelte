@@ -138,36 +138,51 @@
 <h2 class="mb-4 ml-4 text-center text-4xl font-bold">All Dishes</h2>
 
 <!-- Search Input -->
-<div class="flex items-center justify-center">
-	<form method="GET" use:enhance class="flex gap-2">
-		<input
-			required
-			type="text"
-			name="search"
-			placeholder="Search dishes..."
-			bind:value={searchTerm}
-			class="input input-bordered border-secondary focus:ring-secondary w-full max-w-xs border focus:ring-2 focus:outline-none md:w-[400px]"
-		/>
-		{#if searchSubmitted}
-			<!-- svelte-ignore a11y_consider_explicit_label -->
+<section class="items-center justify-center gap-2 sm:flex">
+	<div class="flex items-center justify-center gap-2 p-2">
+		<form method="GET" use:enhance class="flex gap-2">
+			<input
+				required
+				type="text"
+				name="search"
+				placeholder="Search dishes..."
+				bind:value={searchTerm}
+				class="input input-bordered border-secondary focus:ring-secondary w-full max-w-xs border focus:ring-2 focus:outline-none md:w-[400px]"
+			/>
+			{#if searchSubmitted}
+				<!-- svelte-ignore a11y_consider_explicit_label -->
 
-			<a href="/admin/admin-menu" class="btn btn-secondary">
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-					<path
-						fill="none"
-						stroke="currentColor"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="1.5"
-						d="M6.758 17.243L12.001 12m5.243-5.243L12 12m0 0L6.758 6.757M12.001 12l5.243 5.243"
-					/>
-				</svg>
-			</a>
-		{:else}
-			<button type="submit" class="btn btn-secondary">Search</button>
-		{/if}
-	</form>
-</div>
+				<a href="/admin/admin-menu" class="btn btn-secondary">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+						<path
+							fill="none"
+							stroke="currentColor"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="1.5"
+							d="M6.758 17.243L12.001 12m5.243-5.243L12 12m0 0L6.758 6.757M12.001 12l5.243 5.243"
+						/>
+					</svg>
+				</a>
+			{:else}
+				<button type="submit" class="btn btn-secondary">Search</button>
+			{/if}
+		</form>
+	</div>
+	<div class="flex items-end justify-end px-11 sm:px-6">
+		<button class="btn border-secondary text-secondary flex text-lg">
+			<span>Filter</span>
+			<span>
+				<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
+					><path
+						fill="currentColor"
+						d="M15 19.88c.04.3-.06.62-.29.83a.996.996 0 0 1-1.41 0L9.29 16.7a.99.99 0 0 1-.29-.83v-5.12L4.21 4.62a1 1 0 0 1 .17-1.4c.19-.14.4-.22.62-.22h14c.22 0 .43.08.62.22a1 1 0 0 1 .17 1.4L15 10.75zM7.04 5L11 10.06v5.52l2 2v-7.53L16.96 5z"
+					/></svg
+				>
+			</span>
+		</button>
+	</div>
+</section>
 
 {#if dishes.length > 0 && searchSubmitted}
 	<p class="mt-6 text-center text-gray-500">Showing results for "{searchTerm}".</p>
@@ -179,7 +194,7 @@
 	</p>
 {/if}
 
-<div class="mb-4 flex flex-wrap gap-2 px-6 filter">
+<!-- <div class="mb-4 flex flex-wrap gap-2 px-6 filter">
 	<input
 		class="btn"
 		type="radio"
@@ -201,7 +216,7 @@
 			onchange={() => (selectedCategory = category)}
 		/>
 	{/each}
-</div>
+</div> -->
 
 {#each Object.entries(groupedDishes).sort( (a, b) => a[0].localeCompare(b[0]) ) as [category, dishesInCategory]}
 	<section class="mb-10 p-6">
