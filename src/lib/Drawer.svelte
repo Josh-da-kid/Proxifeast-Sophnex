@@ -169,7 +169,7 @@
 							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
 						></path>
 					</svg>
-					<span>You must be logged as an admin in to create a Dish.</span>
+					<span>You must be logged as an admin to create a Dish.</span>
 					<div>
 						<a onclick={closeSideBar} href="/admin/admin-login">
 							<button class="btn btn-sm btn-primary">Login</button>

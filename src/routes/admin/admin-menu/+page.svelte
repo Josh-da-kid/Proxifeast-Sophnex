@@ -2,6 +2,7 @@
 	import { page } from '$app/stores';
 	import { addToCart } from '$lib/stores/cart';
 	import { onMount } from 'svelte';
+	import { derived } from 'svelte/store';
 	import { fly } from 'svelte/transition';
 
 	// Optional: rename for clarity
@@ -13,6 +14,11 @@
 	// 	'Seafood': [],
 	// 	'Drinks & Sides': []
 	// };
+
+	let selectedCategory: string = 'All';
+	const categories = [...new Set(dishes.map((d) => d.category).filter(Boolean))].sort() as string[];
+
+	let searchTerm: string = '';
 
 	let selectedDish = {
 		id: '',
@@ -69,6 +75,8 @@
 			}, 2000); // Hide after 4 seconds
 		}
 	});
+
+	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 </script>
 
 {#if successAlert}
@@ -120,6 +128,41 @@
 {/if}
 
 <h2 class="mb-4 ml-4 text-center text-4xl font-bold">All Dishes</h2>
+
+<!-- Search Input -->
+<div class="flex items-center justify-center">
+	<input
+		type="text"
+		placeholder="Search dishes..."
+		bind:value={searchTerm}
+		class="input input-bordered border-secondary focus:ring-secondary w-full max-w-xs border focus:ring-2 focus:outline-none"
+	/>
+</div>
+
+<div class="mb-4 flex flex-wrap gap-2 px-6 filter">
+	<input
+		class="btn"
+		type="radio"
+		name="category"
+		aria-label="All"
+		value="All"
+		checked={selectedCategory === 'All'}
+		onchange={() => (selectedCategory = 'All')}
+	/>
+
+	{#each categories as category}
+		<input
+			class="btn"
+			type="radio"
+			name="category"
+			aria-label={category}
+			value={category}
+			checked={selectedCategory === category}
+			onchange={() => (selectedCategory = category)}
+		/>
+	{/each}
+</div>
+
 {#each Object.entries(groupedDishes).sort( (a, b) => a[0].localeCompare(b[0]) ) as [category, dishesInCategory]}
 	<section class="mb-10 p-6">
 		<div class="text-secondary mb-6 ml-4 w-fit text-3xl">
@@ -197,115 +240,161 @@
 	</section>
 {/each}
 
-<div class="drawer drawer-end z-[9999]">
-	<input id="my-drawer-4" type="checkbox" class="drawer-toggle" />
-	<div class="drawer-content"></div>
-	<div class="drawer-side">
-		<label for="my-drawer-4" aria-label="close sidebar" class="drawer-overlay"></label>
+{#if $isLoggedIn}
+	<div class="drawer drawer-end z-[9999]">
+		<input id="my-drawer-4" type="checkbox" class="drawer-toggle" />
+		<div class="drawer-content"></div>
+		<div class="drawer-side">
+			<label for="my-drawer-4" aria-label="close sidebar" class="drawer-overlay"></label>
 
-		<div class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4 pl-6 md:min-w-1/3">
-			<div>
-				<button
-					onclick={closeSideBar}
-					class="hover:text-secondary items-start justify-start hover:underline"
-					><span class="text-secondary">&lt&lt</span> Back</button
-				>
+			<div
+				class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4 pl-6 md:min-w-1/3"
+			>
+				<div>
+					<button
+						onclick={closeSideBar}
+						class="hover:text-secondary items-start justify-start hover:underline"
+						><span class="text-secondary">&lt&lt</span> Back</button
+					>
+				</div>
+				<h2 class="mb-2 text-xl font-bold">Edit Your Dish</h2>
+
+				<form action="?/editDish" method="POST">
+					<input type="hidden" name="id" value={selectedDish.id} />
+					<div class="flex flex-col">
+						<label for="name" class="">Name of Dish</label>
+						<input
+							type="text"
+							id="name"
+							name="name"
+							placeholder="Name of Dish"
+							bind:value={selectedDish.name}
+							class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
+							required
+						/>
+					</div>
+
+					<div class="mt-2 flex flex-col">
+						<label for="description" class="">Dish Description</label>
+						<textarea
+							id="description"
+							name="description"
+							bind:value={selectedDish.description}
+							placeholder="e.g. creamy and tasty"
+							class="textarea focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
+							required
+						></textarea>
+					</div>
+
+					<select
+						class="select border-secondary focus:ring-secondary mt-2 border focus:ring-2 focus:outline-none"
+						name="category"
+						bind:value={selectedDish.category}
+						required
+					>
+						<option value="" disabled selected>Select Dish Category</option>
+						<option value="Main Dish">Main Dish</option>
+						<option value="Seafood">Seafood</option>
+						<option value="Drinks & Sides">Drinks & Sides</option>
+					</select>
+
+					<div class="mt-2 flex flex-col">
+						<label for="image" class="">Image of Dish</label>
+						<input
+							type="text"
+							id="image"
+							name="image"
+							bind:value={selectedDish.image}
+							placeholder="e.g. https://friedricensauce.img"
+							class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
+							required
+						/>
+					</div>
+
+					<div class="mt-2 flex flex-col">
+						<label for="quantity" class="">Quantity of Dish</label>
+						<input
+							type="number"
+							id="quantity"
+							name="quantity"
+							bind:value={selectedDish.quantity}
+							defaultValue="1"
+							min="1"
+							class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
+							required
+						/>
+					</div>
+
+					<div class="mt-2 flex flex-col">
+						<label for="defaultAmount" class="">Dish Amount</label>
+						<input
+							type="text"
+							name="defaultAmount"
+							id="defaultAmount"
+							bind:value={selectedDish.defaultAmount}
+							placeholder="e.g. 5500"
+							class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
+							required
+						/>
+					</div>
+
+					<div class="mt-2 flex flex-col">
+						<label for="promoAmount" class="">Promo Amount(Optional)</label>
+						<input
+							type="text"
+							id="promoAmount"
+							name="promoAmount"
+							bind:value={selectedDish.promoAmount}
+							placeholder="e.g. 2500"
+							class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
+						/>
+					</div>
+
+					<button type="submit" name="editDish" class="btn btn-secondary mt-4">Save Edit</button>
+				</form>
 			</div>
-			<h2 class="mb-2 text-xl font-bold">Edit Your Dish</h2>
-
-			<form action="?/editDish" method="POST">
-				<input type="hidden" name="id" value={selectedDish.id} />
-				<div class="flex flex-col">
-					<label for="name" class="">Name of Dish</label>
-					<input
-						type="text"
-						id="name"
-						name="name"
-						placeholder="Name of Dish"
-						bind:value={selectedDish.name}
-						class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
-						required
-					/>
-				</div>
-
-				<div class="mt-2 flex flex-col">
-					<label for="description" class="">Dish Description</label>
-					<textarea
-						id="description"
-						name="description"
-						bind:value={selectedDish.description}
-						placeholder="e.g. creamy and tasty"
-						class="textarea focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
-						required
-					></textarea>
-				</div>
-
-				<select
-					class="select border-secondary focus:ring-secondary mt-2 border focus:ring-2 focus:outline-none"
-					name="category"
-					bind:value={selectedDish.category}
-					required
-				>
-					<option value="" disabled selected>Select Dish Category</option>
-					<option value="Main Dish">Main Dish</option>
-					<option value="Seafood">Seafood</option>
-					<option value="Drinks & Sides">Drinks & Sides</option>
-				</select>
-
-				<div class="mt-2 flex flex-col">
-					<label for="image" class="">Image of Dish</label>
-					<input
-						type="text"
-						id="image"
-						name="image"
-						bind:value={selectedDish.image}
-						placeholder="e.g. https://friedricensauce.img"
-						class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
-						required
-					/>
-				</div>
-
-				<div class="mt-2 flex flex-col">
-					<label for="quantity" class="">Quantity of Dish</label>
-					<input
-						type="number"
-						id="quantity"
-						name="quantity"
-						bind:value={selectedDish.quantity}
-						defaultValue="1"
-						min="1"
-						class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
-						required
-					/>
-				</div>
-
-				<div class="mt-2 flex flex-col">
-					<label for="defaultAmount" class="">Dish Amount</label>
-					<input
-						type="text"
-						name="defaultAmount"
-						id="defaultAmount"
-						bind:value={selectedDish.defaultAmount}
-						placeholder="e.g. 5500"
-						class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
-						required
-					/>
-				</div>
-
-				<div class="mt-2 flex flex-col">
-					<label for="promoAmount" class="">Promo Amount(Optional)</label>
-					<input
-						type="text"
-						id="promoAmount"
-						name="promoAmount"
-						bind:value={selectedDish.promoAmount}
-						placeholder="e.g. 2500"
-						class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
-					/>
-				</div>
-
-				<button type="submit" name="editDish" class="btn btn-secondary mt-4">Save Edit</button>
-			</form>
 		</div>
 	</div>
-</div>
+{:else}
+	<div class="drawer drawer-end z-[9999]">
+		<input id="my-drawer-4" type="checkbox" class="drawer-toggle" />
+		<div class="drawer-content"></div>
+		<div class="drawer-side">
+			<label for="my-drawer-4" aria-label="close sidebar" class="drawer-overlay"></label>
+
+			<div
+				class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4 pl-6 md:min-w-1/3"
+			>
+				<div>
+					<button
+						onclick={closeSideBar}
+						class="hover:text-secondary items-start justify-start hover:underline"
+						><span class="text-secondary">&lt&lt</span> Back</button
+					>
+				</div>
+				<h2 class="mb-2 text-xl font-bold">Edit Your Dish</h2>
+				<div role="alert" class="alert alert-info mt-4">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+						class="h-6 w-6 shrink-0 stroke-current"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						></path>
+					</svg>
+					<span>You must be logged as an admin to edit a Dish.</span>
+					<div>
+						<a onclick={closeSideBar} href="/admin/admin-login">
+							<button class="btn btn-sm btn-primary">Login</button>
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
