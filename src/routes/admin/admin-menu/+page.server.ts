@@ -1,19 +1,33 @@
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
+	const search = url.searchParams.get('search')?.trim();
+	 const category = url.searchParams.get('category')?.trim();
+	let dishes;
+
 	try {
-		const dishes = await locals.pb.collection('dishes').getFullList({
-			sort: '-created',
-			expand: 'user' // if you want related user data
-		});
+		if (search) {
+			dishes = await locals.pb.collection('dishes').getFullList({
+				filter: `name ~ "${search}" || description ~ "${search}"`,
+				sort: '-created'
+			});
+		} else {
+			dishes = await locals.pb.collection('dishes').getFullList({
+				sort: '-created',
+				expand: 'user' // Optional: only if you use user data
+			});
+		}
 
 		return {
-			dishes
+			dishes,
+			searchTerm: search ?? ''
 		};
 	} catch (error) {
 		console.error('Failed to fetch dishes:', error);
 		return {
-			dishes: []
+			dishes: [],
+			searchTerm: search ?? '',
+			error: 'Failed to load dishes'
 		};
 	}
 };
@@ -40,5 +54,8 @@ export const actions = {
 			return { success: false, error: 'Update failed.' };
 		}
 	}
-};
+
+ };
+
+
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { page } from '$app/stores';
 	import { addToCart } from '$lib/stores/cart';
 	import { onMount } from 'svelte';
@@ -6,7 +7,10 @@
 	import { fly } from 'svelte/transition';
 
 	// Optional: rename for clarity
-	const dishes = $page.data.dishes;
+	// const dishes = $page.data.dishes;
+
+	// src/routes/admin/+page.svelte
+	const dishes = $page.form?.dishes ?? $page.data.dishes;
 
 	// Group dishes by category
 	// const groupedDishes = {
@@ -18,7 +22,11 @@
 	let selectedCategory: string = 'All';
 	const categories = [...new Set(dishes.map((d) => d.category).filter(Boolean))].sort() as string[];
 
-	let searchTerm: string = '';
+	let searchTerm = $page.data.searchTerm ?? '';
+	let searchSubmitted = $page.data.searchTerm?.trim() !== '';
+	// $: searchSubmitted = searchTerm.trim() !== '';
+
+	// let searchTerm: string = '';
 
 	let selectedDish = {
 		id: '',
@@ -131,13 +139,45 @@
 
 <!-- Search Input -->
 <div class="flex items-center justify-center">
-	<input
-		type="text"
-		placeholder="Search dishes..."
-		bind:value={searchTerm}
-		class="input input-bordered border-secondary focus:ring-secondary w-full max-w-xs border focus:ring-2 focus:outline-none"
-	/>
+	<form method="GET" use:enhance class="flex gap-2">
+		<input
+			required
+			type="text"
+			name="search"
+			placeholder="Search dishes..."
+			bind:value={searchTerm}
+			class="input input-bordered border-secondary focus:ring-secondary w-full max-w-xs border focus:ring-2 focus:outline-none md:w-[400px]"
+		/>
+		{#if searchSubmitted}
+			<!-- svelte-ignore a11y_consider_explicit_label -->
+
+			<a href="/admin/admin-menu" class="btn btn-secondary">
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+					<path
+						fill="none"
+						stroke="currentColor"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="1.5"
+						d="M6.758 17.243L12.001 12m5.243-5.243L12 12m0 0L6.758 6.757M12.001 12l5.243 5.243"
+					/>
+				</svg>
+			</a>
+		{:else}
+			<button type="submit" class="btn btn-secondary">Search</button>
+		{/if}
+	</form>
 </div>
+
+{#if dishes.length > 0 && searchSubmitted}
+	<p class="mt-6 text-center text-gray-500">Showing results for "{searchTerm}".</p>
+{/if}
+
+{#if dishes.length === 0}
+	<p class="mt-6 text-center text-gray-500">
+		No dishes found{searchTerm ? ` for "${searchTerm}"` : ''}.
+	</p>
+{/if}
 
 <div class="mb-4 flex flex-wrap gap-2 px-6 filter">
 	<input
