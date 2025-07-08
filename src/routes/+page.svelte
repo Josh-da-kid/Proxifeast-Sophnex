@@ -3,7 +3,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import Nav from '$lib/Nav.svelte';
 	import { cart, fetchCart, total } from '$lib/stores/cart';
-	import { derived } from 'svelte/store';
+	import { derived, get } from 'svelte/store';
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
 	import { afterNavigate, goto } from '$app/navigation';
@@ -43,30 +43,30 @@
 
 	console.log('Grouped dishes:', groupedDishes);
 
-	async function addToCart(dish: any) {
-		const quantity = dishQuantities[dish.id] ?? 1;
-		try {
-			const formData = new FormData();
-			formData.append('name', dish.name);
-			formData.append('description', dish.description);
-			formData.append('category', dish.category);
-			formData.append('image', dish.image);
-			formData.append('quantity', quantity.toString());
-			formData.append('defaultAmount', dish.defaultAmount.toString());
-			if (dish.promoAmount) {
-				formData.append('promoAmount', dish.promoAmount.toString());
-			}
+	// async function addToCart(dish: any) {
+	// 	const quantity = dishQuantities[dish.id] ?? 1;
+	// 	try {
+	// 		const formData = new FormData();
+	// 		formData.append('name', dish.name);
+	// 		formData.append('description', dish.description);
+	// 		formData.append('category', dish.category);
+	// 		formData.append('image', dish.image);
+	// 		formData.append('quantity', quantity.toString());
+	// 		formData.append('defaultAmount', dish.defaultAmount.toString());
+	// 		if (dish.promoAmount) {
+	// 			formData.append('promoAmount', dish.promoAmount.toString());
+	// 		}
 
-			await fetch('/add-to-cart', {
-				method: 'POST',
-				body: formData
-			});
+	// 		await fetch('/add-to-cart', {
+	// 			method: 'POST',
+	// 			body: formData
+	// 		});
 
-			alert('Dish added to cart!');
-		} catch (err) {
-			console.error('Error adding to cart:', err);
-		}
-	}
+	// 		alert('Dish added to cart!');
+	// 	} catch (err) {
+	// 		console.error('Error adding to cart:', err);
+	// 	}
+	// }
 
 	function closeSideBar() {
 		const drawer = document.getElementById('my-drawer-4') as HTMLInputElement;
@@ -86,13 +86,14 @@
 	let selectedCategoryInput = $state('All');
 
 	onMount(() => {
-		if (dishes?.length) {
-			for (const dish of dishes) {
-				if (!(dish.id in dishQuantities)) {
-					dishQuantities[dish.id] = 1;
-				}
-			}
-		}
+		const url = get(page).url;
+		// if (dishes?.length) {
+		// 	for (const dish of dishes) {
+		// 		if (!(dish.id in dishQuantities)) {
+		// 			dishQuantities[dish.id] = 1;
+		// 		}
+		// 	}
+		// }
 
 		searchInput = $page.url.searchParams.get('search') ?? '';
 		selectedCategoryInput = $page.url.searchParams.get('category') ?? 'All';
@@ -115,7 +116,7 @@
 	const user = derived(page, ($page) => $page.data.user);
 
 	async function clearSearch() {
-		await goto('/admin/admin-menu'); // navigate
+		await goto('/'); // navigate
 		searchInput = '';
 		window.location.reload(); // force full browser reload after navigation
 	}
@@ -139,7 +140,7 @@
 		if (selectedCategoryInput && selectedCategoryInput !== 'All')
 			query.set('category', selectedCategoryInput);
 
-		const target = `/admin/admin-menu?${query.toString()}`;
+		const target = `/?${query.toString()}`;
 
 		await goto(target); // navigate
 		window.location.reload(); // force full page reload
@@ -312,9 +313,9 @@
 									<div class="tooltip" data-tip="add to cart">
 										<!-- svelte-ignore a11y_click_events_have_key_events -->
 										<!-- svelte-ignore a11y_no_static_element_interactions -->
+										<!-- onclick={() => addToCart(dish)} -->
 										<svg
 											class="text-secondary cursor-pointer"
-											onclick={() => addToCart(dish)}
 											xmlns="http://www.w3.org/2000/svg"
 											width="28"
 											height="28"
