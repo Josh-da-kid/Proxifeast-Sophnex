@@ -6,7 +6,7 @@
 	import { derived } from 'svelte/store';
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
-	import { afterNavigate } from '$app/navigation';
+	import { afterNavigate, goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import pb from '$lib/pb';
 
@@ -96,6 +96,7 @@
 
 		searchInput = $page.url.searchParams.get('search') ?? '';
 		selectedCategoryInput = $page.url.searchParams.get('category') ?? 'All';
+
 		if (successAlert) {
 			setTimeout(() => {
 				successAlert = false;
@@ -112,6 +113,37 @@
 	let alert = $state(false);
 
 	const user = derived(page, ($page) => $page.data.user);
+
+	async function clearSearch() {
+		await goto('/admin/admin-menu'); // navigate
+		searchInput = '';
+		window.location.reload(); // force full browser reload after navigation
+	}
+
+	// function handleSubmit(e: Event) {
+	// 		if (!searchInput.trim() && selectedCategoryInput === 'All') {
+	// 			e.preventDefault(); // prevent empty search submit
+	// 		}
+	// 	}
+
+	async function handleSearchSubmit(e: Event) {
+		e.preventDefault();
+
+		if (!searchInput.trim() && selectedCategoryInput === 'All') {
+			// Do nothing if no filters
+			return;
+		}
+
+		const query = new URLSearchParams();
+		if (searchInput.trim()) query.set('search', searchInput.trim());
+		if (selectedCategoryInput && selectedCategoryInput !== 'All')
+			query.set('category', selectedCategoryInput);
+
+		const target = `/admin/admin-menu?${query.toString()}`;
+
+		await goto(target); // navigate
+		window.location.reload(); // force full page reload
+	}
 </script>
 
 <div class="text-base-content flex min-h-screen flex-col">
@@ -150,16 +182,7 @@
 
 	<!-- Search Input -->
 	<section id="menu" class="items-center justify-center gap-2 sm:flex">
-		<form
-			method="GET"
-			onsubmit={(e) => {
-				if (!searchInput.trim() && selectedCategoryInput === 'All') {
-					e.preventDefault();
-				}
-			}}
-			use:enhance
-			class="gap-2 sm:flex"
-		>
+		<form method="GET" onsubmit={handleSearchSubmit} class="gap-2 sm:flex">
 			<div class="flex items-center justify-center gap-2 p-2">
 				<input
 					type="text"
@@ -172,7 +195,7 @@
 				{#if searchInput.trim() && $searchSubmitted}
 					<!-- svelte-ignore a11y_consider_explicit_label -->
 
-					<a href="/#menu" class="btn btn-secondary">
+					<button type="button" onclick={clearSearch} class="btn btn-secondary">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
 							<path
 								fill="none"
@@ -183,7 +206,7 @@
 								d="M6.758 17.243L12.001 12m5.243-5.243L12 12m0 0L6.758 6.757M12.001 12l5.243 5.243"
 							/>
 						</svg>
-					</a>
+					</button>
 				{/if}
 				{#if searchInput.length > 0 && !$searchSubmitted}
 					<button type="submit" class="btn btn-secondary">Search</button>

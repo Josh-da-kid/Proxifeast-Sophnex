@@ -74,10 +74,10 @@
 		// searchSubmitted = searchTerm !== '';
 
 		searchInput = $page.url.searchParams.get('search') ?? '';
-		console.log({ category: $page.url.searchParams.get('category') });
+		// console.log({ category: $page.url.searchParams.get('category') });
 		selectedCategoryInput = $page.url.searchParams.get('category') ?? 'All';
 		console.log({ selectedCategoryInput });
-		console.log('Hello');
+		// console.log('Hello');
 
 		if (successAlert) {
 			setTimeout(() => {
