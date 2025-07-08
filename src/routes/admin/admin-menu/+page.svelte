@@ -95,6 +95,7 @@
 
 	async function clearSearch() {
 		await goto('/admin/admin-menu'); // navigate
+		searchInput = '';
 		window.location.reload(); // force full browser reload after navigation
 	}
 
