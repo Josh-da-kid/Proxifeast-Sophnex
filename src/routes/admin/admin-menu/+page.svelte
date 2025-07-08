@@ -1,34 +1,17 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { addToCart } from '$lib/stores/cart';
 	import { onMount } from 'svelte';
-	import { derived } from 'svelte/store';
+	import { derived, get } from 'svelte/store';
 	import { fly } from 'svelte/transition';
-
-	// Optional: rename for clarity
-	// const dishes = $page.data.dishes;
 
 	// src/routes/admin/+page.svelte
 	const dishes = $page.form?.dishes ?? $page.data.dishes;
 
-	// Group dishes by category
-	// const groupedDishes = {
-	// 	'Main Dish': [],
-	// 	'Seafood': [],
-	// 	'Drinks & Sides': []
-	// };
+	const categories = $page.data.categories ?? [];
 
-	let selectedCategory: string = 'All';
-	const categories = [...new Set(dishes.map((d) => d.category).filter(Boolean))].sort() as string[];
-
-	let searchTerm = $page.data.searchTerm ?? '';
-	let searchSubmitted = $page.data.searchTerm?.trim() !== '';
-	// $: searchSubmitted = searchTerm.trim() !== '';
-
-	// let searchTerm: string = '';
-
-	let selectedDish = {
+	let selectedDish = $state({
 		id: '',
 		name: '',
 		description: '',
@@ -37,8 +20,8 @@
 		quantity: 1,
 		defaultAmount: '',
 		promoAmount: ''
-	};
-	// Dynamically group by category
+	});
+
 	const groupedDishes: Record<string, typeof dishes> = {};
 
 	for (const dish of dishes) {
@@ -63,15 +46,25 @@
 		if (drawer) drawer.checked = false;
 	}
 
-	let successAlert = false;
-	let errorAlert = false;
+	let successAlert = $state(false);
+	let errorAlert = $state(false);
 	if ($page.form?.success) {
 		successAlert = true;
 	} else if ($page.form?.error) {
 		errorAlert = true;
 	}
 
+	let searchTerm = $state('');
+	let selectedCategory = $state('All');
+	let searchSubmitted = $state(false);
+
 	onMount(() => {
+		const url = get(page).url;
+
+		searchTerm = url.searchParams.get('search')?.trim() ?? '';
+		selectedCategory = url.searchParams.get('category') ?? 'All';
+		searchSubmitted = searchTerm !== '';
+
 		if (successAlert) {
 			setTimeout(() => {
 				successAlert = false;
@@ -139,17 +132,26 @@
 
 <!-- Search Input -->
 <section class="items-center justify-center gap-2 sm:flex">
-	<div class="flex items-center justify-center gap-2 p-2">
-		<form method="GET" use:enhance class="flex gap-2">
+	<form
+		method="GET"
+		onsubmit={(e) => {
+			if (!searchTerm.trim() && selectedCategory === 'All') {
+				e.preventDefault();
+			}
+		}}
+		use:enhance
+		class="gap-2 sm:flex"
+	>
+		<div class="flex items-center justify-center gap-2 p-2">
 			<input
-				required
 				type="text"
 				name="search"
 				placeholder="Search dishes..."
 				bind:value={searchTerm}
 				class="input input-bordered border-secondary focus:ring-secondary w-full max-w-xs border focus:ring-2 focus:outline-none md:w-[400px]"
 			/>
-			{#if searchSubmitted}
+
+			{#if searchTerm.trim() && searchSubmitted}
 				<!-- svelte-ignore a11y_consider_explicit_label -->
 
 				<a href="/admin/admin-menu" class="btn btn-secondary">
@@ -164,24 +166,30 @@
 						/>
 					</svg>
 				</a>
-			{:else}
+			{/if}
+			{#if searchTerm.length > 0 && !searchSubmitted}
 				<button type="submit" class="btn btn-secondary">Search</button>
 			{/if}
-		</form>
-	</div>
-	<div class="flex items-end justify-end px-11 sm:px-6">
-		<button class="btn border-secondary text-secondary flex text-lg">
-			<span>Filter</span>
-			<span>
-				<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
-					><path
-						fill="currentColor"
-						d="M15 19.88c.04.3-.06.62-.29.83a.996.996 0 0 1-1.41 0L9.29 16.7a.99.99 0 0 1-.29-.83v-5.12L4.21 4.62a1 1 0 0 1 .17-1.4c.19-.14.4-.22.62-.22h14c.22 0 .43.08.62.22a1 1 0 0 1 .17 1.4L15 10.75zM7.04 5L11 10.06v5.52l2 2v-7.53L16.96 5z"
-					/></svg
-				>
-			</span>
-		</button>
-	</div>
+		</div>
+
+		<div class="ml-4 px-2 sm:ml-0 sm:p-3">
+			<select
+				name="category"
+				bind:value={selectedCategory}
+				class="select select-bordered border-secondary focus:ring-secondary w-fit"
+				onchange={(e) => {
+					// auto submit when category changes
+					const form = e.currentTarget?.form;
+					if (form) form.requestSubmit();
+				}}
+			>
+				<option value="All">All Categories</option>
+				{#each categories as category}
+					<option value={category}>{category}</option>
+				{/each}
+			</select>
+		</div>
+	</form>
 </section>
 
 {#if dishes.length > 0 && searchSubmitted}
@@ -190,33 +198,10 @@
 
 {#if dishes.length === 0}
 	<p class="mt-6 text-center text-gray-500">
-		No dishes found{searchTerm ? ` for "${searchTerm}"` : ''}.
+		No dishes found in {selectedCategory ? `${selectedCategory}` : 'all'} category
+		{searchTerm ? ` for "${searchTerm}"` : ''}.
 	</p>
 {/if}
-
-<!-- <div class="mb-4 flex flex-wrap gap-2 px-6 filter">
-	<input
-		class="btn"
-		type="radio"
-		name="category"
-		aria-label="All"
-		value="All"
-		checked={selectedCategory === 'All'}
-		onchange={() => (selectedCategory = 'All')}
-	/>
-
-	{#each categories as category}
-		<input
-			class="btn"
-			type="radio"
-			name="category"
-			aria-label={category}
-			value={category}
-			checked={selectedCategory === category}
-			onchange={() => (selectedCategory = category)}
-		/>
-	{/each}
-</div> -->
 
 {#each Object.entries(groupedDishes).sort( (a, b) => a[0].localeCompare(b[0]) ) as [category, dishesInCategory]}
 	<section class="mb-10 p-6">
@@ -260,7 +245,7 @@
 								{/if}
 							</div>
 
-							<!-- Icons or actions -->
+							<!-- Icons -->
 							<div class="flex gap-3">
 								<!-- View, Edit, etc. -->
 

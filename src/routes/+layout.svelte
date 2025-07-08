@@ -4,7 +4,9 @@
 	import { isAdminPage } from '$lib/menuItems.svelte';
 	import Nav from '$lib/Nav.svelte';
 	import { cart } from '$lib/stores/cart';
+	import { onMount } from 'svelte';
 	import '../app.css';
+	import { afterNavigate } from '$app/navigation';
 
 	let { children } = $props();
 
@@ -27,23 +29,38 @@
 	const unsubscribe = isAdminPage.subscribe((val) => {
 		isAdmin = val;
 	});
+
+	let loading = $state(true);
+	onMount(() => {
+		loading = false;
+	});
+
+	afterNavigate(() => {
+		loading = false;
+	});
 </script>
 
-<div class="flex min-h-screen flex-col">
-	<!-- Fixed Navbar (not part of flow) -->
-	<div class="fixed top-0 z-20 w-full">
-		<Nav />
+{#if loading}
+	<div class="bg-opacity-70 fixed inset-0 z-50 flex items-center justify-center bg-white">
+		<div class="border-secondary h-12 w-12 animate-spin rounded-full border-t-4 border-b-4"></div>
 	</div>
+{:else}
+	<div class="flex min-h-screen flex-col">
+		<!-- Fixed Navbar (not part of flow) -->
+		<div class="fixed top-0 z-20 w-full">
+			<Nav />
+		</div>
 
-	<main class="flex-grow pt-20">{@render children()}</main>
-	<Footer />
-</div>
+		<main class="flex-grow pt-20">{@render children()}</main>
+		<Footer />
+	</div>
+{/if}
 
 {#if $isAdminPage}
 	<!-- Cart FAB Icon -->
 	<label for="my-drawer-5">
 		<div
-			class="tooltip indicator bg-secondary fixed top-28 right-4 z-10 cursor-pointer rounded-full p-4 text-white shadow-xl transition-transform duration-300 hover:scale-105"
+			class="tooltip indicator bg-secondary fixed top-48 right-4 z-10 cursor-pointer rounded-full p-4 text-white shadow-xl transition-transform duration-300 hover:scale-105"
 			data-tip="Add Dish"
 		>
 			<!-- <span class="indicator-item indicator-start badge badge-sm bg-white font-bold text-black">
@@ -62,7 +79,7 @@
 	<!-- Cart FAB Icon -->
 	<label for="my-drawer-5">
 		<div
-			class="tooltip indicator bg-secondary fixed top-28 right-4 z-10 cursor-pointer rounded-full p-4 text-white shadow-xl transition-transform duration-300 hover:scale-105"
+			class="tooltip indicator bg-secondary fixed top-48 right-4 z-10 cursor-pointer rounded-full p-4 text-white shadow-xl transition-transform duration-300 hover:scale-105"
 			data-tip="view cart"
 		>
 			<span class="indicator-item indicator-start badge badge-sm bg-white font-bold text-black">

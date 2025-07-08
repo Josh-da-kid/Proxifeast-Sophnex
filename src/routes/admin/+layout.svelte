@@ -1,8 +1,21 @@
 <script>
+	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { isAdminPage } from '$lib/menuItems.svelte';
+	import { fetchCart } from '$lib/stores/cart';
+	import { onMount } from 'svelte';
 
 	let { children } = $props();
+
+	let loading = true;
+	onMount(() => {
+		loading = false;
+		fetchCart();
+	});
+
+	afterNavigate(() => {
+		loading = false;
+	});
 </script>
 
 <div class="flex min-h-screen flex-col">

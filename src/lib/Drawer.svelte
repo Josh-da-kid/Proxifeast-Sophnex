@@ -2,7 +2,8 @@
 	import { page } from '$app/stores';
 	import { derived } from 'svelte/store';
 	import { isAdminPage } from './menuItems.svelte';
-	import { cart, clearCart, removeFromCart, total } from './stores/cart';
+	import { cart, clearCart, fetchCart, removeFromCart, total } from './stores/cart';
+	import { onMount } from 'svelte';
 
 	function closeSideBar() {
 		const drawerToggle = document.getElementById('my-drawer-4');
@@ -26,6 +27,10 @@
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 
 	console.log($page.data.user);
+
+	onMount(() => {
+		fetchCart();
+	});
 </script>
 
 {#if $isAdminPage && $isLoggedIn}
@@ -198,16 +203,15 @@
 
 				{#if $cart.length > 0}
 					<ul class="space-y-4">
-						{#each $cart as item (item.name)}
+						{#each $cart as item (item.id)}
 							<li class="flex items-center justify-between border-b pb-2 text-lg">
-								<div class="mx-auto flex items-center justify-evenly">
-									<div></div>
-									<p class="font-semibold">{item.name}</p>
-									<p class="text-sm">Qty: {item.quantity} × {item.price}</p>
+								<div class="mx-auto flex flex-col gap-1 text-center">
+									<p class="font-semibold">{item.dishName}</p>
+									<p class="text-sm">Qty: {item.quantity} × ₦{item.dishAmount / item.quantity}</p>
 								</div>
 
 								<button
-									onclick={removeFromCart(item.name)}
+									onclick={() => removeFromCart(item.id)}
 									class="btn btn-xs btn-error mt-2 bg-red-500 p-4 text-lg text-white"
 								>
 									Remove

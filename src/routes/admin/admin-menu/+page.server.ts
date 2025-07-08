@@ -1,36 +1,60 @@
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	const search = url.searchParams.get('search')?.trim();
-	 const category = url.searchParams.get('category')?.trim();
+	const search = url.searchParams.get('search')?.trim() ?? '';
+	const category = url.searchParams.get('category')?.trim() ?? 'All';
+
 	let dishes;
+	let filters: string[] = [];
+
+	if (search) {
+		filters.push(`(name ~ "${search}" || description ~ "${search}")`);
+	}
+
+	if (category && category !== 'All') {
+		filters.push(`category = "${category}"`);
+	}
+
+	const filter = filters.join(' && ');
 
 	try {
-		if (search) {
-			dishes = await locals.pb.collection('dishes').getFullList({
-				filter: `name ~ "${search}" || description ~ "${search}"`,
-				sort: '-created'
-			});
-		} else {
-			dishes = await locals.pb.collection('dishes').getFullList({
-				sort: '-created',
-				expand: 'user' // Optional: only if you use user data
-			});
+		const options: any = {
+			sort: '-created'
+		};
+
+		if (filter) {
+			options.filter = filter;
 		}
+
+		dishes = await locals.pb.collection('dishes').getFullList(options);
+
+		const allDishes = await locals.pb.collection('dishes').getFullList({
+	fields: 'category'
+});
+const categorySet = new Set(
+	allDishes.map((dish) => dish.category).filter(Boolean)
+);
+const categories = Array.from(categorySet).sort();
+
 
 		return {
 			dishes,
-			searchTerm: search ?? ''
+			searchTerm: search,
+			selectedCategory: category,
+			categories
 		};
 	} catch (error) {
 		console.error('Failed to fetch dishes:', error);
 		return {
 			dishes: [],
-			searchTerm: search ?? '',
+			searchTerm: search,
+			selectedCategory: category,
 			error: 'Failed to load dishes'
 		};
 	}
 };
+
+
 
 export const actions = {
 	editDish: async ({ request, locals }) => {
