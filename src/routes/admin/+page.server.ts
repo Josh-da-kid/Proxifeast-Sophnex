@@ -14,6 +14,7 @@ export const actions = {
                 category: data.category,
 				image: data.image,
 				quantity: parseInt(data.quantity),
+				dishAvailability: data.availability,
 				defaultAmount: parseInt(data.defaultAmount),
 				promoAmount: data.promoAmount ? parseInt(data.promoAmount) : null
 			});

@@ -29,8 +29,6 @@
 	// let dishQuantities = {};
 	let dishQuantities: Record<string, number> = {};
 
-
-
 	const groupedDishes: Record<string, typeof dishes> = {};
 
 	for (const dish of dishes) {
@@ -88,16 +86,14 @@
 	let selectedCategoryInput = $state('All');
 
 	onMount(() => {
-
 		if (dishes?.length) {
-		for (const dish of dishes) {
-			if (!(dish.id in dishQuantities)) {
-				dishQuantities[dish.id] = 1;
+			for (const dish of dishes) {
+				if (!(dish.id in dishQuantities)) {
+					dishQuantities[dish.id] = 1;
+				}
 			}
 		}
-	}
 
-	
 		searchInput = $page.url.searchParams.get('search') ?? '';
 		selectedCategoryInput = $page.url.searchParams.get('category') ?? 'All';
 		if (successAlert) {
@@ -247,6 +243,14 @@
 							<p class="text-base-content">{dish.description}</p>
 
 							<div>
+								{#if dish.availability === 'Available'}
+									<span class="badge badge-success">Available</span>
+								{:else if dish.availability === 'Unavailable'}
+									<span class="badge badge-error">Unavailable</span>
+								{/if}
+							</div>
+
+							<div>
 								<span class="font-semibold">Quantity </span>
 								<input
 									type="number"
@@ -256,7 +260,6 @@
 								/>
 							</div>
 							<p class="text-xs text-gray-500">Debug: qty = {dishQuantities[dish.id]}</p>
-
 
 							<div class="mr-3 flex justify-between">
 								<div class="flexx items-baseline gap-2">

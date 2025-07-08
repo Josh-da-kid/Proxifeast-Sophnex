@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { afterNavigate } from '$app/navigation';
+	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { derived, get } from 'svelte/store';
@@ -16,6 +16,7 @@
 		name: '',
 		description: '',
 		category: '',
+		availability: '',
 		image: '',
 		quantity: 1,
 		defaultAmount: '',
@@ -73,7 +74,10 @@
 		// searchSubmitted = searchTerm !== '';
 
 		searchInput = $page.url.searchParams.get('search') ?? '';
+		console.log({ category: $page.url.searchParams.get('category') });
 		selectedCategoryInput = $page.url.searchParams.get('category') ?? 'All';
+		console.log({ selectedCategoryInput });
+		console.log('Hello');
 
 		if (successAlert) {
 			setTimeout(() => {
@@ -88,6 +92,36 @@
 	});
 
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
+
+	async function clearSearch() {
+		await goto('/admin/admin-menu'); // navigate
+		window.location.reload(); // force full browser reload after navigation
+	}
+
+	// function handleSubmit(e: Event) {
+	// 		if (!searchInput.trim() && selectedCategoryInput === 'All') {
+	// 			e.preventDefault(); // prevent empty search submit
+	// 		}
+	// 	}
+
+	async function handleSearchSubmit(e: Event) {
+		e.preventDefault();
+
+		if (!searchInput.trim() && selectedCategoryInput === 'All') {
+			// Do nothing if no filters
+			return;
+		}
+
+		const query = new URLSearchParams();
+		if (searchInput.trim()) query.set('search', searchInput.trim());
+		if (selectedCategoryInput && selectedCategoryInput !== 'All')
+			query.set('category', selectedCategoryInput);
+
+		const target = `/admin/admin-menu?${query.toString()}`;
+
+		await goto(target); // navigate
+		window.location.reload(); // force full page reload
+	}
 </script>
 
 {#if successAlert}
@@ -142,16 +176,7 @@
 
 <!-- Search Input -->
 <section class="items-center justify-center gap-2 sm:flex">
-	<form
-		method="GET"
-		onsubmit={(e) => {
-			if (!searchInput.trim() && selectedCategoryInput === 'All') {
-				e.preventDefault();
-			}
-		}}
-		use:enhance
-		class="gap-2 sm:flex"
-	>
+	<form method="GET" onsubmit={handleSearchSubmit} class="gap-2 sm:flex">
 		<div class="flex items-center justify-center gap-2 p-2">
 			<input
 				type="text"
@@ -164,7 +189,7 @@
 			{#if searchInput.trim() && $searchSubmitted}
 				<!-- svelte-ignore a11y_consider_explicit_label -->
 
-				<a href="/admin/admin-menu" class="btn btn-secondary">
+				<button type="button" onclick={clearSearch} class="btn btn-secondary">
 					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
 						<path
 							fill="none"
@@ -175,7 +200,7 @@
 							d="M6.758 17.243L12.001 12m5.243-5.243L12 12m0 0L6.758 6.757M12.001 12l5.243 5.243"
 						/>
 					</svg>
-				</a>
+				</button>
 			{/if}
 			{#if searchInput.length > 0 && !$searchSubmitted}
 				<button type="submit" class="btn btn-secondary">Search</button>
@@ -233,6 +258,14 @@
 					<div class="card-body">
 						<h4 class="card-title text-primary font-playfair">{dish.name}</h4>
 						<p class="text-base-content">{dish.description}</p>
+
+						<div class="">
+							{#if dish.availability === 'Available'}
+								<span class="badge badge-success">Available</span>
+							{:else if dish.availability === 'Unavailable'}
+								<span class="badge badge-error">Unavailable</span>
+							{/if}
+						</div>
 
 						<div class="mr-3 flex justify-between">
 							<div class="flexx items-baseline gap-2">
@@ -336,17 +369,34 @@
 						></textarea>
 					</div>
 
-					<select
-						class="select border-secondary focus:ring-secondary mt-2 border focus:ring-2 focus:outline-none"
-						name="category"
-						bind:value={selectedDish.category}
-						required
-					>
-						<option value="" disabled selected>Select Dish Category</option>
-						<option value="Main Dish">Main Dish</option>
-						<option value="Seafood">Seafood</option>
-						<option value="Drinks & Sides">Drinks & Sides</option>
-					</select>
+					<div class="mt-2 flex flex-col">
+						<label for="category" class="">Dish Category</label>
+						<select
+							class="select border-secondary focus:ring-secondary border focus:ring-2 focus:outline-none"
+							name="category"
+							bind:value={selectedDish.category}
+							required
+						>
+							<option value="" disabled selected>Select Dish Category</option>
+							<option value="Main Dish">Main Dish</option>
+							<option value="Seafood">Seafood</option>
+							<option value="Drinks & Sides">Drinks & Sides</option>
+						</select>
+					</div>
+
+					<div class="mt-2 flex flex-col">
+						<label for="availability" class="">Dish Availability</label>
+						<select
+							name="availability"
+							bind:value={selectedDish.availability}
+							class="select border-secondary focus:ring-secondary border focus:ring-2 focus:outline-none"
+							required
+						>
+							<option value="" disabled selected>Select Availability</option>
+							<option value="Available">Available</option>
+							<option value="Unavailable">Unavailable</option>
+						</select>
+					</div>
 
 					<div class="mt-2 flex flex-col">
 						<label for="image" class="">Image of Dish</label>

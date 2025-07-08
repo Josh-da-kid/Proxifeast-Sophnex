@@ -135,6 +135,20 @@
 						/>
 					</div>
 
+					<div class="mt-2 flex flex-col">
+						<label for="availability" class="">Dish Availability</label>
+						<select
+							id="availability"
+							name="availability"
+							class="select border-secondary focus:ring-secondary border focus:ring-2 focus:outline-none"
+							required
+						>
+							<option value="" disabled selected>Select Availability</option>
+							<option value="Available">Available</option>
+							<option value="Unavailable">Unavailable</option>
+						</select>
+					</div>
+
 					<button type="submit" name="createDish" class="btn btn-secondary mt-4">Create Dish</button
 					>
 				</form>

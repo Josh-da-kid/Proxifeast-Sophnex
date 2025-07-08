@@ -36,12 +36,14 @@ const categorySet = new Set(
 );
 const categories = Array.from(categorySet).sort();
 
+console.log(category)
 
 		return {
 			dishes,
 			searchTerm: search,
 			selectedCategory: category,
 			categories
+			
 		};
 	} catch (error) {
 		console.error('Failed to fetch dishes:', error);
@@ -52,6 +54,8 @@ const categories = Array.from(categorySet).sort();
 			error: 'Failed to load dishes'
 		};
 	}
+
+	
 };
 
 
@@ -68,6 +72,7 @@ export const actions = {
 				category: data.category,
 				image: data.image,
 				quantity: parseInt(data.quantity),
+				dishAvailability: data.availability,
 				defaultAmount: parseInt(data.defaultAmount),
 				promoAmount: data.promoAmount ? parseInt(data.promoAmount) : null
 			});
