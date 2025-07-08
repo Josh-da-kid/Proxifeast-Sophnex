@@ -56,14 +56,24 @@
 
 	let searchTerm = $state('');
 	let selectedCategory = $state('All');
-	let searchSubmitted = $state(false);
+	// let searchSubmitted = $state(false);
+
+	const searchSubmitted = derived(page, ($page) => {
+		return ($page.url.searchParams.get('search')?.trim() ?? '') !== '';
+	});
+
+	let searchInput = $state('');
+	let selectedCategoryInput = $state('All');
 
 	onMount(() => {
 		const url = get(page).url;
 
-		searchTerm = url.searchParams.get('search')?.trim() ?? '';
-		selectedCategory = url.searchParams.get('category') ?? 'All';
-		searchSubmitted = searchTerm !== '';
+		// searchTerm = url.searchParams.get('search')?.trim() ?? '';
+		// selectedCategory = url.searchParams.get('category') ?? 'All';
+		// searchSubmitted = searchTerm !== '';
+
+		searchInput = $page.url.searchParams.get('search') ?? '';
+		selectedCategoryInput = $page.url.searchParams.get('category') ?? 'All';
 
 		if (successAlert) {
 			setTimeout(() => {
@@ -135,7 +145,7 @@
 	<form
 		method="GET"
 		onsubmit={(e) => {
-			if (!searchTerm.trim() && selectedCategory === 'All') {
+			if (!searchInput.trim() && selectedCategoryInput === 'All') {
 				e.preventDefault();
 			}
 		}}
@@ -147,11 +157,11 @@
 				type="text"
 				name="search"
 				placeholder="Search dishes..."
-				bind:value={searchTerm}
+				bind:value={searchInput}
 				class="input input-bordered border-secondary focus:ring-secondary w-full max-w-xs border focus:ring-2 focus:outline-none md:w-[400px]"
 			/>
 
-			{#if searchTerm.trim() && searchSubmitted}
+			{#if searchInput.trim() && $searchSubmitted}
 				<!-- svelte-ignore a11y_consider_explicit_label -->
 
 				<a href="/admin/admin-menu" class="btn btn-secondary">
@@ -167,7 +177,7 @@
 					</svg>
 				</a>
 			{/if}
-			{#if searchTerm.length > 0 && !searchSubmitted}
+			{#if searchInput.length > 0 && !$searchSubmitted}
 				<button type="submit" class="btn btn-secondary">Search</button>
 			{/if}
 		</div>
@@ -175,7 +185,7 @@
 		<div class="ml-4 px-2 sm:ml-0 sm:p-3">
 			<select
 				name="category"
-				bind:value={selectedCategory}
+				bind:value={selectedCategoryInput}
 				class="select select-bordered border-secondary focus:ring-secondary w-fit"
 				onchange={(e) => {
 					// auto submit when category changes
@@ -192,14 +202,14 @@
 	</form>
 </section>
 
-{#if dishes.length > 0 && searchSubmitted}
-	<p class="mt-6 text-center text-gray-500">Showing results for "{searchTerm}".</p>
+{#if dishes.length > 0 && $searchSubmitted}
+	<p class="mt-6 text-center text-gray-500">Showing results for "{searchInput}".</p>
 {/if}
 
 {#if dishes.length === 0}
 	<p class="mt-6 text-center text-gray-500">
-		No dishes found in {selectedCategory ? `${selectedCategory}` : 'all'} category
-		{searchTerm ? ` for "${searchTerm}"` : ''}.
+		No dishes found in {selectedCategoryInput ? `${selectedCategoryInput}` : 'all'} category
+		{searchInput ? ` for "${searchInput}"` : ''}.
 	</p>
 {/if}
 
