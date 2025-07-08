@@ -86,6 +86,12 @@
 	let selectedCategoryInput = $state('All');
 
 	onMount(() => {
+		if (window.location.hash === '#menu') {
+			const el = document.getElementById('menu');
+			if (el) {
+				el.scrollIntoView({ behavior: 'auto' }); // Or 'smooth' if you want animation
+			}
+		}
 		const url = get(page).url;
 		// if (dishes?.length) {
 		// 	for (const dish of dishes) {
@@ -116,9 +122,8 @@
 	const user = derived(page, ($page) => $page.data.user);
 
 	async function clearSearch() {
-		await goto('/'); // navigate
 		searchInput = '';
-		window.location.reload(); // force full browser reload after navigation
+		window.location.href = '/#menu';
 	}
 
 	// function handleSubmit(e: Event) {
@@ -140,7 +145,7 @@
 		if (selectedCategoryInput && selectedCategoryInput !== 'All')
 			query.set('category', selectedCategoryInput);
 
-		const target = `/?${query.toString()}`;
+		const target = `/?${query.toString()}#menu`;
 
 		await goto(target); // navigate
 		window.location.reload(); // force full page reload
