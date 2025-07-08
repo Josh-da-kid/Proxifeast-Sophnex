@@ -286,9 +286,10 @@
 									bind:value={dishQuantities[dish.id]}
 									class="border-secondary focus:ring-secondary w-[80px] border p-1 focus:ring-2 focus:outline-none"
 									min="1"
+									defaultValue="1"
 								/>
 							</div>
-							<p class="text-xs text-gray-500">Debug: qty = {dishQuantities[dish.id]}</p>
+							<!-- <p class="text-xs text-gray-500">Debug: qty = {dishQuantities[dish.id]}</p> -->
 
 							<div class="mr-3 flex justify-between">
 								<div class="flexx items-baseline gap-2">
