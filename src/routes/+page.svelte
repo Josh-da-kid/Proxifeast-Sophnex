@@ -179,17 +179,17 @@
 		/>
 	</section>
 
-	<h2
-		class="font-playfair text-primary mt-15 mb-8 text-center text-5xl font-semibold"
-		in:fly={{ x: -200, duration: 800 }}
-	>
-		Our Menu
-	</h2>
-
 	<!-- Search Input -->
-	<section id="menu" class="items-center justify-center gap-2 sm:flex">
+	<section id="menu" class="mt-15 items-center justify-center gap-2">
+		<h2
+			class="font-playfair text-primary mt-15 mb-8 text-center text-5xl font-semibold"
+			in:fly={{ x: -200, duration: 800 }}
+		>
+			Our Menu
+		</h2>
+
 		<form method="GET" onsubmit={handleSearchSubmit} class="gap-2 sm:flex">
-			<div class="flex items-center justify-center gap-2 p-2">
+			<div class="mx-auto flex items-center justify-center gap-2 p-2">
 				<input
 					type="text"
 					name="search"
@@ -217,24 +217,24 @@
 				{#if searchInput.length > 0 && !$searchSubmitted}
 					<button type="submit" class="btn btn-secondary">Search</button>
 				{/if}
-			</div>
 
-			<div class="ml-4 px-2 sm:ml-0 sm:p-3">
-				<select
-					name="category"
-					bind:value={selectedCategoryInput}
-					class="select select-bordered border-secondary focus:ring-secondary w-fit"
-					onchange={(e) => {
-						// auto submit when category changes
-						const form = e.currentTarget?.form;
-						if (form) form.requestSubmit();
-					}}
-				>
-					<option value="All">All Categories</option>
-					{#each categories as category}
-						<option value={category}>{category}</option>
-					{/each}
-				</select>
+				<div class="ml-4 px-2 sm:ml-0 sm:p-3">
+					<select
+						name="category"
+						bind:value={selectedCategoryInput}
+						class="select select-bordered border-secondary focus:ring-secondary w-fit"
+						onchange={(e) => {
+							// auto submit when category changes
+							const form = e.currentTarget?.form;
+							if (form) form.requestSubmit();
+						}}
+					>
+						<option value="All">All Categories</option>
+						{#each categories as category}
+							<option value={category}>{category}</option>
+						{/each}
+					</select>
+				</div>
 			</div>
 		</form>
 	</section>
