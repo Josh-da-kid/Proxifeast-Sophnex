@@ -9,6 +9,7 @@
 	import { afterNavigate, goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import pb from '$lib/pb';
+	import { addToCartPB } from '$lib/addToCart';
 
 	// src/routes/admin/+page.svelte
 	const dishes = $page.form?.dishes ?? $page.data.dishes;
@@ -25,9 +26,13 @@
 		return ($page.url.searchParams.get('search')?.trim() ?? '') !== '';
 	});
 
-	// let dishQuantities: Record<string, string> = {};
-	// let dishQuantities = {};
-	let dishQuantities: Record<string, number> = {};
+	let successAlert = false;
+	let errorAlert = false;
+	if ($page.form?.success) {
+		successAlert = true;
+	} else if ($page.form?.error) {
+		errorAlert = true;
+	}
 
 	const groupedDishes: Record<string, typeof dishes> = {};
 
@@ -43,63 +48,54 @@
 
 	console.log('Grouped dishes:', groupedDishes);
 
-	// async function addToCart(dish: any) {
-	// 	const quantity = dishQuantities[dish.id] ?? 1;
-	// 	try {
-	// 		const formData = new FormData();
-	// 		formData.append('name', dish.name);
-	// 		formData.append('description', dish.description);
-	// 		formData.append('category', dish.category);
-	// 		formData.append('image', dish.image);
-	// 		formData.append('quantity', quantity.toString());
-	// 		formData.append('defaultAmount', dish.defaultAmount.toString());
-	// 		if (dish.promoAmount) {
-	// 			formData.append('promoAmount', dish.promoAmount.toString());
-	// 		}
+	let addToCartAlert = $state(false);
 
-	// 		await fetch('/add-to-cart', {
-	// 			method: 'POST',
-	// 			body: formData
-	// 		});
+	let cartErrorAlert = $state(false);
+	let dishQuantities = $state<Record<string, number>>({});
 
-	// 		alert('Dish added to cart!');
-	// 	} catch (err) {
-	// 		console.error('Error adding to cart:', err);
-	// 	}
-	// }
+	async function handleAddToCart(dish: any) {
+		const quantity = Number(dishQuantities[dish.id] || 1);
+
+		// 2. Add to PocketBase cart collection
+		try {
+			await addToCartPB(pb, dish.id, quantity);
+			console.log('done');
+			addToCartAlert = true;
+			setTimeout(() => {
+				addToCartAlert = false;
+			}, 2000);
+			window.location.reload();
+		} catch (err) {
+			console.log('Error adding to cart. Please try again.', err);
+			cartErrorAlert = true;
+			setTimeout(() => {
+				cartErrorAlert = false;
+			}, 2000);
+		}
+
+		console.log('add to cart function called');
+	}
 
 	function closeSideBar() {
 		const drawer = document.getElementById('my-drawer-4') as HTMLInputElement;
 		if (drawer) drawer.checked = false;
 	}
 
-	// let dishQuantity = $state('1');
-	let successAlert = false;
-	let errorAlert = false;
-	if ($page.form?.success) {
-		successAlert = true;
-	} else if ($page.form?.error) {
-		errorAlert = true;
-	}
-
 	let searchInput = $state('');
 	let selectedCategoryInput = $state('All');
 
 	onMount(() => {
+		const url = get(page).url;
 		if (window.location.hash === '#menu') {
 			const el = document.getElementById('menu');
 			if (el) {
 				el.scrollIntoView({ behavior: 'auto' }); // Or 'smooth' if you want animation
 			}
 		}
-		const url = get(page).url;
-		// if (dishes?.length) {
-		// 	for (const dish of dishes) {
-		// 		if (!(dish.id in dishQuantities)) {
-		// 			dishQuantities[dish.id] = 1;
-		// 		}
-		// 	}
-		// }
+
+		for (const dish of dishes) {
+			dishQuantities[dish.id] = 1;
+		}
 
 		searchInput = $page.url.searchParams.get('search') ?? '';
 		selectedCategoryInput = $page.url.searchParams.get('category') ?? 'All';
@@ -107,14 +103,20 @@
 		if (successAlert) {
 			setTimeout(() => {
 				successAlert = false;
-			}, 2000); // Hide after 4 seconds
+			}, 2000);
 		}
 		if (errorAlert) {
 			setTimeout(() => {
 				errorAlert = false;
-			}, 2000); // Hide after 4 seconds
+			}, 2000);
 		}
 	});
+
+	// function updateQuantity(dishId: string, value: string) {
+	// 	const qty = parseInt(value);
+	// 	dishQuantities[dishId] = isNaN(qty) || qty < 1 ? 1 : qty;
+	// 	dishQuantities = { ...dishQuantities }; // ✅ trigger reactivity
+	// }
 
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 	let alert = $state(false);
@@ -122,15 +124,9 @@
 	const user = derived(page, ($page) => $page.data.user);
 
 	async function clearSearch() {
-		searchInput = '';
+		// searchInput = '';
 		window.location.href = '/#menu';
 	}
-
-	// function handleSubmit(e: Event) {
-	// 		if (!searchInput.trim() && selectedCategoryInput === 'All') {
-	// 			e.preventDefault(); // prevent empty search submit
-	// 		}
-	// 	}
 
 	async function handleSearchSubmit(e: Event) {
 		e.preventDefault();
@@ -151,6 +147,54 @@
 		window.location.reload(); // force full page reload
 	}
 </script>
+
+{#if addToCartAlert}
+	<div
+		role="alert"
+		class="alert alert-success fixed top-1/2 z-20 mb-4 ml-2 px-6"
+		in:fly={{ y: -20, duration: 300 }}
+		out:fly={{ y: -20, duration: 300 }}
+	>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			class="h-6 w-6 shrink-0 stroke-current"
+			fill="none"
+			viewBox="0 0 24 24"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M9 12l2 2l4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+			/>
+		</svg>
+		<span>Dish added to cart successfully!</span>
+	</div>
+{/if}
+
+{#if cartErrorAlert}
+	<div
+		role="alert"
+		class="alert alert-error fixed top-1/2 z-20 mb-4"
+		in:fly={{ y: -20, duration: 300 }}
+		out:fly={{ y: -20, duration: 300 }}
+	>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			class="h-6 w-6 shrink-0 stroke-current"
+			fill="none"
+			viewBox="0 0 24 24"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M12 9v2m0 4h.01M12 5a7 7 0 100 14 7 7 0 000-14z"
+			/>
+		</svg>
+		<span>Dish Could not be Added to Cart</span>
+	</div>
+{/if}
 
 <div class="text-base-content flex min-h-screen flex-col">
 	<h3 class="text-secondary mt-4 ml-4 animate-bounce font-bold">Hi {$user?.name || 'there'}!!</h3>
@@ -269,26 +313,30 @@
 
 						<div class="card-body">
 							<h4 class="card-title text-primary font-playfair">{dish.name}</h4>
+
 							<p class="text-base-content">{dish.description}</p>
 
-							<div>
-								{#if dish.availability === 'Available'}
-									<span class="badge badge-success">Available</span>
-								{:else if dish.availability === 'Unavailable'}
-									<span class="badge badge-error">Unavailable</span>
-								{/if}
+							<!-- <p>Availability: {dish.availability}</p> -->
+
+							<div class="mt-1 mb-1 flex justify-between">
+								<div>
+									<span class="font-semibold">Quantity </span>
+									<input
+										type="number"
+										bind:value={dishQuantities[dish.id]}
+										class="border-secondary focus:ring-secondary w-[80px] border p-1 focus:ring-2 focus:outline-none"
+										min="1"
+									/>
+								</div>
+								<div>
+									{#if dish.availability === 'Available'}
+										<span class="badge badge-success">Available</span>
+									{:else if dish.availability === 'Unavailable'}
+										<span class="badge badge-error">Unavailable</span>
+									{/if}
+								</div>
 							</div>
 
-							<div>
-								<span class="font-semibold">Quantity </span>
-								<input
-									type="number"
-									bind:value={dishQuantities[dish.id]}
-									class="border-secondary focus:ring-secondary w-[80px] border p-1 focus:ring-2 focus:outline-none"
-									min="1"
-									defaultValue="1"
-								/>
-							</div>
 							<!-- <p class="text-xs text-gray-500">Debug: qty = {dishQuantities[dish.id]}</p> -->
 
 							<div class="mr-3 flex justify-between">
@@ -319,8 +367,8 @@
 									<div class="tooltip" data-tip="add to cart">
 										<!-- svelte-ignore a11y_click_events_have_key_events -->
 										<!-- svelte-ignore a11y_no_static_element_interactions -->
-										<!-- onclick={() => addToCart(dish)} -->
 										<svg
+											onclick={() => handleAddToCart(dish)}
 											class="text-secondary cursor-pointer"
 											xmlns="http://www.w3.org/2000/svg"
 											width="28"

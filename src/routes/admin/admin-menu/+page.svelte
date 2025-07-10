@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import pb from '$lib/pb';
 	import { onMount } from 'svelte';
 	import { derived, get } from 'svelte/store';
 	import { fly } from 'svelte/transition';
@@ -95,7 +96,7 @@
 
 	async function clearSearch() {
 		await goto('/admin/admin-menu'); // navigate
-		searchInput = '';
+		// searchInput = '';
 		window.location.reload(); // force full browser reload after navigation
 	}
 
@@ -122,6 +123,37 @@
 
 		await goto(target); // navigate
 		window.location.reload(); // force full page reload
+	}
+
+	let deleteModal: HTMLDialogElement;
+	let dishToDelete: any = $state(null);
+	let deleteSuccessful = false;
+	let deleteUnsuccessful = false;
+
+	async function handleDeleteDish() {
+		if (!dishToDelete) return;
+
+		try {
+			await pb.collection('dishes').delete(dishToDelete.id);
+			console.log('Dish deleted');
+
+			deleteModal.close();
+			deleteSuccessful = true;
+			if (deleteSuccessful) {
+				setTimeout(() => {
+					deleteSuccessful = false;
+				}, 2000);
+			}
+			window.location.reload();
+		} catch (error) {
+			console.error('Failed to delete dish:', error);
+			deleteUnsuccessful = true;
+			if (deleteUnsuccessful) {
+				setTimeout(() => {
+					deleteUnsuccessful = false;
+				}, 2000);
+			}
+		}
 	}
 </script>
 
@@ -170,6 +202,54 @@
 			/>
 		</svg>
 		<span>{$page.form.error}</span>
+	</div>
+{/if}
+
+{#if deleteSuccessful}
+	<div
+		role="alert"
+		class="alert alert-success fixed top-1/2 z-20 mb-4 ml-2 px-6"
+		in:fly={{ y: -20, duration: 300 }}
+		out:fly={{ y: -20, duration: 300 }}
+	>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			class="h-6 w-6 shrink-0 stroke-current"
+			fill="none"
+			viewBox="0 0 24 24"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M9 12l2 2l4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+			/>
+		</svg>
+		<span>Dish deleted successfully!</span>
+	</div>
+{/if}
+
+{#if deleteSuccessful}
+	<div
+		role="alert"
+		class="alert alert-error fixed top-1/2 z-20 mb-4"
+		in:fly={{ y: -20, duration: 300 }}
+		out:fly={{ y: -20, duration: 300 }}
+	>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			class="h-6 w-6 shrink-0 stroke-current"
+			fill="none"
+			viewBox="0 0 24 24"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M12 9v2m0 4h.01M12 5a7 7 0 100 14 7 7 0 000-14z"
+			/>
+		</svg>
+		<span>Error Deleting Dish</span>
 	</div>
 {/if}
 
@@ -258,6 +338,7 @@
 
 					<div class="card-body">
 						<h4 class="card-title text-primary font-playfair">{dish.name}</h4>
+
 						<p class="text-base-content">{dish.description}</p>
 
 						<div class="">
@@ -314,6 +395,56 @@
 											/></g
 										></svg
 									>
+								</div>
+								<div class="tooltip" data-tip="delete dish">
+									<!-- svelte-ignore a11y_click_events_have_key_events -->
+									<!-- svelte-ignore a11y_no_static_element_interactions -->
+									<!-- svelte-ignore a11y_consider_explicit_label -->
+									<button
+										class=""
+										onclick={() => {
+											dishToDelete = dish;
+											deleteModal.showModal();
+										}}
+										><svg
+											class="cursor-pointer text-red-500"
+											xmlns="http://www.w3.org/2000/svg"
+											width="24"
+											height="24"
+											viewBox="0 0 24 24"
+											><path
+												fill="currentColor"
+												fill-rule="evenodd"
+												d="m6.774 6.4l.812 13.648a.8.8 0 0 0 .798.752h7.232a.8.8 0 0 0 .798-.752L17.226 6.4zm11.655 0l-.817 13.719A2 2 0 0 1 15.616 22H8.384a2 2 0 0 1-1.996-1.881L5.571 6.4H3.5v-.7a.5.5 0 0 1 .5-.5h16a.5.5 0 0 1 .5.5v.7zM14 3a.5.5 0 0 1 .5.5v.7h-5v-.7A.5.5 0 0 1 10 3zM9.5 9h1.2l.5 9H10zm3.8 0h1.2l-.5 9h-1.2z"
+											/></svg
+										>
+									</button>
+
+									<!-- Open the modal using ID.showModal() method -->
+
+									<dialog id="my_modal_2" bind:this={deleteModal} class="modal">
+										<div class="modal-box">
+											<h3 class="text-lg font-bold">Hey !</h3>
+											{#if dishToDelete}
+												<p class="py-4">
+													Are you sure you want to delete <span class="font-bold"
+														>{dishToDelete.name}</span
+													> from the menu?
+												</p>
+											{:else}
+												<p class="py-4">Loading dish info...</p>
+											{/if}
+											<div class="modal-action">
+												<form method="dialog">
+													<!-- if there is a button in form, it will close the modal -->
+													<button class="btn">Cancel</button>
+												</form>
+												<button onclick={handleDeleteDish} class="btn bg-red-500 text-white"
+													>Delete</button
+												>
+											</div>
+										</div>
+									</dialog>
 								</div>
 							</div>
 						</div>

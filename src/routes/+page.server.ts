@@ -59,7 +59,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	try {
 		const options: any = {
-			sort: '-created'
+			sort: '-created',
+			fields: '*'
 		};
 
 		if (filter) {
