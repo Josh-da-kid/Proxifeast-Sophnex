@@ -543,10 +543,8 @@
 	{/each}
 </div>
 
-<label for="my-drawer-4">
-	<div
-		class="drawer-button bg-secondary text-primary-content fixed right-4 bottom-4 rounded-lg p-4 shadow-lg"
-	>
+<label for="my-drawer-5" class="drawer-button cursor-pointer">
+	<div class="bg-secondary text-primary-content fixed right-4 bottom-4 rounded-lg p-4 shadow-lg">
 		<p class="text-xl font-semibold">Cart Total: ₦{$total.toLocaleString('en-NG')}</p>
 		<p>Items in cart: {$cart.length}</p>
 	</div>
