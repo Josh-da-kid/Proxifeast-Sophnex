@@ -399,7 +399,13 @@
 							if (form) form.requestSubmit();
 						}}
 					>
-						<option onclick={clearSearch} value="All">All Categories</option>
+						<option
+							onclick={() => {
+								// window.location.reload();
+								clearSearch();
+							}}
+							value="All">All Categories</option
+						>
 						{#each categories as category}
 							<option value={category}>{category}</option>
 						{/each}
