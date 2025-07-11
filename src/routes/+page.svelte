@@ -90,6 +90,11 @@
 		if (drawer) drawer.checked = false;
 	}
 
+	function back() {
+		const drawer = document.getElementById('my-drawer-5') as HTMLInputElement;
+		if (drawer) drawer.checked = false;
+	}
+
 	let searchInput = $state('');
 	let selectedCategoryInput = $state('All');
 
@@ -99,7 +104,7 @@
 		if (window.location.hash === '#menu') {
 			const el = document.getElementById('menu');
 			if (el) {
-				el.scrollIntoView({ behavior: 'auto' }); // Or 'smooth' if you want animation
+				el.scrollIntoView({ behavior: 'smooth' }); // Or 'smooth' if you want animation
 			}
 		}
 
@@ -318,13 +323,13 @@
 {/if}
 
 <div class="text-base-content flex min-h-screen flex-col">
-	<h3 class="text-secondary mt-4 ml-4 animate-bounce font-bold">Hi {$user?.name || 'there'}!!</h3>
 	<section
 		id="home"
 		class="hero md:px-20l flex min-h-[75vh] flex-col items-center justify-center overflow-hidden px-6 text-center md:px-0"
 	>
+		<h3 class="text-secondary mt-4 ml-4 animate-bounce font-bold">Hi {$user?.name || 'there'}!!</h3>
 		<h1
-			class="font-playfair text-primary mt-22 mb-4 text-6xl font-bold drop-shadow-md md:text-7xl"
+			class="font-playfair text-primary mb-4 text-6xl font-bold drop-shadow-md md:text-7xl"
 			in:fly={{ y: -100, duration: 800 }}
 		>
 			Your Best Life Now
@@ -394,7 +399,7 @@
 							if (form) form.requestSubmit();
 						}}
 					>
-						<option value="All">All Categories</option>
+						<option onclick={clearSearch} value="All">All Categories</option>
 						{#each categories as category}
 							<option value={category}>{category}</option>
 						{/each}
@@ -477,7 +482,11 @@
 												₦{Number(dish.defaultAmount).toLocaleString()}
 											</p>
 										</div>
-										<span class="badge badge-accent mt-1">
+										<span
+											class="badge badge-accent mt-1"
+											class:bg-gray-100={dish.availability !== 'Available'}
+											class:border-gray-200={dish.availability !== 'Available'}
+										>
 											-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
 										</span>
 									{:else}
@@ -502,7 +511,7 @@
 										<svg
 											onclick={() => handleAddToCart(dish)}
 											class="text-secondary"
-											class:text-gray-200={dish.availability !== 'Available'}
+											class:text-gray-300={dish.availability !== 'Available'}
 											class:cursor-not-allowed={dish.availability !== 'Available'}
 											class:text-secondary={dish.availability === 'Available'}
 											class:cursor-pointer={dish.availability === 'Available'}
@@ -572,7 +581,7 @@
 		<div class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4">
 			<div>
 				<button
-					onclick={closeSideBar}
+					onclick={back}
 					class="hover:text-secondary items-start justify-start hover:underline"
 					><span class="text-secondary">&lt&lt</span> Back</button
 				>
