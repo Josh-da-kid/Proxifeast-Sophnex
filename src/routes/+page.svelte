@@ -394,18 +394,16 @@
 						bind:value={selectedCategoryInput}
 						class="select select-bordered border-secondary focus:ring-secondary w-fit"
 						onchange={(e) => {
-							// auto submit when category changes
-							const form = e.currentTarget?.form;
-							if (form) form.requestSubmit();
+							const selected = e.currentTarget.value;
+							if (selected === 'All') {
+								clearSearch();
+							} else {
+								// auto submit when other categories change
+								e.currentTarget.form?.requestSubmit();
+							}
 						}}
 					>
-						<option
-							onclick={() => {
-								// window.location.reload();
-								clearSearch();
-							}}
-							value="All">All Categories</option
-						>
+						<option value="All">All Categories</option>
 						{#each categories as category}
 							<option value={category}>{category}</option>
 						{/each}
