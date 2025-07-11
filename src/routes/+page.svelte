@@ -455,13 +455,13 @@
 										disabled={dish.availability !== 'Available'}
 									/>
 								</div>
-								<div>
-									{#if dish.availability === 'Available'}
-										<span class="badge badge-success">Available</span>
-									{:else if dish.availability === 'Unavailable'}
-										<span class="badge badge-error">Unavailable</span>
-									{/if}
-								</div>
+							</div>
+							<div>
+								{#if dish.availability === 'Available'}
+									<span class="badge badge-success">Available</span>
+								{:else if dish.availability === 'Unavailable'}
+									<span class="badge badge-error">Unavailable</span>
+								{/if}
 							</div>
 
 							<!-- <p class="text-xs text-gray-500">Debug: qty = {dishQuantities[dish.id]}</p> -->
