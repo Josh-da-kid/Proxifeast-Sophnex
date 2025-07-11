@@ -127,7 +127,7 @@
 
 	let deleteModal: HTMLDialogElement;
 	let dishToDelete: any = $state(null);
-	let deleteSuccessful = false;
+	let deleteSuccessful = $state(false);
 	let deleteUnsuccessful = false;
 
 	async function handleDeleteDish() {

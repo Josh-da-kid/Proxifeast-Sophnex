@@ -2,8 +2,8 @@
 	import { fly, fade, scale } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import Nav from '$lib/Nav.svelte';
-	import { cart, fetchCart, total } from '$lib/stores/cart';
-	import { derived, get } from 'svelte/store';
+	// import { cart, fetchCart, total } from '$lib/stores/cart';
+	import { derived, get, writable } from 'svelte/store';
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
 	import { afterNavigate, goto } from '$app/navigation';
@@ -11,6 +11,7 @@
 	import pb from '$lib/pb';
 	import { addToCartPB } from '$lib/addToCart';
 
+	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 	// src/routes/admin/+page.svelte
 	const dishes = $page.form?.dishes ?? $page.data.dishes;
 
@@ -54,17 +55,25 @@
 	let dishQuantities = $state<Record<string, number>>({});
 
 	async function handleAddToCart(dish: any) {
+		if (dish.availability !== 'Available') return;
 		const quantity = Number(dishQuantities[dish.id] || 1);
 
 		// 2. Add to PocketBase cart collection
 		try {
-			await addToCartPB(pb, dish.id, quantity);
-			console.log('done');
-			addToCartAlert = true;
-			setTimeout(() => {
-				addToCartAlert = false;
-			}, 2000);
-			window.location.reload();
+			if ($isLoggedIn) {
+				await addToCartPB(pb, dish.id, quantity, $user.id, dish.defaultAmount, dish.promoAmount);
+				console.log('done');
+				addToCartAlert = true;
+				setTimeout(() => {
+					addToCartAlert = false;
+				}, 2000);
+				window.location.reload();
+			} else {
+				cartErrorAlert = true;
+				setTimeout(() => {
+					cartErrorAlert = false;
+				}, 2000);
+			}
 		} catch (err) {
 			console.log('Error adding to cart. Please try again.', err);
 			cartErrorAlert = true;
@@ -85,6 +94,7 @@
 	let selectedCategoryInput = $state('All');
 
 	onMount(() => {
+		fetchCart();
 		const url = get(page).url;
 		if (window.location.hash === '#menu') {
 			const el = document.getElementById('menu');
@@ -118,10 +128,9 @@
 	// 	dishQuantities = { ...dishQuantities }; // ✅ trigger reactivity
 	// }
 
-	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 	let alert = $state(false);
 
-	const user = derived(page, ($page) => $page.data.user);
+	export const user = derived(page, ($page) => $page.data.user);
 
 	async function clearSearch() {
 		// searchInput = '';
@@ -146,7 +155,115 @@
 		await goto(target); // navigate
 		window.location.reload(); // force full page reload
 	}
+
+	export const cart = writable<any[]>([]);
+
+	export const total = derived(cart, ($cart) =>
+		$cart.reduce((acc, item) => acc + (item.amount || 0), 0)
+	);
+
+	// export async function fetchCart() {
+	// 	try {
+	// 		const records = await pb.collection('cart').getFullList();
+	// 		cart.set(records);
+	// 	} catch (err) {
+	// 		console.error('Failed to fetch cart:', err);
+	// 	}
+	// }
+
+	export async function fetchCart() {
+		try {
+			console.log('Current user ID:', $user.id);
+			if (!$user.id) return cart.set([]);
+
+			const records = await pb.collection('cart').getFullList({
+				filter: `user="${$user.id}"`,
+				expand: 'dish' // if dish is a relation
+			});
+
+			cart.set(records);
+		} catch (err) {
+			console.error('Failed to fetch cart:', err);
+		}
+	}
+
+	export async function clearCart() {
+		const userId = $user.id;
+		if (!userId) return;
+		try {
+			const items = await pb.collection('cart').getFullList();
+			await Promise.all(items.map((item) => pb.collection('cart').delete(item.id)));
+			await fetchCart();
+		} catch (err) {
+			console.error('Failed to clear cart:', err);
+		}
+		// deleteModal.close();
+	}
+
+	export async function removeFromCart(id: string) {
+		try {
+			await pb.collection('cart').delete(id);
+			await fetchCart();
+		} catch (err) {
+			console.error('Failed to remove item:', err);
+		}
+	}
+
+	let deleteModal: HTMLDialogElement;
+	let clearModal: HTMLDialogElement;
+	let dishToDelete: any = $state(null);
+
+	async function handleDeleteDish() {
+		if (!dishToDelete) return;
+
+		try {
+			await pb.collection('cart').delete(dishToDelete.id);
+			console.log('Dish deleted');
+
+			// deleteModal.close();
+			// deleteSuccessful = true;
+			// if (deleteSuccessful) {
+			// 	setTimeout(() => {
+			// 		deleteSuccessful = false;
+			// 	}, 2000);
+			// }
+			// window.location.reload();
+		} catch (error) {
+			console.error('Failed to delete dish:', error);
+			// deleteUnsuccessful = true;
+			// if (deleteUnsuccessful) {
+			// 	setTimeout(() => {
+			// 		deleteUnsuccessful = false;
+			// 	}, 2000);
+			// }
+		}
+	}
 </script>
+
+<!-- Cart FAB Icon -->
+<label for="my-drawer-5">
+	<div
+		class="tooltip indicator bg-secondary fixed top-48 right-4 z-10 cursor-pointer rounded-full p-4 text-white shadow-xl transition-transform duration-300 hover:scale-105"
+		data-tip="view cart"
+	>
+		<span class="indicator-item indicator-start badge badge-sm bg-white font-bold text-black">
+			<!-- {$cart.reduce((sum, item) => sum + item.quantity, 0)} -->
+			{$cart.length}
+		</span>
+		<svg
+			class="drawer-button"
+			xmlns="http://www.w3.org/2000/svg"
+			width="24"
+			height="24"
+			viewBox="0 0 24 24"
+		>
+			<path
+				fill="currentColor"
+				d="M7.308 21.116q-.633 0-1.067-.434t-.433-1.066t.433-1.067q.434-.433 1.067-.433t1.066.433t.434 1.067t-.434 1.066t-1.066.434m9.384 0q-.632 0-1.066-.434t-.434-1.066t.434-1.067q.434-.433 1.066-.433t1.067.433q.433.434.433 1.067q0 .632-.433 1.066q-.434.434-1.067.434M5.881 5.5l2.669 5.616h6.635q.173 0 .307-.087q.135-.087.231-.24l2.616-4.75q.115-.212.019-.375q-.097-.164-.327-.164zm-.489-1h13.02q.651 0 .98.532q.33.531.035 1.095l-2.858 5.208q-.217.365-.564.573t-.763.208H8.1l-1.215 2.23q-.154.231-.01.5t.433.27h10.384q.214 0 .357.143t.143.357t-.143.356t-.357.144H7.308q-.875 0-1.306-.738t-.021-1.482l1.504-2.68L3.808 3.5H2.5q-.213 0-.357-.143T2 3t.143-.357T2.5 2.5h1.433q.236 0 .429.121q.192.121.298.338zm3.158 6.616h7z"
+			/>
+		</svg>
+	</div>
+</label>
 
 {#if addToCartAlert}
 	<div
@@ -192,7 +309,11 @@
 				d="M12 9v2m0 4h.01M12 5a7 7 0 100 14 7 7 0 000-14z"
 			/>
 		</svg>
-		<span>Dish Could not be Added to Cart</span>
+		{#if $isLoggedIn}
+			<span>Dish Could not be Added to Cart</span>
+		{:else}
+			<span>You must be logged in to add a dish to cart</span>
+		{/if}
 	</div>
 {/if}
 
@@ -319,13 +440,19 @@
 							<!-- <p>Availability: {dish.availability}</p> -->
 
 							<div class="mt-1 mb-1 flex justify-between">
-								<div>
+								<div
+									class="tooltip"
+									data-tip={dish.availability !== 'Available'
+										? 'Dish is unavailable'
+										: 'Set quantity'}
+								>
 									<span class="font-semibold">Quantity </span>
 									<input
 										type="number"
 										bind:value={dishQuantities[dish.id]}
-										class="border-secondary focus:ring-secondary w-[80px] border p-1 focus:ring-2 focus:outline-none"
+										class="border-secondary focus:ring-secondary w-[80px] border p-1 focus:ring-2 focus:outline-none disabled:cursor-not-allowed"
 										min="1"
+										disabled={dish.availability !== 'Available'}
 									/>
 								</div>
 								<div>
@@ -364,12 +491,21 @@
 								<div class="flex gap-3">
 									<!-- View, Edit, etc. -->
 
-									<div class="tooltip" data-tip="add to cart">
+									<div
+										class="tooltip tooltip-left z-5"
+										data-tip={dish.availability !== 'Available'
+											? 'Dish is unavailable'
+											: 'Add to cart'}
+									>
 										<!-- svelte-ignore a11y_click_events_have_key_events -->
 										<!-- svelte-ignore a11y_no_static_element_interactions -->
 										<svg
 											onclick={() => handleAddToCart(dish)}
-											class="text-secondary cursor-pointer"
+											class="text-secondary"
+											class:text-gray-200={dish.availability !== 'Available'}
+											class:cursor-not-allowed={dish.availability !== 'Available'}
+											class:text-secondary={dish.availability === 'Available'}
+											class:cursor-pointer={dish.availability === 'Available'}
 											xmlns="http://www.w3.org/2000/svg"
 											width="28"
 											height="28"
@@ -425,6 +561,152 @@
 		<span>Your purchase has been confirmed!</span>
 	</div>
 {/if}
+
+<!-- cart -->
+<div class="drawer drawer-end z-[9999]">
+	<input id="my-drawer-5" type="checkbox" class="drawer-toggle" />
+	<div class="drawer-content"></div>
+	<div class="drawer-side">
+		<label for="my-drawer-5" aria-label="close sidebar" class="drawer-overlay"></label>
+
+		<div class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4">
+			<div>
+				<button
+					onclick={closeSideBar}
+					class="hover:text-secondary items-start justify-start hover:underline"
+					><span class="text-secondary">&lt&lt</span> Back</button
+				>
+			</div>
+			<h2 class="mb-2 text-xl font-bold">Your Cart</h2>
+
+			{#if $cart.length > 0}
+				<ul class="space-y-4">
+					{#each $cart as item (item.id)}
+						<li class="flex items-center justify-between border-b pb-2 text-lg">
+							<div class="mx-auto flex flex-col gap-1 text-center">
+								<img
+									src={item.expand.dish.image}
+									alt={item.expand.dish.name}
+									class="h-25 w-25 rounded-full"
+								/>
+								<p class="font-semibold">{item.expand.dish.name}</p>
+								<p class="text-sm">
+									Qty: {item.quantity} × ₦{item.expand.dish.promoAmount
+										? item.expand.dish.promoAmount
+										: item.expand.dish.defaultAmount} = ₦{item.amount.toLocaleString()}
+								</p>
+							</div>
+
+							<button
+								onclick={() => {
+									dishToDelete = item;
+									deleteModal.showModal();
+								}}
+								class="btn btn-xs btn-error mt-2 bg-red-500 p-4 text-lg text-white"
+							>
+								Remove
+							</button>
+
+							<!-- Open the modal using ID.showModal() method -->
+
+							<dialog id="my_modal_2" bind:this={deleteModal} class="modal">
+								<div class="modal-box">
+									<h3 class="text-lg font-bold">
+										Hey <span class="text-secondary">{$user.name}!</span>
+									</h3>
+									<!-- <p class="py-4">Are you sure you want to remove  from cart?</p> -->
+									{#if dishToDelete}
+										<p class="py-4">
+											Are you sure you want to remove <span class="font-bold"
+												>{dishToDelete.expand.dish.name}</span
+											> from your cart?
+										</p>
+									{:else}
+										<p class="py-4">Loading dish info...</p>
+									{/if}
+									<div class="modal-action">
+										<form method="dialog">
+											<!-- if there is a button in form, it will close the modal -->
+											<button class="btn">Close</button>
+										</form>
+										<button
+											onclick={() => {
+												removeFromCart(dishToDelete.id);
+												deleteModal.close();
+											}}
+											class="btn btn-xs btn-error bg-red-500 p-4 text-lg text-white"
+										>
+											Remove
+										</button>
+									</div>
+								</div>
+							</dialog>
+						</li>
+					{/each}
+				</ul>
+
+				<div class="mt-4">
+					<p class="text-lg font-semibold">Total: ₦{$total.toLocaleString()}</p>
+					<div class="mt-2 flex gap-2">
+						<button
+							onclick={() => {
+								clearModal.showModal();
+							}}
+							class="btn btn-sm btn-secondary">Clear</button
+						>
+						<button onclick={closeSideBar} class="btn btn-sm btn-primary">Checkout</button>
+
+						<dialog id="my_modal_3" bind:this={clearModal} class="modal">
+							<div class="modal-box">
+								<h3 class="text-lg font-bold">
+									Hey <span class="text-secondary">{$user.name}!</span>
+								</h3>
+								<!-- <p class="py-4">Are you sure you want to remove  from cart?</p> -->
+
+								<p class="py-4">Are you sure you want to clear your cart?</p>
+
+								<div class="modal-action">
+									<form method="dialog">
+										<!-- if there is a button in form, it will close the modal -->
+										<button class="btn">Close</button>
+									</form>
+									<button
+										onclick={clearCart}
+										class="btn btn-xs btn-error bg-red-500 p-4 text-lg text-white"
+									>
+										Clear Cart
+									</button>
+								</div>
+							</div>
+						</dialog>
+					</div>
+				</div>
+			{:else}
+				<div role="alert" class="alert alert-info mt-4">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+						class="h-6 w-6 shrink-0 stroke-current"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						></path>
+					</svg>
+					<span>Your cart is currently empty.</span>
+					<div>
+						<a onclick={closeSideBar} href="/#menu">
+							<button class="btn btn-sm btn-primary">Order</button>
+						</a>
+					</div>
+				</div>
+			{/if}
+		</div>
+	</div>
+</div>
 
 <style>
 	@import url('https://fonts.googleapis.com/css2?family=Playfair+Display&family=Roboto&display=swap');

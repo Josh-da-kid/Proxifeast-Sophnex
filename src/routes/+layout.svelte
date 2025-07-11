@@ -75,15 +75,15 @@
 			>
 		</div>
 	</label>
-{:else}
+
 	<!-- Cart FAB Icon -->
-	<label for="my-drawer-5">
+	<!-- <label for="my-drawer-5">
 		<div
 			class="tooltip indicator bg-secondary fixed top-48 right-4 z-10 cursor-pointer rounded-full p-4 text-white shadow-xl transition-transform duration-300 hover:scale-105"
 			data-tip="view cart"
 		>
 			<span class="indicator-item indicator-start badge badge-sm bg-white font-bold text-black">
-				<!-- {$cart.reduce((sum, item) => sum + item.quantity, 0)} -->
+				{$cart.reduce((sum, item) => sum + item.quantity, 0)}
 				{$cart.length}
 			</span>
 			<svg
@@ -99,7 +99,7 @@
 				/>
 			</svg>
 		</div>
-	</label>
+	</label> -->
 {/if}
 
 <!-- Drawer Cart -->
