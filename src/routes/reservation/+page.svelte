@@ -1,45 +1,43 @@
-<div class="hero bg-base-200 min-h-screen">
-	<!-- <div class="hero-content flex-col lg:flex-row-reverse"> -->
-	<!-- <div class="text-center lg:text-left">
-			<h1 class="text-5xl font-bold">Login now!</h1>
-			<p class="py-6">
-				Provident cupiditate voluptatem et in. Quaerat fugiat ut assumenda excepturi exercitationem
-				quasi. In deleniti eaque aut repudiandae et a id nisi.
-			</p>
-		</div> -->
+<div class="hero mt-6 mb-8 min-h-screen">
 	<div class="card bg-base-100 w-full max-w-sm shrink-0 shadow-2xl">
 		<h1 class="mt-3 flex items-center justify-center text-3xl">Book Reservation</h1>
 		<div class="card-body">
 			<fieldset class="fieldset">
 				<h2 class="font-bold">Guest Details</h2>
-				<label class="label">Full Name</label>
-				<input type="text" class="input" placeholder="John Doe" />
-				<label class="label">Email</label>
-				<input type="email" class="input" placeholder="Email" />
-				<label class="label">Phone Number</label>
-				<input type="text" class="input" placeholder="Phone number" />
+				<label for="name" class="label">Full Name</label>
+				<input id="name" type="text" class="input" placeholder="John Doe" />
+				<label for="email" class="label">Email</label>
+				<input id="email" type="email" class="input" placeholder="Email" />
+				<label for="phone" class="label">Phone Number</label>
+				<input id="phone" type="text" class="input" placeholder="Phone number" />
 
 				<h2 class="mt-3 font-bold">Reservation Details</h2>
-				<label class="label">Date</label>
-				<input type="date" class="input" placeholder="Password" />
-				<label class="label">Time</label>
-				<input type="text" class="input" placeholder="e.g. 30 minutes, 1 hour, All day" />
-				<label class="label">Number of Guests(party size)</label>
-				<input type="number" class="input" defaultValue="20" />
-				<label class="label">Occasion</label>
-				<input type="text" class="input" placeholder="Anniversary Party" />
+				<label for="date" class="label">Date</label>
+				<input id="date" type="date" class="input" placeholder="Password" />
+				<label for="time" class="label">Time</label>
+				<input id="time" type="text" class="input" placeholder="e.g. 30 minutes, 1 hour, All day" />
+				<label for="guest" class="label">Number of Guests(party size)</label>
+				<input id="guest" type="number" class="input" defaultValue="20" />
+				<label for="occasion" class="label">Occasion</label>
+				<input id="occasion" type="text" class="input" placeholder="Anniversary Party" />
 
 				<h2 class="mt-3 font-bold">Special Requests or Preferences(Optional)</h2>
-				<label class="label">Dietary Restrictions</label>
-				<input type="text" class="input" placeholder="e.g. vegetarian, gluten free" />
-				<label class="label">Sitting Preference</label>
+				<label for="restrictions" class="label">Dietary Restrictions</label>
+				<input
+					id="restrictions"
+					type="text"
+					class="input"
+					placeholder="e.g. vegetarian, gluten free"
+				/>
+				<label for="sitting" class="label">Sitting Preference</label>
 				<input
 					type="text"
+					id="sitting"
 					class="input"
 					placeholder="e.g. private room, window seat, private room"
 				/>
-				<label class="label">Accessibility Needs</label>
-				<input type="text" class="input" placeholder="e.g. wheelchair access" />
+				<label for="accessibility" class="label">Accessibility Needs</label>
+				<input id="accessibility" type="text" class="input" placeholder="e.g. wheelchair access" />
 
 				<h2 class="mt-3 font-bold">Payment Preference</h2>
 				<h3>Which method would you like to pay for your reservation?</h3>
@@ -61,23 +59,22 @@
 				</p>
 
 				<h2 class="mt-3 font-bold">Payment Information</h2>
-				<label class="label">Credit or debit card number</label>
-				<input type="text" class="input" placeholder="e.g. John Doe" />
-				<label class="label">Name on the card</label>
-				<input type="text" class="input" placeholder="e.g. wheelchair access" />
-				<label class="label">Expiration date</label>
-				<input type="text" class="input" placeholder="e.g. wheelchair access" />
-				<label class="label">CVV (3-digit security code)</label>
-				<input type="text" class="input" placeholder="e.g. wheelchair access" />
+				<label for="cc" class="label">Credit or debit card number</label>
+				<input id="cc" type="text" class="input" placeholder="e.g. John Doe" />
+				<label for="cardName" class="label">Name on the card</label>
+				<input id="cardName" type="text" class="input" placeholder="e.g. wheelchair access" />
+				<label for="exp" class="label">Expiration date</label>
+				<input id="exp" type="text" class="input" placeholder="e.g. wheelchair access" />
+				<label for="cvv" class="label">CVV (3-digit security code)</label>
+				<input id="cvv" type="text" class="input" placeholder="e.g. wheelchair access" />
 
 				<h2 class="mt-3 font-bold">Confirmation preference</h2>
-				<label class="label mx-auto break-words whitespace-normal"
+				<label for="preference" class="label mx-auto break-words whitespace-normal"
 					>Preferred method to receive confirmation: SMS, phone call, email</label
 				>
 				<!-- <input type="select" class="input" placeholder="e.g. SMS" /> -->
 				<select
-					name="confirmationMethod"
-					id=""
+					name="preference"
 					class="w-fit rounded-lg border border-gray-400/50 p-2 outline-none focus:ring-1 focus:ring-blue-500"
 				>
 					<!-- <option value=""></option> -->
@@ -86,7 +83,6 @@
 					<option value="email">Email</option>
 				</select>
 
-				<div><a class="link link-hover">Forgot password?</a></div>
 				<button class="btn btn-neutral mt-4">Book Now</button>
 			</fieldset>
 		</div>

@@ -683,7 +683,7 @@
 									</form>
 									<button
 										onclick={clearCart}
-										class="btn btn-xs btn-error bg-red-500 p-4 text-lg text-white"
+										class="btn btn-xs btn-error bg-red-500 p-5 text-lg text-white"
 									>
 										Clear Cart
 									</button>
