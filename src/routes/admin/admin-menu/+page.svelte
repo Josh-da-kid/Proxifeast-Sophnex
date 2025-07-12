@@ -83,12 +83,12 @@
 		if (successAlert) {
 			setTimeout(() => {
 				successAlert = false;
-			}, 2000); // Hide after 4 seconds
+			}, 2000);
 		}
 		if (errorAlert) {
 			setTimeout(() => {
 				errorAlert = false;
-			}, 2000); // Hide after 4 seconds
+			}, 2000);
 		}
 	});
 
@@ -99,12 +99,6 @@
 		// searchInput = '';
 		window.location.reload(); // force full browser reload after navigation
 	}
-
-	// function handleSubmit(e: Event) {
-	// 		if (!searchInput.trim() && selectedCategoryInput === 'All') {
-	// 			e.preventDefault(); // prevent empty search submit
-	// 		}
-	// 	}
 
 	async function handleSearchSubmit(e: Event) {
 		e.preventDefault();
