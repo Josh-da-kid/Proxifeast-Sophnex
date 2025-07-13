@@ -19,6 +19,7 @@
 		category: '',
 		availability: '',
 		image: '',
+		imageSource: '',
 		quantity: 1,
 		defaultAmount: '',
 		promoAmount: ''
@@ -38,7 +39,8 @@
 	console.log('Grouped dishes:', groupedDishes);
 
 	function openEditDrawer(dish: any) {
-		selectedDish = { ...dish };
+		const isFileUpload = dish.image?.startsWith('https://playgzero.pb.itcass.net/api/files/');
+		selectedDish = { ...dish, imageSource: isFileUpload ? 'file' : 'url' };
 		const drawer = document.getElementById('my-drawer-4') as HTMLInputElement;
 		if (drawer) drawer.checked = true;
 	}
@@ -148,6 +150,12 @@
 				}, 2000);
 			}
 		}
+	}
+
+	// let imageSource = $state('file'); // 'url' or 'file'
+
+	function handleImageSourceChange(e: any) {
+		selectedDish.imageSource = e.target.value;
 	}
 </script>
 
@@ -468,7 +476,7 @@
 				</div>
 				<h2 class="mb-2 text-xl font-bold">Edit Your Dish</h2>
 
-				<form action="?/editDish" method="POST">
+				<form action="?/editDish" method="POST" enctype="multipart/form-data">
 					<input type="hidden" name="id" value={selectedDish.id} />
 					<div class="flex flex-col">
 						<label for="name" class="">Name of Dish</label>
@@ -524,7 +532,7 @@
 						</select>
 					</div>
 
-					<div class="mt-2 flex flex-col">
+					<!-- <div class="mt-2 flex flex-col">
 						<label for="image" class="">Image of Dish</label>
 						<input
 							type="text"
@@ -533,8 +541,64 @@
 							bind:value={selectedDish.image}
 							placeholder="e.g. https://friedricensauce.img"
 							class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
-							required
+							readonly
 						/>
+					</div> -->
+
+					<div class="mt-4 flex flex-col">
+						<label for="image" class="">Image of Dish</label>
+						<span class="text-gray-700">Edit dish image using:</span>
+
+						<div class="text-secondary space-x-1 p-1">
+							<label for="imageUrl">
+								Manual URL Input
+								<input
+									type="radio"
+									name="imageSource"
+									value="url"
+									id="imageUrl"
+									checked={selectedDish.imageSource === 'url'}
+									onchange={handleImageSourceChange}
+								/>
+							</label>
+							<span class="text-black">Or</span>
+							<label for="imageUpload">
+								File Upload
+								<input
+									type="radio"
+									name="imageSource"
+									value="file"
+									id="imageUpload"
+									checked={selectedDish.imageSource === 'file'}
+									onchange={handleImageSourceChange}
+								/>
+							</label>
+						</div>
+						{#if selectedDish.imageSource === 'url'}
+							<input
+								type="text"
+								id="image"
+								name="imageUrl"
+								bind:value={selectedDish.image}
+								placeholder="e.g. https://friedricensauce.img"
+								class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
+								required
+							/>
+						{:else if selectedDish.imageSource === 'file'}
+							<label for="upload" class="mt-2 cursor-pointer">Click here to upload dish image</label
+							>
+							<input
+								type="file"
+								id="upload"
+								name="imageFile"
+								accept="image/*"
+								class="border-secondary w-fit cursor-pointer border p-2"
+								required
+							/>
+							<small class="mt-1 text-sm text-gray-500"
+								>Only JPEG or PNG files under 2MB are allowed.</small
+							>
+						{/if}
 					</div>
 
 					<div class="mt-2 flex flex-col">

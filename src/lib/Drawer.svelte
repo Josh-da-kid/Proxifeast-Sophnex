@@ -33,6 +33,12 @@
 		await fetchCart();
 		console.log('Cart after fetch:', $cart);
 	});
+
+	let imageSource = $state('file'); // 'url' or 'file'
+
+	function handleImageSourceChange(e: any) {
+		imageSource = e.target.value;
+	}
 </script>
 
 {#if $isAdminPage && $isLoggedIn}
@@ -54,7 +60,7 @@
 				</div>
 				<h2 class="mb-2 text-xl font-bold">Create New Dish</h2>
 
-				<form action="/admin?/createDish" method="POST">
+				<form action="/admin?/createDish" method="POST" enctype="multipart/form-data">
 					<div class="flex flex-col">
 						<label for="name" class="">Name of Dish</label>
 						<input
@@ -91,14 +97,54 @@
 
 					<div class="mt-2 flex flex-col">
 						<label for="image" class="">Image of Dish</label>
-						<input
-							type="text"
-							id="image"
-							name="image"
-							placeholder="e.g. https://friedricensauce.img"
-							class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
-							required
-						/>
+						<span class="text-gray-700">Upload dish image using:</span>
+						<div class="text-secondary space-x-1 p-2">
+							<label for="imageUrl">
+								Manual URL Input
+								<input
+									type="radio"
+									name="imageSource"
+									value="url"
+									id="imageUrl"
+									onchange={handleImageSourceChange}
+								/>
+							</label>
+							<span class="text-black">Or</span>
+							<label for="imageUpload">
+								File Upload
+								<input
+									type="radio"
+									name="imageSource"
+									value="file"
+									checked
+									id="imageUpload"
+									onchange={handleImageSourceChange}
+								/>
+							</label>
+						</div>
+						{#if imageSource === 'url'}
+							<input
+								type="text"
+								id="image"
+								name="imageUrl"
+								placeholder="e.g. https://friedricensauce.img"
+								class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
+								required
+							/>
+						{:else if imageSource === 'file'}
+							<label for="upload" class="mt-2 cursor-pointer">Click here to upload dish image</label
+							>
+							<input
+								type="file"
+								name="imageFile"
+								accept="image/*"
+								class="border-secondary mt-2 w-fit cursor-pointer border p-2"
+								required
+							/>
+							<small class="mt-1 text-sm text-gray-500"
+								>Only JPEG or PNG files under 2MB are allowed.</small
+							>
+						{/if}
 					</div>
 
 					<div class="mt-2 flex flex-col">
