@@ -329,10 +329,10 @@
 	>
 		<h3 class="text-secondary mt-4 ml-4 animate-bounce font-bold">Hi {$user?.name || 'there'}!!</h3>
 		<h1
-			class="font-playfair text-primary mb-4 text-6xl font-bold drop-shadow-md md:text-7xl"
+			class="font-playfair text-primary mb-4 text-4xl font-bold drop-shadow-md sm:text-6xl md:text-7xl"
 			in:fly={{ y: -100, duration: 800 }}
 		>
-			Your Best Life Now
+			Your Feast is Just a Scan Away
 		</h1>
 		<p
 			class="text-base-content mb-8 max-w-xl text-lg md:text-xl"

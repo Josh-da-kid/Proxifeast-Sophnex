@@ -50,8 +50,8 @@
 >
 	<div class="flex-1 px-1">
 		<a href="/" class="font-playfair text-2xl font-bold normal-case md:text-3xl">
-			Chef Zhanga Foods
-		</a>
+			Proxi<span class="text-secondary text-3xl md:text-4xl">Feast </span></a
+		>
 	</div>
 
 	<div class="flex justify-center lg:hidden">
