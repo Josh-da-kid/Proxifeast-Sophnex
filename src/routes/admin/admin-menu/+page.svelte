@@ -124,7 +124,7 @@
 	let deleteModal: HTMLDialogElement;
 	let dishToDelete: any = $state(null);
 	let deleteSuccessful = $state(false);
-	let deleteUnsuccessful = false;
+	let deleteUnsuccessful = $state(false);
 
 	async function handleDeleteDish() {
 		if (!dishToDelete) return;
@@ -140,6 +140,7 @@
 					deleteSuccessful = false;
 				}, 2000);
 			}
+			// await goto('/admin/admin-menu');
 			window.location.reload();
 		} catch (error) {
 			console.error('Failed to delete dish:', error);
@@ -231,7 +232,7 @@
 	</div>
 {/if}
 
-{#if deleteSuccessful}
+{#if deleteUnsuccessful}
 	<div
 		role="alert"
 		class="alert alert-error fixed top-1/2 z-20 mb-4"

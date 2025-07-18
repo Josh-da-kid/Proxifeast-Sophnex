@@ -74,7 +74,7 @@
 	</div>
 
 	{#if $isAdminPage}
-		<nav class="hidden md:flex">
+		<nav class="hidden lg:flex">
 			<a href="/admin" class="btn btn-ghost">Dashboard</a>
 			<a href="/admin/admin-menu" class="btn btn-ghost">Menu</a>
 			<a href="/admin/admin-order" class="btn btn-ghost">Orders</a>
@@ -140,7 +140,7 @@
 
 		<div>
 			<a href="/reservation">
-				<button class="btn btn-ghost bg-secondary ml-2 hidden text-lg md:flex">
+				<button class="btn btn-ghost bg-secondary ml-2 hidden text-lg lg:flex">
 					Book Reservation
 				</button>
 			</a>
@@ -151,7 +151,7 @@
 				<!-- <form action="/logout" method="POST"> -->
 				<button
 					onclick={my_modal_1.showModal()}
-					class="btn btn-ghost ml-2 hidden bg-white text-lg text-blue-700 md:flex"
+					class="btn btn-ghost ml-2 hidden bg-white text-lg text-blue-700 lg:flex"
 				>
 					Logout
 				</button>
@@ -186,7 +186,7 @@
 {#if $isAdminPage}
 	<div class="relative inset-0 z-100 mx-auto overflow-hidden">
 		<input id="my-drawer" type="checkbox" class="drawer-toggle" />
-		<div class="drawer-side sm:hidden">
+		<div class="drawer-side lg:hidden">
 			<label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 			<ul class="menu min-h-full w-80 bg-blue-800 p-4 text-lg text-white">
 				<li>
@@ -256,7 +256,7 @@
 {:else}
 	<div class="relative inset-0 z-100 mx-auto overflow-hidden">
 		<input id="my-drawer" type="checkbox" class="drawer-toggle" />
-		<div class="drawer-side sm:hidden">
+		<div class="drawer-side lg:hidden">
 			<label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 			<ul class="menu min-h-full w-80 bg-blue-800 p-4 text-lg text-white">
 				<li>
