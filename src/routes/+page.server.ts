@@ -29,8 +29,8 @@ console.log('locals.user?.id:');
 				quantity: parseInt(data.quantity),
 				defaultAmount: parseInt(data.defaultAmount),
 				promoAmount: data.promoAmount ? parseInt(data.promoAmount) : null,
-				// user: locals.user.id 
-				user: "s4968zdfd9xeo5s"
+				user: locals.user.id 
+				// user: "s4968zdfd9xeo5s"
 			});
 			console.log('Adding to cart as user:', locals.user?.id);
 			console.log('locals.user:', locals.user); // 👈 Add this

@@ -45,6 +45,7 @@
 	},
 	"dependencies": {
 		"firebase": "^11.9.1",
-		"pocketbase": "^0.26.1"
+		"pocketbase": "^0.26.1",
+		"tailwind-scrollbar-hide": "^4.0.0"
 	}
 }

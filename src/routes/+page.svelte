@@ -63,11 +63,12 @@
 			if ($isLoggedIn) {
 				await addToCartPB(pb, dish.id, quantity, $user.id, dish.defaultAmount, dish.promoAmount);
 				console.log('done');
+				await fetchCart();
 				addToCartAlert = true;
 				setTimeout(() => {
 					addToCartAlert = false;
 				}, 2000);
-				window.location.reload();
+				// window.location.reload();
 			} else {
 				cartErrorAlert = true;
 				setTimeout(() => {
@@ -546,7 +547,9 @@
 </div>
 
 <label for="my-drawer-5" class="drawer-button cursor-pointer">
-	<div class="bg-secondary text-primary-content fixed right-4 bottom-4 rounded-lg p-4 shadow-lg">
+	<div
+		class="bg-secondary text-primary-content fixed right-4 bottom-4 z-50 rounded-lg p-4 shadow-lg"
+	>
 		<p class="text-xl font-semibold">Cart Total: ₦{$total.toLocaleString('en-NG')}</p>
 		<p>Items in cart: {$cart.length}</p>
 	</div>
@@ -667,7 +670,7 @@
 							}}
 							class="btn btn-sm btn-secondary">Clear</button
 						>
-						<button onclick={closeSideBar} class="btn btn-sm btn-primary">Checkout</button>
+						<a onclick={closeSideBar} href="/checkout" class="btn btn-sm btn-primary">Checkout</a>
 
 						<dialog id="my_modal_3" bind:this={clearModal} class="modal">
 							<div class="modal-box">
