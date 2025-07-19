@@ -94,7 +94,7 @@
 					<dialog id="my_modal_2" class="modal">
 						<div class="modal-box text-black">
 							<h3 class="text-lg font-bold">
-								Hey <span class="text-secondary">{$user.name}!</span>
+								Hey <span class="text-secondary">{$user?.name}!</span>
 							</h3>
 							<p class="py-4">Are you sure you want to logout?</p>
 							<div class="modal-action">
@@ -159,7 +159,7 @@
 
 				<dialog id="my_modal_1" class="modal">
 					<div class="modal-box text-black">
-						<h3 class="text-lg font-bold">Hey <span class="text-secondary">{$user.name}!</span></h3>
+						<h3 class="text-lg font-bold">Hey <span class="text-secondary">{$user?.name}!</span></h3>
 						<p class="py-4">Are you sure you want to logout?</p>
 						<div class="modal-action">
 							<form method="dialog">
@@ -224,7 +224,7 @@
 						<dialog id="my_modal_1" class="modal">
 							<div class="modal-box text-black">
 								<h3 class="text-lg font-bold">
-									Hey <span class="text-secondary">{$user.name}!</span>
+									Hey <span class="text-secondary">{$user?.name}!</span>
 								</h3>
 								<p class="py-4">Are you sure you want to logout?</p>
 								<div class="modal-action">
@@ -290,7 +290,7 @@
 						<dialog id="my_modal_2" class="modal">
 							<div class="modal-box text-black">
 								<h3 class="text-lg font-bold">
-									Hey <span class="text-secondary">{$user.name}!</span>
+									Hey <span class="text-secondary">{$user?.name}!</span>
 								</h3>
 								<p class="py-4">Are you sure you want to logout?</p>
 								<div class="modal-action">

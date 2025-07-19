@@ -133,10 +133,10 @@
 		<!-- <section class="flex h-screen overflow-y-auto w-full justify-between gap-8 p-6 px-8 md:flex"> -->
 		<section class="max-h-screen w-full justify-between gap-8 overflow-y-auto p-6 px-8 md:flex">
 			{#if $cart.length > 0}
-				<div class="max-h-[80vh] w-[700px] overflow-y-auto pr-2">
+				<div class="scroll-hidden max-h-[80vh] overflow-y-auto pr-2 md:w-[800px]">
 					<ul class="space-y-4">
 						{#each $cart as item (item.id)}
-							<li class="flex items-center justify-between border-b border-gray-200 pb-4">
+							<li class="items-center justify-between border-b border-gray-200 pb-4 md:flex">
 								<div class="flex gap-2 space-y-2 text-center">
 									<div class="h-24 w-24">
 										<img
@@ -149,7 +149,7 @@
 									<div class="">
 										<p class="text-start font-semibold">{item.expand.dish.name}</p>
 
-										<div class="flex gap-3 text-start">
+										<div class="gap-3 text-start md:flex">
 											{#if item.expand.dish.promoAmount && item.expand.dish.promoAmount < item.expand.dish.defaultAmount}
 												<span
 													class="badge badge-accent mt-1"
@@ -180,7 +180,7 @@
 									</div>
 								</div>
 
-								<div class="flex items-center justify-center gap-4">
+								<div class="mt-2 mr-4 flex items-center justify-center gap-4 sm:mt-0 sm:mr-0">
 									<!-- svelte-ignore a11y_consider_explicit_label -->
 									<button
 										on:click={() => {
@@ -267,7 +267,9 @@
 				</div>
 
 				<!-- Temu-style right-aligned totals and buttons -->
-				<div class="mt-8 flex justify-end md:mt-0 md:mr-12 md:px-8 md:pr-6">
+				<div
+					class="scroll-hidden mt-8 flex max-h-[80vh] justify-end overflow-y-auto md:mt-0 md:mr-12 md:px-12 md:pr-6"
+				>
 					<div class="space-y-3 text-right">
 						<h2 class="mt-4 mb-4 text-start text-2xl font-bold">Order Summary</h2>
 						<div class="flex justify-between">
@@ -275,63 +277,128 @@
 							<p class="text-xl font-bold">₦{$total.toLocaleString()}</p>
 						</div>
 
-						<div class="space-x-4 text-start">
-							<p class="font-bold">Mode of transfer:</p>
+						<form action="" method="POST" class="space-y-4">
+							<div class="space-x-4 text-start">
+								<p class="font-bold">Mode of transfer:</p>
 
-							<label for="transfer">
-								<span>Bank transfer</span>
-								<input type="radio" id="transfer" name="payment" />
-							</label>
+								<label for="transfer">
+									<span>Bank transfer</span>
+									<input type="radio" id="transfer" name="payment" />
+								</label>
 
-							<label for="card">
-								<span>Card Payment</span>
-								<input type="radio" id="card" name="payment" />
-							</label>
-						</div>
+								<label for="card">
+									<span>Card Payment</span>
+									<input type="radio" id="card" name="payment" />
+								</label>
+							</div>
 
-						<div class="space-x-4 text-start">
-							<p class="font-bold">Delivery Type:</p>
+							<div class="space-y-2 space-x-4 text-start">
+								<p class="font-bold">Delivery Type:</p>
 
-							<label for="restaurant">
-								<span>Restaurant Delivery</span>
-								<input type="radio" id="restaurant" name="delivery" />
-							</label>
+								<label for="restaurant" class="flex gap-2">
+									<div class="tooltip" data-tip="hello">
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											width="24"
+											height="24"
+											viewBox="0 0 24 24"
+											><path
+												fill="currentColor"
+												d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8"
+											/></svg
+										>
+									</div>
+									<span>Restaurant Table Delivery</span>
+									<input type="radio" id="restaurant" name="delivery" />
+								</label>
 
-							<label for="home">
-								<span>Home delivery</span>
-								<input type="radio" id="home" name="delivery" />
-							</label>
-						</div>
+								<label for="restaurantPickup" class="flex gap-2">
+									<div class="tooltip" data-tip="hello">
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											width="24"
+											height="24"
+											viewBox="0 0 24 24"
+											><path
+												fill="currentColor"
+												d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8"
+											/></svg
+										>
+									</div>
+									<span>Restaurant Pickup</span>
+									<input type="radio" id="restaurantPickup" name="delivery" />
+								</label>
 
-						<div class="space-x-4 text-start">
-							<p class="font-bold">Contact Info:</p>
-							<label for="phone" class="flex w-[250px] flex-col">
-								<span>Phone Number:</span>
-								<input
-									type="text"
-									placeholder="+2347068346403"
-									id="phone"
-									name="delivery"
-									class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
-								/>
-								<small class="mt-1"
-									><span class="font-bold">Note:</span> you'll be contacted with this phone number when
-									your order is ready</small
+								<label for="home" class="flex gap-2">
+									<div class="tooltip" data-tip="hello">
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											width="24"
+											height="24"
+											viewBox="0 0 24 24"
+											><path
+												fill="currentColor"
+												d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8"
+											/></svg
+										>
+									</div>
+									<span>Home delivery</span>
+									<input type="radio" id="home" name="delivery" />
+								</label>
+							</div>
+
+							<div class="space-y-4 text-start">
+								<label for="table" class="flex w-[150px] flex-col">
+									<span>Table Number:</span>
+									<input
+										type="text"
+										id="table"
+										placeholder="13"
+										class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
+									/>
+								</label>
+
+								<label for="address" class="flex w-[150px] flex-col">
+									<span>Home Address:</span>
+									<input
+										type="text"
+										id="address"
+										placeholder="13"
+										class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
+									/>
+								</label>
+							</div>
+
+							<div class="space-x-4 text-start">
+								<p class="font-bold">Contact Info:</p>
+								<label for="phone" class="flex w-[250px] flex-col">
+									<span>Phone Number:</span>
+									<input
+										type="text"
+										placeholder="+2347068346403"
+										id="phone"
+										name="delivery"
+										class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
+									/>
+									<small class="mt-1"
+										><span class="font-bold">Note:</span> you'll be contacted with this phone number
+										when your order is ready</small
+									>
+								</label>
+							</div>
+
+							<div class="flex items-center justify-center gap-3">
+								<!-- <button class="btn btn-outline btn-sm" on:click={() => clearModal.showModal()}>
+								Clear Cart
+							</button> -->
+								<button
+									class="btn btn-secondary btn-sm w-[200px] rounded-full p-6 transition-transform duration-300 hover:scale-105 md:w-[350px]"
+									on:click={closeSideBar}
 								>
-							</label>
-						</div>
-
-						<div class="flex items-center justify-center gap-3">
-							<!-- <button class="btn btn-outline btn-sm" on:click={() => clearModal.showModal()}>
-							Clear Cart
-						</button> -->
-							<button
-								class="btn btn-secondary btn-sm w-[200px] rounded-full p-6 transition-transform duration-300 hover:scale-105 md:w-[350px]"
-								on:click={closeSideBar}
-							>
-								Checkout
-							</button>
-						</div>
+									Checkout
+								</button>
+							</div>
+						</form>
 					</div>
 				</div>
 			{:else}
@@ -385,3 +452,15 @@
 		</div>
 	</dialog>
 </main>
+
+<style>
+	/* Hide scrollbar but still scroll */
+	.scroll-hidden {
+		scrollbar-width: none; /* Firefox */
+		-ms-overflow-style: none; /* IE 10+ */
+	}
+
+	.scroll-hidden::-webkit-scrollbar {
+		display: none; /* Chrome, Safari, Opera */
+	}
+</style>

@@ -801,7 +801,7 @@
 							<dialog id="my_modal_2" bind:this={deleteModal} class="modal">
 								<div class="modal-box">
 									<h3 class="text-lg font-bold">
-										Hey <span class="text-secondary">{$user.name}!</span>
+										Hey <span class="text-secondary">{$user?.name}!</span>
 									</h3>
 									<!-- <p class="py-4">Are you sure you want to remove  from cart?</p> -->
 									{#if dishToDelete}
