@@ -181,14 +181,6 @@
 								</div>
 
 								<div class="flex items-center justify-center gap-4">
-									<!-- <option value="" disabled selected>Qty</option> -->
-									<!-- <select name="quantity" class="rounded-lg hover:border-black cursor-pointer border border-gray-500 p-2 px-4">
-									{#each Array(100)
-										.fill(0)
-										.map((_, i) => i + 1) as qty}
-										<option value={qty}>{qty}</option>
-									{/each}
-								</select> -->
 									<!-- svelte-ignore a11y_consider_explicit_label -->
 									<button
 										on:click={() => {

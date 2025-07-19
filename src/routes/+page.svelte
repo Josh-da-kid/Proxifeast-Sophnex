@@ -244,6 +244,43 @@
 			// }
 		}
 	}
+
+	async function updateQuantity({
+		itemId,
+		dishId,
+		userId,
+		newQty,
+		promoAmount,
+		defaultAmount
+	}: {
+		itemId: string;
+		dishId: string;
+		userId: string;
+		newQty: number;
+		promoAmount?: number;
+		defaultAmount: number;
+	}) {
+		const unitPrice = promoAmount ?? defaultAmount;
+
+		if (newQty < 1) {
+			await removeFromCart(itemId);
+			return;
+		}
+
+		try {
+			// Update the cart item directly using itemId
+			const updatedAmount = unitPrice * newQty;
+
+			await pb.collection('cart').update(itemId, {
+				quantity: newQty,
+				amount: updatedAmount
+			});
+
+			await fetchCart(); // Refresh cart store
+		} catch (err) {
+			console.error('Failed to update quantity:', err);
+		}
+	}
 </script>
 
 <!-- Cart FAB Icon -->
@@ -606,14 +643,14 @@
 									class="h-25 w-25 rounded-full"
 								/>
 								<p class="font-semibold">{item.expand.dish.name}</p>
-								<p class="text-sm">
+								<!-- <p class="text-sm">
 									Qty: {item.quantity} × ₦{item.expand.dish.promoAmount
 										? item.expand.dish.promoAmount
 										: item.expand.dish.defaultAmount} = ₦{item.amount.toLocaleString()}
-								</p>
+								</p> -->
 							</div>
 
-							<button
+							<!-- <button
 								onclick={() => {
 									dishToDelete = item;
 									deleteModal.showModal();
@@ -621,7 +658,80 @@
 								class="btn btn-xs btn-error mt-2 bg-red-500 p-4 text-lg text-white"
 							>
 								Remove
-							</button>
+							</button> -->
+
+							<div class="flex items-center justify-center gap-4">
+								<!-- svelte-ignore a11y_consider_explicit_label -->
+								<button
+									onclick={() => {
+										if (item.quantity <= 1) {
+											dishToDelete = item;
+											deleteModal.showModal();
+										} else {
+											updateQuantity({
+												itemId: item.id,
+												dishId: item.dish,
+												userId: $user.id,
+												newQty: item.quantity - 1,
+												promoAmount: item.expand.dish.promoAmount,
+												defaultAmount: item.expand.dish.amount
+											});
+										}
+									}}
+									class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
+									><svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="24"
+										height="24"
+										viewBox="0 0 12 12"
+										><path
+											fill="currentColor"
+											d="M2 6a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 2 6"
+										/></svg
+									></button
+								>
+								<span class="text-secondary">{item.quantity}</span>
+								<!-- svelte-ignore a11y_consider_explicit_label -->
+								<button
+									onclick={() => {
+										updateQuantity({
+											itemId: item.id,
+											dishId: item.dish,
+											userId: $user.id,
+											newQty: item.quantity + 1,
+											promoAmount: item.expand.dish.promoAmount,
+											defaultAmount: item.expand.dish.amount
+										});
+									}}
+									class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
+									><svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="24"
+										height="24"
+										viewBox="0 0 24 24"
+										><path
+											fill="currentColor"
+											d="M18 13h-5v5c0 .55-.45 1-1 1s-1-.45-1-1v-5H6c-.55 0-1-.45-1-1s.45-1 1-1h5V6c0-.55.45-1 1-1s1 .45 1 1v5h5c.55 0 1 .45 1 1s-.45 1-1 1"
+										/></svg
+									></button
+								>
+
+								<!-- svelte-ignore a11y_consider_explicit_label -->
+								<button
+									class=" btn-sm cursor-pointer text-red-500 transition-transform duration-300 hover:text-gray-500"
+									onclick={() => {
+										dishToDelete = item;
+										deleteModal.showModal();
+									}}
+								>
+									<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+										><path
+											fill="currentColor"
+											d="M7.616 20q-.672 0-1.144-.472T6 18.385V6H5V5h4v-.77h6V5h4v1h-1v12.385q0 .69-.462 1.153T16.384 20zM17 6H7v12.385q0 .269.173.442t.443.173h8.769q.23 0 .423-.192t.192-.424zM9.808 17h1V8h-1zm3.384 0h1V8h-1zM7 6v13z"
+										/></svg
+									>
+								</button>
+							</div>
 
 							<!-- Open the modal using ID.showModal() method -->
 
