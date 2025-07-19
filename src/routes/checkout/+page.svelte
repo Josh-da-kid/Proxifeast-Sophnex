@@ -126,6 +126,9 @@
 	onDestroy(() => {
 		document.body.classList.remove('overflow-hidden');
 	});
+
+	let deliveryOption = $state('');
+	let paymentOption = $state('');
 </script>
 
 <main>
@@ -183,7 +186,7 @@
 								<div class="mt-2 mr-4 flex items-center justify-center gap-4 sm:mt-0 sm:mr-0">
 									<!-- svelte-ignore a11y_consider_explicit_label -->
 									<button
-										on:click={() => {
+										onclick={() => {
 											if (item.quantity <= 1) {
 												dishToDelete = item;
 												deleteModal.showModal();
@@ -213,7 +216,7 @@
 									<span class="text-secondary">{item.quantity}</span>
 									<!-- svelte-ignore a11y_consider_explicit_label -->
 									<button
-										on:click={() => {
+										onclick={() => {
 											if (item.quantity <= 1) {
 												dishToDelete = item;
 												deleteModal.showModal();
@@ -244,7 +247,7 @@
 									<!-- svelte-ignore a11y_consider_explicit_label -->
 									<button
 										class=" btn-sm cursor-pointer text-red-500 transition-transform duration-300 hover:text-gray-500"
-										on:click={() => {
+										onclick={() => {
 											dishToDelete = item;
 											deleteModal.showModal();
 										}}
@@ -283,12 +286,25 @@
 
 								<label for="transfer">
 									<span>Bank transfer</span>
-									<input type="radio" id="transfer" name="payment" />
+									<input
+										bind:group={paymentOption}
+										type="radio"
+										id="transfer"
+										value="transfer"
+										name="payment"
+										required
+									/>
 								</label>
 
 								<label for="card">
 									<span>Card Payment</span>
-									<input type="radio" id="card" name="payment" />
+									<input
+										bind:group={paymentOption}
+										type="radio"
+										id="card"
+										value="card"
+										name="payment"
+									/>
 								</label>
 							</div>
 
@@ -296,8 +312,12 @@
 								<p class="font-bold">Delivery Type:</p>
 
 								<label for="restaurant" class="flex gap-2">
-									<div class="tooltip" data-tip="hello">
+									<div
+										class="wide-tooltip tooltip tooltip-right relative z-50"
+										data-tip="this is a delivery to the table you're seated on in the restaurant"
+									>
 										<svg
+											class="text-secondary"
 											xmlns="http://www.w3.org/2000/svg"
 											width="24"
 											height="24"
@@ -309,12 +329,23 @@
 										>
 									</div>
 									<span>Restaurant Table Delivery</span>
-									<input type="radio" id="restaurant" name="delivery" />
+									<input
+										bind:group={deliveryOption}
+										value="restaurant"
+										type="radio"
+										id="restaurant"
+										name="delivery"
+										required
+									/>
 								</label>
 
 								<label for="restaurantPickup" class="flex gap-2">
-									<div class="tooltip" data-tip="hello">
+									<div
+										class="wide-tooltip tooltip tooltip-right relative z-50"
+										data-tip="you get to pickup your order in the restaurant counter"
+									>
 										<svg
+											class="text-secondary"
 											xmlns="http://www.w3.org/2000/svg"
 											width="24"
 											height="24"
@@ -326,12 +357,22 @@
 										>
 									</div>
 									<span>Restaurant Pickup</span>
-									<input type="radio" id="restaurantPickup" name="delivery" />
+									<input
+										bind:group={deliveryOption}
+										value="restaurantPickup"
+										type="radio"
+										id="restaurantPickup"
+										name="delivery"
+									/>
 								</label>
 
 								<label for="home" class="flex gap-2">
-									<div class="tooltip" data-tip="hello">
+									<div
+										class="tooltip tooltip-right relative z-50"
+										data-tip="delivery directly to your doorstep"
+									>
 										<svg
+											class="text-secondary"
 											xmlns="http://www.w3.org/2000/svg"
 											width="24"
 											height="24"
@@ -343,30 +384,42 @@
 										>
 									</div>
 									<span>Home delivery</span>
-									<input type="radio" id="home" name="delivery" />
+									<input
+										bind:group={deliveryOption}
+										value="home"
+										type="radio"
+										id="home"
+										name="delivery"
+									/>
 								</label>
 							</div>
 
-							<div class="space-y-4 text-start">
-								<label for="table" class="flex w-[150px] flex-col">
-									<span>Table Number:</span>
-									<input
-										type="text"
-										id="table"
-										placeholder="13"
-										class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
-									/>
-								</label>
+							<!-- <p>Selected: {deliveryOption}</p>
+							<p>Selected: {paymentOption}</p> -->
 
-								<label for="address" class="flex w-[150px] flex-col">
-									<span>Home Address:</span>
-									<input
-										type="text"
-										id="address"
-										placeholder="13"
-										class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
-									/>
-								</label>
+							<div class="space-y-4 text-start">
+								{#if deliveryOption == 'restaurant'}
+									<label for="table" class="flex w-[150px] flex-col">
+										<span>Table Number:</span>
+										<input
+											type="text"
+											id="table"
+											placeholder="13"
+											class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
+											required
+										/>
+									</label>
+								{:else if deliveryOption == 'home'}
+									<label for="address" class="flex w-[250px] flex-col md:w-[300px]">
+										<span>Home Address:</span>
+										<textarea
+											id="address"
+											placeholder="17 murtala muhammad highway, Calabar, Cross River State"
+											class="border-secondary focus:ring-secondary mt-1 h-[100px] rounded-lg border p-2 focus:ring-2 focus:outline-none"
+											required
+										></textarea>
+									</label>
+								{/if}
 							</div>
 
 							<div class="space-x-4 text-start">
@@ -379,6 +432,7 @@
 										id="phone"
 										name="delivery"
 										class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
+										required
 									/>
 									<small class="mt-1"
 										><span class="font-bold">Note:</span> you'll be contacted with this phone number
@@ -393,7 +447,7 @@
 							</button> -->
 								<button
 									class="btn btn-secondary btn-sm w-[200px] rounded-full p-6 transition-transform duration-300 hover:scale-105 md:w-[350px]"
-									on:click={closeSideBar}
+									onclick={closeSideBar}
 								>
 									Checkout
 								</button>
@@ -427,7 +481,7 @@
 				</form>
 				<button
 					class="btn btn-error text-white"
-					on:click={async () => {
+					onclick={async () => {
 						await removeFromCart(dishToDelete.id);
 						deleteModal.close();
 					}}
@@ -447,7 +501,7 @@
 				<form method="dialog">
 					<button class="btn">Cancel</button>
 				</form>
-				<button class="btn btn-error text-white" on:click={clearCart}>Yes, Clear All</button>
+				<button class="btn btn-error text-white" onclick={clearCart}>Yes, Clear All</button>
 			</div>
 		</div>
 	</dialog>
@@ -462,5 +516,11 @@
 
 	.scroll-hidden::-webkit-scrollbar {
 		display: none; /* Chrome, Safari, Opera */
+	}
+
+	.tooltip[data-tip].wide-tooltip::before {
+		max-width: 16rem; /* or whatever size you want */
+		white-space: normal;
+		text-align: left;
 	}
 </style>
