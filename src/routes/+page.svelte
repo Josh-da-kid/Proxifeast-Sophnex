@@ -623,19 +623,60 @@
 		<label for="my-drawer-5" aria-label="close sidebar" class="drawer-overlay"></label>
 
 		<div class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4">
-			<div>
+			<div class="">
 				<button
 					onclick={back}
 					class="hover:text-secondary items-start justify-start hover:underline"
 					><span class="text-secondary">&lt&lt</span> Back</button
 				>
+				<h2 class="text-xl font-bold">Your Cart</h2>
+
+				<!-- cart total -->
+				<div class="z-100 mx-auto rounded-lg bg-lime-200 p-4">
+					<p class="text-lg font-semibold">Total: ₦{$total.toLocaleString()}</p>
+					<div class="mt-2 flex gap-2">
+						<button
+							onclick={() => {
+								clearModal.showModal();
+							}}
+							class="btn btn-sm btn-secondary">Clear</button
+						>
+						<a onclick={closeSideBar} href="/checkout" class="btn btn-sm btn-primary">Checkout</a>
+
+						<dialog id="my_modal_3" bind:this={clearModal} class="modal">
+							<div class="modal-box">
+								<h3 class="text-lg font-bold">
+									Hey <span class="text-secondary">{$user.name}!</span>
+								</h3>
+								<!-- <p class="py-4">Are you sure you want to remove  from cart?</p> -->
+
+								<p class="py-4">Are you sure you want to clear your cart?</p>
+
+								<div class="modal-action">
+									<form method="dialog">
+										<!-- if there is a button in form, it will close the modal -->
+										<button class="btn">Close</button>
+									</form>
+									<button
+										onclick={clearCart}
+										class="btn btn-xs btn-error bg-red-500 p-5 text-lg text-white"
+									>
+										Clear Cart
+									</button>
+								</div>
+							</div>
+						</dialog>
+					</div>
+				</div>
 			</div>
-			<h2 class="mb-2 text-xl font-bold">Your Cart</h2>
 
 			{#if $cart.length > 0}
-				<ul class="space-y-4">
+				<!-- <ul
+					class="max-h-screen w-full justify-between gap-8 space-y-4 overflow-y-auto p-6 px-8 md:flex"
+				> -->
+				<ul class="max-h-[80vh] justify-center space-y-4 overflow-y-auto pr-2">
 					{#each $cart as item (item.id)}
-						<li class="flex items-center justify-between border-b pb-2 text-lg">
+						<li class="flex items-center justify-between border-b border-gray-400 pb-2 text-lg">
 							<div class="mx-auto flex flex-col gap-1 text-center">
 								<img
 									src={item.expand.dish.image}
@@ -643,11 +684,33 @@
 									class="h-25 w-25 rounded-full"
 								/>
 								<p class="font-semibold">{item.expand.dish.name}</p>
-								<!-- <p class="text-sm">
-									Qty: {item.quantity} × ₦{item.expand.dish.promoAmount
-										? item.expand.dish.promoAmount
-										: item.expand.dish.defaultAmount} = ₦{item.amount.toLocaleString()}
-								</p> -->
+								<div class="flex gap-3 text-start">
+									{#if item.expand.dish.promoAmount && item.expand.dish.promoAmount < item.expand.dish.defaultAmount}
+										<span
+											class="badge badge-accent mt-1"
+											class:bg-gray-100={item.expand.dish.availability !== 'Available'}
+											class:border-gray-200={item.expand.dish.availability !== 'Available'}
+										>
+											-{Math.round(
+												(1 - item.expand.dish.promoAmount / item.expand.dish.defaultAmount) * 100
+											)}%
+										</span>
+										<!-- svelte-ignore node_invalid_placement_ssr -->
+										<div class="flex gap-2">
+											<p class="text-secondary font-bold">
+												₦{Number(item.expand.dish.promoAmount).toLocaleString()}
+											</p>
+											<p class="text-gray-400 line-through">
+												₦{Number(item.expand.dish.defaultAmount).toLocaleString()}
+											</p>
+										</div>
+									{:else}
+										<!-- svelte-ignore node_invalid_placement_ssr -->
+										<p class="text-secondary font-bold">
+											₦{Number(item.expand.dish.defaultAmount).toLocaleString()}
+										</p>
+									{/if}
+								</div>
 							</div>
 
 							<!-- <button
@@ -771,7 +834,7 @@
 					{/each}
 				</ul>
 
-				<div class="mt-4">
+				<!-- <div class="mt-4">
 					<p class="text-lg font-semibold">Total: ₦{$total.toLocaleString()}</p>
 					<div class="mt-2 flex gap-2">
 						<button
@@ -787,13 +850,13 @@
 								<h3 class="text-lg font-bold">
 									Hey <span class="text-secondary">{$user.name}!</span>
 								</h3>
-								<!-- <p class="py-4">Are you sure you want to remove  from cart?</p> -->
+								<p class="py-4">Are you sure you want to remove  from cart?</p>
 
 								<p class="py-4">Are you sure you want to clear your cart?</p>
 
 								<div class="modal-action">
 									<form method="dialog">
-										<!-- if there is a button in form, it will close the modal -->
+										if there is a button in form, it will close the modal
 										<button class="btn">Close</button>
 									</form>
 									<button
@@ -806,7 +869,7 @@
 							</div>
 						</dialog>
 					</div>
-				</div>
+				</div> -->
 			{:else}
 				<div role="alert" class="alert alert-info mt-4">
 					<svg
