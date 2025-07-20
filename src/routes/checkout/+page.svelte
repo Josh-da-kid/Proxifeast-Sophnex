@@ -129,6 +129,31 @@
 
 	let deliveryOption = $state('');
 	let paymentOption = $state('');
+
+	// @ts-ignore
+	const PaystackPop = (window as any).PaystackPop;
+
+	let email = $user?.email; // get from form input
+	let amount = $total; // in Naira, e.g. ₦2500
+
+	function payWithPaystack(e: Event) {
+		e.preventDefault();
+		let handler = PaystackPop.setup({
+			key: 'pk_test_xxxxxxxxxxxxxxxxxxx', // replace with your public key
+			email: email,
+			amount: amount * 100, // convert to kobo
+			currency: 'NGN',
+			ref: 'ORD-' + Math.floor(Math.random() * 1000000000 + 1),
+			callback: function (response: any) {
+				alert('Payment complete! Reference: ' + response.reference);
+				// ✅ Save order to DB here
+			},
+			onClose: function () {
+				alert('Transaction was cancelled');
+			}
+		});
+		handler.openIframe();
+	}
 </script>
 
 <main>
@@ -270,13 +295,26 @@
 				>
 					<div class="space-y-3 text-right">
 						<h2 class="mt-4 mb-4 text-start text-2xl font-bold">Order Summary</h2>
-						<div class="flex justify-between">
+						<div class="flex w-full justify-between">
 							<p class="text-xl font-bold">Total:</p>
 							<p class="text-xl font-bold">₦{$total.toLocaleString()}</p>
 						</div>
+						{#if deliveryOption == 'home'}
+							<div class="flex w-full justify-between">
+								<p class="text-start text-lg font-bold text-green-500">DELIVERY FEE:</p>
+								<p class="text-start text-lg font-bold text-green-500">₦2,000</p>
+							</div>
 
-						<form action="" method="POST" class="space-y-4">
-							<div class="space-x-4 text-start">
+							<div class="text-secondary flex w-full justify-between">
+								<p class="text-start text-xl font-bold">Order Total</p>
+								<p class="text-start text-lg font-bold">
+									₦{($total + 2000).toLocaleString()}
+								</p>
+							</div>
+						{/if}
+
+						<form onsubmit={payWithPaystack} class="space-y-4">
+							<div class="space-x-4 text-start md:w-[300px]">
 								<p class="font-bold">Mode of transfer:</p>
 
 								<label for="transfer">
@@ -301,6 +339,17 @@
 										name="payment"
 									/>
 								</label>
+
+								<!-- <label for="onDelivery">
+									<span>Pay on Delivery/Pickup</span>
+									<input
+										bind:group={paymentOption}
+										type="radio"
+										id="onDelivery"
+										value="onDelivery"
+										name="payment"
+									/>
+								</label> -->
 							</div>
 
 							<div class="space-y-2 space-x-4 text-start">
@@ -323,7 +372,7 @@
 											/></svg
 										>
 									</div>
-									<span>Restaurant Table Delivery</span>
+									<span>Dine-in</span>
 									<input
 										bind:group={deliveryOption}
 										value="restaurant"
@@ -351,7 +400,7 @@
 											/></svg
 										>
 									</div>
-									<span>Restaurant Pickup</span>
+									<span>Pickup</span>
 									<input
 										bind:group={deliveryOption}
 										value="restaurantPickup"
@@ -404,6 +453,17 @@
 											required
 										/>
 									</label>
+								{:else if deliveryOption == 'restaurantPickup'}
+									<label for="table" class="flex w-[150px] flex-col">
+										<span>Pickup Time:</span>
+										<input
+											type="text"
+											id="table"
+											placeholder="2:30 pm"
+											class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
+											required
+										/>
+									</label>
 								{:else if deliveryOption == 'home'}
 									<label for="address" class="flex w-[250px] flex-col md:w-[300px]">
 										<span>Home Address:</span>
@@ -419,6 +479,21 @@
 
 							<div class="space-x-4 text-start">
 								<p class="font-bold">Contact Info:</p>
+								<label for="phone" class="flex w-[250px] flex-col">
+									<span>Full Name:</span>
+									<input
+										type="text"
+										placeholder="John Doe"
+										id="name"
+										bind:value={$user.name}
+										name="delivery"
+										class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
+										required
+									/>
+								</label>
+							</div>
+
+							<div class="space-x-4 text-start">
 								<label for="phone" class="flex w-[250px] flex-col">
 									<span>Phone Number:</span>
 									<input
@@ -436,15 +511,20 @@
 								</label>
 							</div>
 
+							<label class="flex justify-center gap-2 text-start md:w-[350px]">
+								<input type="checkbox" id="policy" class="h-8 w-8" required />
+								<span>I confirm my order and agree to the terms and refund policy</span>
+							</label>
+
 							<div class="flex items-center justify-center gap-3">
 								<!-- <button class="btn btn-outline btn-sm" on:click={() => clearModal.showModal()}>
 								Clear Cart
 							</button> -->
 								<button
-									class="btn btn-secondary btn-sm w-[200px] rounded-full p-6 transition-transform duration-300 hover:scale-105 md:w-[350px]"
-									onclick={closeSideBar}
+									type="submit"
+									class="btn btn-secondary btn-sm w-[200px] rounded-full p-6 text-lg transition-transform duration-300 hover:scale-105 md:w-[350px]"
 								>
-									Checkout
+									Submit Order & Pay
 								</button>
 							</div>
 						</form>
