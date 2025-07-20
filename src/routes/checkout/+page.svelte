@@ -217,19 +217,14 @@
 									<!-- svelte-ignore a11y_consider_explicit_label -->
 									<button
 										onclick={() => {
-											if (item.quantity <= 1) {
-												dishToDelete = item;
-												deleteModal.showModal();
-											} else {
-												updateQuantity({
-													itemId: item.id,
-													dishId: item.dish,
-													userId: $user.id,
-													newQty: item.quantity + 1,
-													promoAmount: item.expand.dish.promoAmount,
-													defaultAmount: item.expand.dish.amount
-												});
-											}
+											updateQuantity({
+												itemId: item.id,
+												dishId: item.dish,
+												userId: $user.id,
+												newQty: item.quantity + 1,
+												promoAmount: item.expand.dish.promoAmount,
+												defaultAmount: item.expand.dish.amount
+											});
 										}}
 										class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
 										><svg

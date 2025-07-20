@@ -674,7 +674,7 @@
 				<!-- <ul
 					class="max-h-screen w-full justify-between gap-8 space-y-4 overflow-y-auto p-6 px-8 md:flex"
 				> -->
-				<ul class="max-h-[80vh] justify-center space-y-4 overflow-y-auto pr-2">
+				<ul class="max-h-[80vh] justify-center space-y-4 overflow-y-auto pr-2 scroll-hidden">
 					{#each $cart as item (item.id)}
 						<li class="flex items-center justify-between border-b border-gray-400 pb-2 text-lg">
 							<div class="mx-auto flex flex-col gap-1 text-center">
