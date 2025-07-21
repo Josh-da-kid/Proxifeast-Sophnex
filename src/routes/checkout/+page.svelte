@@ -132,6 +132,7 @@
 	let fullName = '';
 	let phone = $state('');
 	let tableNumber = $state('');
+	let orderTotal = $state('');
 	let homeAddress = $state('');
 	let pickupTime = $state('');
 
@@ -162,7 +163,11 @@
 					totalAmount: $total,
 					type: deliveryOption,
 					user: $user.id,
-					phone
+					phone,
+					tableNumber,
+					homeAddress,
+					orderTotal,
+					pickupTime
 				};
 
 				if (deliveryOption === 'restaurant') {
