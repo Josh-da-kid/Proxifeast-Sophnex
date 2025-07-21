@@ -583,19 +583,5 @@
 </main>
 
 <style>
-	/* Hide scrollbar but still scroll */
-	.scroll-hidden {
-		scrollbar-width: none; /* Firefox */
-		-ms-overflow-style: none; /* IE 10+ */
-	}
 
-	.scroll-hidden::-webkit-scrollbar {
-		display: none; /* Chrome, Safari, Opera */
-	}
-
-	.tooltip[data-tip].wide-tooltip::before {
-		max-width: 16rem; /* or whatever size you want */
-		white-space: normal;
-		text-align: left;
-	}
 </style>
