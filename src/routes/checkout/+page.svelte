@@ -129,6 +129,11 @@
 
 	let deliveryOption = $state('');
 	let paymentOption = $state('');
+	let fullName = '';
+	let phone = $state('');
+	let tableNumber = $state('');
+	let homeAddress = $state('');
+	let pickupTime = $state('');
 
 	// @ts-ignore
 	const PaystackPop = (window as any).PaystackPop;
@@ -138,8 +143,13 @@
 
 	function payWithPaystack(e: Event) {
 		e.preventDefault();
+		if (deliveryOption == 'home') {
+			amount = $total + 2000;
+		} else {
+			amount = $total;
+		}
 		let handler = PaystackPop.setup({
-			key: 'pk_test_xxxxxxxxxxxxxxxxxxx', // replace with your public key
+			key: 'pk_test_9b2f9f60021d75c2ef1ebbddaf0c58d33065c683', // replace with your public key
 			email: email,
 			amount: amount * 100, // convert to kobo
 			currency: 'NGN',
@@ -147,6 +157,39 @@
 			callback: function (response: any) {
 				alert('Payment complete! Reference: ' + response.reference);
 				// ✅ Save order to DB here
+				const orderData = {
+					reference: response.reference,
+					totalAmount: $total,
+					type: deliveryOption,
+					user: $user.id,
+					phone
+				};
+
+				if (deliveryOption === 'restaurant') {
+					orderData.tableNumber = tableNumber;
+				} else if (deliveryOption === 'home') {
+					orderData.homeAddress = homeAddress;
+					orderData.orderTotal = $total + 2000;
+				} else if (deliveryOption === 'restaurantPickup') {
+					orderData.pickupTime = pickupTime;
+				}
+
+				// Save to DB
+				fetch('/api/save-order', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify(orderData)
+				})
+					.then((res) => res.json())
+					.then((data) => {
+						alert('Order saved successfully!');
+					})
+					.catch((err) => {
+						console.error(err);
+						alert('Error saving order.');
+					});
 			},
 			onClose: function () {
 				alert('Transaction was cancelled');
@@ -314,7 +357,7 @@
 						{/if}
 
 						<form onsubmit={payWithPaystack} class="space-y-4">
-							<div class="space-x-4 text-start md:w-[300px]">
+							<!-- <div class="space-x-4 text-start md:w-[300px]">
 								<p class="font-bold">Mode of transfer:</p>
 
 								<label for="transfer">
@@ -340,7 +383,7 @@
 									/>
 								</label>
 
-								<!-- <label for="onDelivery">
+								 <label for="onDelivery">
 									<span>Pay on Delivery/Pickup</span>
 									<input
 										bind:group={paymentOption}
@@ -349,8 +392,8 @@
 										value="onDelivery"
 										name="payment"
 									/>
-								</label> -->
-							</div>
+								</label> 
+							</div> -->
 
 							<div class="space-y-2 space-x-4 text-start">
 								<p class="font-bold">Delivery Type:</p>
@@ -446,8 +489,10 @@
 									<label for="table" class="flex w-[150px] flex-col">
 										<span>Table Number:</span>
 										<input
-											type="text"
+											type="number"
+											min="1"
 											id="table"
+											bind:value={tableNumber}
 											placeholder="13"
 											class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
 											required
@@ -459,6 +504,7 @@
 										<input
 											type="text"
 											id="table"
+											bind:value={pickupTime}
 											placeholder="2:30 pm"
 											class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
 											required
@@ -469,6 +515,7 @@
 										<span>Home Address:</span>
 										<textarea
 											id="address"
+											bind:value={homeAddress}
 											placeholder="17 murtala muhammad highway, Calabar, Cross River State"
 											class="border-secondary focus:ring-secondary mt-1 h-[100px] rounded-lg border p-2 focus:ring-2 focus:outline-none"
 											required
@@ -500,6 +547,7 @@
 										type="text"
 										placeholder="+2347068346403"
 										id="phone"
+										bind:value={phone}
 										name="delivery"
 										class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
 										required
@@ -581,7 +629,3 @@
 		</div>
 	</dialog>
 </main>
-
-<style>
-
-</style>
