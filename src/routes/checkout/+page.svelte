@@ -510,7 +510,7 @@
 											type="text"
 											id="table"
 											bind:value={pickupTime}
-											placeholder="2:30 pm"
+											placeholder="2:30 PM"
 											class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
 											required
 										/>
@@ -538,10 +538,15 @@
 										placeholder="John Doe"
 										id="name"
 										bind:value={$user.name}
+										readonly
 										name="delivery"
 										class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
 										required
 									/>
+									<small
+										><span class="text-secondary mr-1 font-bold">N/B : </span>This value cannot be
+										changed here</small
+									>
 								</label>
 							</div>
 
