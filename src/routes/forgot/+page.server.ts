@@ -25,10 +25,23 @@ export const actions = {
 
 		try {
 			await pb.collection('users').requestPasswordReset(email.toString());
-			return { success: true };
+			// return { success: true };
+				return {
+				error: false,
+				success: true,
+				message: 'A reset Email has been sent to your Inbox, follow the link to reset your password',
+				email: formData?.email
+			};
 		} catch (err) {
 			console.error('Password reset error:', err);
-			return { success: false, error: err.message || 'Failed to send reset email' };
+			// return { success: false, error: err.message || 'Failed to send reset email' };
+			
+			return {
+				error: true,
+				success: false,
+				message: err?.message || 'Failed to send reset email',
+				email: formData?.email
+			};
 		}
 
 		// 5. Redirect to login with success message

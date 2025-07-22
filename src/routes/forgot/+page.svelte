@@ -94,13 +94,13 @@
 						/> -->
 
 						{#if form?.error}
-							<p class="mt-2 text-sm text-red-500">{form?.error}</p>
-						{/if}
-						{#if form?.success}
-							<p class="mt-2 text-sm text-green-500">{form?.success}</p>
-						{/if}
-						{#if form?.error}
 							<p class="mt-2 text-sm text-red-500">{form?.message}</p>
+						{/if}
+
+						{#if form?.success}
+							<p class="mt-2 text-sm text-green-500">{form?.message}</p>
+							<!-- {:else if form?.message}
+							<p class="mt-2 text-sm text-red-500">{form.message}</p> -->
 						{/if}
 
 						<button name="reset" type="submit" class="btn btn-neutral mt-4 w-full"
