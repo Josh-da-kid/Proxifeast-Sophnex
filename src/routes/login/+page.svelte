@@ -12,7 +12,7 @@
 			// Hide after 3 seconds
 			setTimeout(() => {
 				showSuccess = false;
-			}, 3000);
+			}, 6000);
 		}
 	}
 
@@ -35,7 +35,7 @@
 
 {#if showSuccess}
 	<div
-		class="alert alert-success fixed z-5 mb-4 ml-4"
+		class="alert alert-success fixed z-5 mb-4 ml-4 w-[300px] md:w-[400px]"
 		in:fly={{ y: -20, duration: 300 }}
 		out:fly={{ y: -20, duration: 300 }}
 	>
@@ -52,7 +52,10 @@
 				d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
 			/>
 		</svg>
-		<span>Account created successfully! You can now log in.</span>
+		<span
+			>Account created successfully! A verification Email has been sent to your mail, verify your
+			emial before logging in to your account.</span
+		>
 	</div>
 {/if}
 
