@@ -4,7 +4,7 @@
 	const orders = data.orders;
 </script>
 
-<h1 class="mb-4 text-2xl font-bold">All Orders</h1>
+<h1 class="mb-4 text-center text-2xl font-bold">All Orders</h1>
 
 {#each orders as order (order.id)}
 	<div class="bg-base-100 mb-6 rounded border p-4 shadow">
