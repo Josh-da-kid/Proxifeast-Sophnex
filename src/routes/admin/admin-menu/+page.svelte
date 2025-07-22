@@ -256,7 +256,9 @@
 	</div>
 {/if}
 
-<h2 class="mb-4 ml-4 text-center text-4xl font-bold">All Dishes</h2>
+<h2 class="mb-4 ml-4 text-center text-4xl font-bold" in:fly={{ x: 200, duration: 800 }}>
+	All Dishes
+</h2>
 
 <!-- Search Input -->
 <section class="items-center justify-center gap-2 sm:flex">

@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { fly } from 'svelte/transition';
+
 	// This `data` comes from the server load function
 	export let data;
 	const orders = data.orders;
 </script>
 
-<h1 class="mb-4 text-center text-2xl font-bold">All Orders</h1>
+<h1 class="mb-4 text-center text-2xl font-bold" in:fly={{ x: 200, duration: 800 }}>All Orders</h1>
 
 {#each orders as order (order.id)}
 	<div class="bg-base-100 mb-6 rounded border p-4 shadow">

@@ -74,10 +74,18 @@
 	</div>
 {/if}
 
-<h1 class="mb-4 flex items-center justify-center text-center text-3xl font-bold md:text-4xl">
+<h1
+	class="mb-4 flex items-center justify-center text-center text-3xl font-bold md:text-4xl"
+	in:fly={{ x: 200, duration: 800 }}
+>
 	Welcome to ProxiFeast Admin Dashboard
 </h1>
-<h3 class="text-secondary flex justify-center text-center text-3xl">{user?.name || ''}</h3>
+<h3
+	class="text-secondary flex justify-center text-center text-3xl"
+	in:fly={{ x: 200, duration: 800 }}
+>
+	{user?.name || ''}
+</h3>
 <div class="mt-4 flex justify-center">
 	<!-- Sidebar -->
 	<!-- <aside class="w-64 p-4"> -->

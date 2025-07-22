@@ -19,10 +19,12 @@
 			Providing reliable dishes since 1992
 		</p>
 	</aside>
+	<!-- svelte-ignore a11y_consider_explicit_label -->
+	<!-- svelte-ignore a11y_missing_attribute -->
 	<nav>
 		<h6 class="footer-title">Social</h6>
 		<div class="grid grid-flow-col gap-4">
-			<a>
+			<a href="/" class="transition-transform duration-300 hover:scale-105 hover:text-gray-300">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="24"
@@ -35,7 +37,7 @@
 					></path>
 				</svg>
 			</a>
-			<a>
+			<a href="/" class="transition-transform duration-300 hover:scale-105 hover:text-gray-300">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="24"
@@ -48,7 +50,7 @@
 					></path>
 				</svg>
 			</a>
-			<a>
+			<a href="/" class="transition-transform duration-300 hover:scale-105 hover:text-gray-300">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="24"
