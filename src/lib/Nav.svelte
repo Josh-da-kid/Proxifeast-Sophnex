@@ -77,7 +77,8 @@
 		<nav class="hidden lg:flex">
 			<a href="/admin" class="btn btn-ghost">Dashboard</a>
 			<a href="/admin/admin-menu" class="btn btn-ghost">Menu</a>
-			<a href="/admin/admin-order" class="btn btn-ghost">Orders</a>
+			<a href="/admin/admin-order" class="btn btn-ghost">Pending Orders</a>
+			<a href="/admin/admin-history" class="btn btn-ghost">Order History</a>
 			<a href="/admin/admin-reservation" class="btn btn-ghost">Reservations</a>
 
 			<div>
@@ -159,7 +160,9 @@
 
 				<dialog id="my_modal_1" class="modal">
 					<div class="modal-box text-black">
-						<h3 class="text-lg font-bold">Hey <span class="text-secondary">{$user?.name}!</span></h3>
+						<h3 class="text-lg font-bold">
+							Hey <span class="text-secondary">{$user?.name}!</span>
+						</h3>
 						<p class="py-4">Are you sure you want to logout?</p>
 						<div class="modal-action">
 							<form method="dialog">
@@ -201,7 +204,12 @@
 				</li>
 				<li>
 					<a onclick={closeSideBar} href="/admin/admin-order"
-						><button class="rounded-lg p-2">Orders</button></a
+						><button class="rounded-lg p-2">Pending Orders</button></a
+					>
+				</li>
+				<li>
+					<a onclick={closeSideBar} href="/admin/admin-history"
+						><button class="rounded-lg p-2">Order History</button></a
 					>
 				</li>
 
@@ -268,6 +276,21 @@
 				<li>
 					<a onclick={closeSideBar} href="/contact"
 						><button class="rounded-lg p-2">Contact</button></a
+					>
+				</li>
+				<li>
+					<a onclick={closeSideBar} href="/checkout"
+						><button class="rounded-lg p-2">Checkout</button></a
+					>
+				</li>
+				<li>
+					<a onclick={closeSideBar} href="/pending"
+						><button class="rounded-lg p-2">Pending Orders</button></a
+					>
+				</li>
+				<li>
+					<a onclick={closeSideBar} href="/history"
+						><button class="rounded-lg p-2">Order History</button></a
 					>
 				</li>
 

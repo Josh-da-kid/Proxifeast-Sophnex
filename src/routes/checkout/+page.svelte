@@ -580,7 +580,7 @@
 							</button> -->
 								<button
 									type="submit"
-									class="btn btn-secondary btn-sm w-[200px] rounded-full p-6 text-lg transition-transform duration-300 hover:scale-105 md:w-[350px]"
+									class="btn btn-secondary btn-sm rounded-full p-6 text-lg transition-transform duration-300 hover:scale-105 md:w-[350px]"
 								>
 									Submit Order & Pay
 								</button>

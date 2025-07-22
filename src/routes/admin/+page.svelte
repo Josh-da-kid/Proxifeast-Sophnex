@@ -81,13 +81,16 @@
 <div class="mt-4 flex justify-center">
 	<!-- Sidebar -->
 	<!-- <aside class="w-64 p-4"> -->
-	<nav class="flex gap-2">
+	<nav class="grid grid-cols-2 space-y-2 space-x-2 px-4 sm:grid-cols-3 md:flex">
 		<a href="/admin" class="btn hover:bg-primary hover:text-white hover:underline">Dashboard</a>
 		<a href="/admin/admin-menu" class="btn hover:bg-primary hover:text-white hover:underline"
 			>Menu</a
 		>
 		<a href="/admin/admin-order" class="btn hover:bg-primary hover:text-white hover:underline"
-			>Orders</a
+			>Pending Orders</a
+		>
+		<a href="/admin/admin-history" class="btn hover:bg-primary hover:text-white hover:underline"
+			>Order History</a
 		>
 		<a href="/admin/admin-reservation" class="btn hover:bg-primary hover:text-white hover:underline"
 			>Reservations</a
