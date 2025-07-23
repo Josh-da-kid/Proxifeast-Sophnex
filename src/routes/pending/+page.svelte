@@ -115,7 +115,7 @@
 		</section>
 	{:else}
 		<p class="mt-8 text-center text-gray-500 italic">
-			You must be logged in inorder to view pending order.
+			You must be logged in inorder to view pending orders.
 		</p>
 		<a href="/login" class="btn btn-primary mx-auto mt-4 flex w-fit items-center justify-center"
 			>Signup/login</a

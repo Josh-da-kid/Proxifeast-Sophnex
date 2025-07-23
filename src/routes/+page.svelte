@@ -616,104 +616,105 @@
 {/if}
 
 <!-- cart -->
-<div class="drawer drawer-end z-[9999]">
-	<input id="my-drawer-5" type="checkbox" class="drawer-toggle" />
-	<div class="drawer-content"></div>
-	<div class="drawer-side">
-		<label for="my-drawer-5" aria-label="close sidebar" class="drawer-overlay"></label>
+{#if $isLoggedIn}
+	<div class="drawer drawer-end z-[9999]">
+		<input id="my-drawer-5" type="checkbox" class="drawer-toggle" />
+		<div class="drawer-content"></div>
+		<div class="drawer-side">
+			<label for="my-drawer-5" aria-label="close sidebar" class="drawer-overlay"></label>
 
-		<div class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4">
-			<div class="">
-				<button
-					onclick={back}
-					class="hover:text-secondary items-start justify-start hover:underline"
-					><span class="text-secondary">&lt&lt</span> Back</button
-				>
-				<h2 class="text-xl font-bold">Your Cart</h2>
+			<div class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4">
+				<div class="">
+					<button
+						onclick={back}
+						class="hover:text-secondary items-start justify-start hover:underline"
+						><span class="text-secondary">&lt&lt</span> Back</button
+					>
+					<h2 class="text-xl font-bold">Your Cart</h2>
 
-				<!-- cart total -->
-				<div class="z-100 mx-auto rounded-lg bg-lime-200 p-4">
-					<p class="text-lg font-semibold">Total: ₦{$total.toLocaleString()}</p>
-					<div class="mt-2 flex gap-2">
-						<button
-							onclick={() => {
-								clearModal.showModal();
-							}}
-							class="btn btn-sm btn-secondary">Clear</button
-						>
-						<a onclick={closeSideBar} href="/checkout" class="btn btn-sm btn-primary">Checkout</a>
+					<!-- cart total -->
+					<div class="z-100 mx-auto rounded-lg bg-lime-200 p-4">
+						<p class="text-lg font-semibold">Total: ₦{$total.toLocaleString()}</p>
+						<div class="mt-2 flex gap-2">
+							<button
+								onclick={() => {
+									clearModal.showModal();
+								}}
+								class="btn btn-sm btn-secondary">Clear</button
+							>
+							<a onclick={closeSideBar} href="/checkout" class="btn btn-sm btn-primary">Checkout</a>
 
-						<dialog id="my_modal_3" bind:this={clearModal} class="modal">
-							<div class="modal-box">
-								<h3 class="text-lg font-bold">
-									Hey <span class="text-secondary">{$user?.name}!</span>
-								</h3>
-								<!-- <p class="py-4">Are you sure you want to remove  from cart?</p> -->
+							<dialog id="my_modal_3" bind:this={clearModal} class="modal">
+								<div class="modal-box">
+									<h3 class="text-lg font-bold">
+										Hey <span class="text-secondary">{$user?.name}!</span>
+									</h3>
+									<!-- <p class="py-4">Are you sure you want to remove  from cart?</p> -->
 
-								<p class="py-4">Are you sure you want to clear your cart?</p>
+									<p class="py-4">Are you sure you want to clear your cart?</p>
 
-								<div class="modal-action">
-									<form method="dialog">
-										<!-- if there is a button in form, it will close the modal -->
-										<button class="btn">Close</button>
-									</form>
-									<button
-										onclick={clearCart}
-										class="btn btn-xs btn-error bg-red-500 p-5 text-lg text-white"
-									>
-										Clear Cart
-									</button>
+									<div class="modal-action">
+										<form method="dialog">
+											<!-- if there is a button in form, it will close the modal -->
+											<button class="btn">Close</button>
+										</form>
+										<button
+											onclick={clearCart}
+											class="btn btn-xs btn-error bg-red-500 p-5 text-lg text-white"
+										>
+											Clear Cart
+										</button>
+									</div>
 								</div>
-							</div>
-						</dialog>
+							</dialog>
+						</div>
 					</div>
 				</div>
-			</div>
 
-			{#if $cart.length > 0}
-				<!-- <ul
+				{#if $cart.length > 0}
+					<!-- <ul
 					class="max-h-screen w-full justify-between gap-8 space-y-4 overflow-y-auto p-6 px-8 md:flex"
 				> -->
-				<ul class="max-h-[80vh] justify-center space-y-4 overflow-y-auto pr-2 scroll-hidden">
-					{#each $cart as item (item.id)}
-						<li class="flex items-center justify-between border-b border-gray-400 pb-2 text-lg">
-							<div class="mx-auto flex flex-col gap-1 text-center">
-								<img
-									src={item.expand.dish.image}
-									alt={item.expand.dish.name}
-									class="h-25 w-25 rounded-full"
-								/>
-								<p class="font-semibold">{item.expand.dish.name}</p>
-								<div class="flex gap-3 text-start">
-									{#if item.expand.dish.promoAmount && item.expand.dish.promoAmount < item.expand.dish.defaultAmount}
-										<span
-											class="badge badge-accent mt-1"
-											class:bg-gray-100={item.expand.dish.availability !== 'Available'}
-											class:border-gray-200={item.expand.dish.availability !== 'Available'}
-										>
-											-{Math.round(
-												(1 - item.expand.dish.promoAmount / item.expand.dish.defaultAmount) * 100
-											)}%
-										</span>
-										<!-- svelte-ignore node_invalid_placement_ssr -->
-										<div class="flex gap-2">
+					<ul class="scroll-hidden max-h-[80vh] justify-center space-y-4 overflow-y-auto pr-2">
+						{#each $cart as item (item.id)}
+							<li class="flex items-center justify-between border-b border-gray-400 pb-2 text-lg">
+								<div class="mx-auto flex flex-col gap-1 text-center">
+									<img
+										src={item.expand.dish.image}
+										alt={item.expand.dish.name}
+										class="h-25 w-25 rounded-full"
+									/>
+									<p class="font-semibold">{item.expand.dish.name}</p>
+									<div class="flex gap-3 text-start">
+										{#if item.expand.dish.promoAmount && item.expand.dish.promoAmount < item.expand.dish.defaultAmount}
+											<span
+												class="badge badge-accent mt-1"
+												class:bg-gray-100={item.expand.dish.availability !== 'Available'}
+												class:border-gray-200={item.expand.dish.availability !== 'Available'}
+											>
+												-{Math.round(
+													(1 - item.expand.dish.promoAmount / item.expand.dish.defaultAmount) * 100
+												)}%
+											</span>
+											<!-- svelte-ignore node_invalid_placement_ssr -->
+											<div class="flex gap-2">
+												<p class="text-secondary font-bold">
+													₦{Number(item.expand.dish.promoAmount).toLocaleString()}
+												</p>
+												<p class="text-gray-400 line-through">
+													₦{Number(item.expand.dish.defaultAmount).toLocaleString()}
+												</p>
+											</div>
+										{:else}
+											<!-- svelte-ignore node_invalid_placement_ssr -->
 											<p class="text-secondary font-bold">
-												₦{Number(item.expand.dish.promoAmount).toLocaleString()}
-											</p>
-											<p class="text-gray-400 line-through">
 												₦{Number(item.expand.dish.defaultAmount).toLocaleString()}
 											</p>
-										</div>
-									{:else}
-										<!-- svelte-ignore node_invalid_placement_ssr -->
-										<p class="text-secondary font-bold">
-											₦{Number(item.expand.dish.defaultAmount).toLocaleString()}
-										</p>
-									{/if}
+										{/if}
+									</div>
 								</div>
-							</div>
 
-							<!-- <button
+								<!-- <button
 								onclick={() => {
 									dishToDelete = item;
 									deleteModal.showModal();
@@ -723,118 +724,122 @@
 								Remove
 							</button> -->
 
-							<div class="flex items-center justify-center gap-4">
-								<!-- svelte-ignore a11y_consider_explicit_label -->
-								<button
-									onclick={() => {
-										if (item.quantity <= 1) {
-											dishToDelete = item;
-											deleteModal.showModal();
-										} else {
+								<div class="flex items-center justify-center gap-4">
+									<!-- svelte-ignore a11y_consider_explicit_label -->
+									<button
+										onclick={() => {
+											if (item.quantity <= 1) {
+												dishToDelete = item;
+												deleteModal.showModal();
+											} else {
+												updateQuantity({
+													itemId: item.id,
+													dishId: item.dish,
+													userId: $user.id,
+													newQty: item.quantity - 1,
+													promoAmount: item.expand.dish.promoAmount,
+													defaultAmount: item.expand.dish.amount
+												});
+											}
+										}}
+										class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
+										><svg
+											xmlns="http://www.w3.org/2000/svg"
+											width="24"
+											height="24"
+											viewBox="0 0 12 12"
+											><path
+												fill="currentColor"
+												d="M2 6a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 2 6"
+											/></svg
+										></button
+									>
+									<span class="text-secondary">{item.quantity}</span>
+									<!-- svelte-ignore a11y_consider_explicit_label -->
+									<button
+										onclick={() => {
 											updateQuantity({
 												itemId: item.id,
 												dishId: item.dish,
 												userId: $user.id,
-												newQty: item.quantity - 1,
+												newQty: item.quantity + 1,
 												promoAmount: item.expand.dish.promoAmount,
 												defaultAmount: item.expand.dish.amount
 											});
-										}
-									}}
-									class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
-									><svg
-										xmlns="http://www.w3.org/2000/svg"
-										width="24"
-										height="24"
-										viewBox="0 0 12 12"
-										><path
-											fill="currentColor"
-											d="M2 6a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 2 6"
-										/></svg
-									></button
-								>
-								<span class="text-secondary">{item.quantity}</span>
-								<!-- svelte-ignore a11y_consider_explicit_label -->
-								<button
-									onclick={() => {
-										updateQuantity({
-											itemId: item.id,
-											dishId: item.dish,
-											userId: $user.id,
-											newQty: item.quantity + 1,
-											promoAmount: item.expand.dish.promoAmount,
-											defaultAmount: item.expand.dish.amount
-										});
-									}}
-									class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
-									><svg
-										xmlns="http://www.w3.org/2000/svg"
-										width="24"
-										height="24"
-										viewBox="0 0 24 24"
-										><path
-											fill="currentColor"
-											d="M18 13h-5v5c0 .55-.45 1-1 1s-1-.45-1-1v-5H6c-.55 0-1-.45-1-1s.45-1 1-1h5V6c0-.55.45-1 1-1s1 .45 1 1v5h5c.55 0 1 .45 1 1s-.45 1-1 1"
-										/></svg
-									></button
-								>
-
-								<!-- svelte-ignore a11y_consider_explicit_label -->
-								<button
-									class=" btn-sm cursor-pointer text-red-500 transition-transform duration-300 hover:text-gray-500"
-									onclick={() => {
-										dishToDelete = item;
-										deleteModal.showModal();
-									}}
-								>
-									<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-										><path
-											fill="currentColor"
-											d="M7.616 20q-.672 0-1.144-.472T6 18.385V6H5V5h4v-.77h6V5h4v1h-1v12.385q0 .69-.462 1.153T16.384 20zM17 6H7v12.385q0 .269.173.442t.443.173h8.769q.23 0 .423-.192t.192-.424zM9.808 17h1V8h-1zm3.384 0h1V8h-1zM7 6v13z"
-										/></svg
+										}}
+										class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
+										><svg
+											xmlns="http://www.w3.org/2000/svg"
+											width="24"
+											height="24"
+											viewBox="0 0 24 24"
+											><path
+												fill="currentColor"
+												d="M18 13h-5v5c0 .55-.45 1-1 1s-1-.45-1-1v-5H6c-.55 0-1-.45-1-1s.45-1 1-1h5V6c0-.55.45-1 1-1s1 .45 1 1v5h5c.55 0 1 .45 1 1s-.45 1-1 1"
+											/></svg
+										></button
 									>
-								</button>
-							</div>
 
-							<!-- Open the modal using ID.showModal() method -->
-
-							<dialog id="my_modal_2" bind:this={deleteModal} class="modal">
-								<div class="modal-box">
-									<h3 class="text-lg font-bold">
-										Hey <span class="text-secondary">{$user?.name}!</span>
-									</h3>
-									<!-- <p class="py-4">Are you sure you want to remove  from cart?</p> -->
-									{#if dishToDelete}
-										<p class="py-4">
-											Are you sure you want to remove <span class="font-bold"
-												>{dishToDelete.expand.dish.name}</span
-											> from your cart?
-										</p>
-									{:else}
-										<p class="py-4">Loading dish info...</p>
-									{/if}
-									<div class="modal-action">
-										<form method="dialog">
-											<!-- if there is a button in form, it will close the modal -->
-											<button class="btn">Close</button>
-										</form>
-										<button
-											onclick={() => {
-												removeFromCart(dishToDelete.id);
-												deleteModal.close();
-											}}
-											class="btn btn-xs btn-error bg-red-500 p-4 text-lg text-white"
+									<!-- svelte-ignore a11y_consider_explicit_label -->
+									<button
+										class=" btn-sm cursor-pointer text-red-500 transition-transform duration-300 hover:text-gray-500"
+										onclick={() => {
+											dishToDelete = item;
+											deleteModal.showModal();
+										}}
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											width="24"
+											height="24"
+											viewBox="0 0 24 24"
+											><path
+												fill="currentColor"
+												d="M7.616 20q-.672 0-1.144-.472T6 18.385V6H5V5h4v-.77h6V5h4v1h-1v12.385q0 .69-.462 1.153T16.384 20zM17 6H7v12.385q0 .269.173.442t.443.173h8.769q.23 0 .423-.192t.192-.424zM9.808 17h1V8h-1zm3.384 0h1V8h-1zM7 6v13z"
+											/></svg
 										>
-											Remove
-										</button>
-									</div>
+									</button>
 								</div>
-							</dialog>
-						</li>
-					{/each}
-				</ul>
 
-				<!-- <div class="mt-4">
+								<!-- Open the modal using ID.showModal() method -->
+
+								<dialog id="my_modal_2" bind:this={deleteModal} class="modal">
+									<div class="modal-box">
+										<h3 class="text-lg font-bold">
+											Hey <span class="text-secondary">{$user?.name}!</span>
+										</h3>
+										<!-- <p class="py-4">Are you sure you want to remove  from cart?</p> -->
+										{#if dishToDelete}
+											<p class="py-4">
+												Are you sure you want to remove <span class="font-bold"
+													>{dishToDelete.expand.dish.name}</span
+												> from your cart?
+											</p>
+										{:else}
+											<p class="py-4">Loading dish info...</p>
+										{/if}
+										<div class="modal-action">
+											<form method="dialog">
+												<!-- if there is a button in form, it will close the modal -->
+												<button class="btn">Close</button>
+											</form>
+											<button
+												onclick={() => {
+													removeFromCart(dishToDelete.id);
+													deleteModal.close();
+												}}
+												class="btn btn-xs btn-error bg-red-500 p-4 text-lg text-white"
+											>
+												Remove
+											</button>
+										</div>
+									</div>
+								</dialog>
+							</li>
+						{/each}
+					</ul>
+
+					<!-- <div class="mt-4">
 					<p class="text-lg font-semibold">Total: ₦{$total.toLocaleString()}</p>
 					<div class="mt-2 flex gap-2">
 						<button
@@ -870,7 +875,51 @@
 						</dialog>
 					</div>
 				</div> -->
-			{:else}
+				{:else}
+					<div role="alert" class="alert alert-info mt-4">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							fill="none"
+							viewBox="0 0 24 24"
+							class="h-6 w-6 shrink-0 stroke-current"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+							></path>
+						</svg>
+						<span>Your cart is currently empty.</span>
+						<div>
+							<a onclick={closeSideBar} href="/#menu">
+								<button class="btn btn-sm btn-primary">Order</button>
+							</a>
+						</div>
+					</div>
+				{/if}
+			</div>
+		</div>
+	</div>
+{:else}
+	<div class="drawer drawer-end z-[9999]">
+		<input id="my-drawer-5" type="checkbox" class="drawer-toggle" />
+		<div class="drawer-content"></div>
+		<div class="drawer-side">
+			<label for="my-drawer-5" aria-label="close sidebar" class="drawer-overlay"></label>
+
+			<div
+				class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4 pl-6 md:min-w-1/3"
+			>
+				<div>
+					<button
+						onclick={back}
+						class="hover:text-secondary cursor-pointer items-start justify-start hover:underline"
+						><span class="text-secondary">&lt&lt</span> Back</button
+					>
+				</div>
+				<h2 class="mb-2 text-xl font-bold">Your Cart</h2>
+
 				<div role="alert" class="alert alert-info mt-4">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
@@ -885,17 +934,17 @@
 							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
 						></path>
 					</svg>
-					<span>Your cart is currently empty.</span>
+					<span>You must be logged in to view cart.</span>
 					<div>
-						<a onclick={closeSideBar} href="/#menu">
-							<button class="btn btn-sm btn-primary">Order</button>
+						<a onclick={back} href="/login">
+							<button class="btn btn-sm btn-primary">Login</button>
 						</a>
 					</div>
 				</div>
-			{/if}
+			</div>
 		</div>
 	</div>
-</div>
+{/if}
 
 <style>
 	@import url('https://fonts.googleapis.com/css2?family=Playfair+Display&family=Roboto&display=swap');
