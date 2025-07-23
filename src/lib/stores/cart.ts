@@ -76,3 +76,8 @@ export async function removeFromCart(id: string) {
 		console.error('Failed to remove item:', err);
 	}
 }
+
+
+export function clearCartFrontend() {
+	cart.set([]);
+}

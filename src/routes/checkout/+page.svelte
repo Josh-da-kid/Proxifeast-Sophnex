@@ -14,6 +14,7 @@
 	import { page } from '$app/stores';
 	import { onDestroy, onMount } from 'svelte';
 	import pb from '$lib/pb';
+	import { clearCartFrontend } from '$lib/stores/cart';
 
 	// Cart store
 	export const cart = writable<any[]>([]);
@@ -71,12 +72,12 @@
 		}
 	}
 
-	function closeSideBar() {
-		const drawerToggle = document.getElementById('my-drawer-4');
-		if (drawerToggle instanceof HTMLInputElement) {
-			drawerToggle.checked = false;
-		}
-	}
+	// function closeSideBar() {
+	// 	const drawerToggle = document.getElementById('my-drawer-4');
+	// 	if (drawerToggle instanceof HTMLInputElement) {
+	// 		drawerToggle.checked = false;
+	// 	}
+	// }
 
 	onMount(fetchCart);
 
@@ -157,12 +158,20 @@
 			ref: 'ORD-' + Math.floor(Math.random() * 1000000000 + 1),
 			callback: function (response: any) {
 				alert('Payment complete! Reference: ' + response.reference);
+				// const dishIds = $cart.map((item) => item.expand?.dish?.id);
+				const cartQuantity = $cart.length;
+				// const cartId = $cart?.id;
+				// console.log('cartId:', cartId);
+				// console.log("cartId:", dishIds)
+				console.log('cartQuantity:', cartQuantity);
 				// ✅ Save order to DB here
 				const orderData = {
 					reference: response.reference,
 					totalAmount: $total,
 					type: deliveryOption,
 					user: $user.id,
+					// dishes: cartId,
+					quantity: cartQuantity,
 					phone,
 					tableNumber,
 					homeAddress,
