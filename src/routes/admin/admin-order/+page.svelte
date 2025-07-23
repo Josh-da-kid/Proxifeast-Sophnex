@@ -48,101 +48,112 @@
 			console.error('Failed to update status:', err);
 		}
 	}
+
+	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 </script>
 
 <main>
-	<h1 class="mb-4 text-center text-2xl font-bold" in:fly={{ x: 200, duration: 800 }}>
-		All Pending Orders
-	</h1>
+	{#if $isLoggedIn}
+		<h1 class="mb-4 text-center text-2xl font-bold" in:fly={{ x: 200, duration: 800 }}>
+			All Pending Orders
+		</h1>
 
-	<section class="p-4">
-		<!-- <h2 class="text-2xl font-bold mb-4">Pending Orders</h2> -->
+		<section class="p-4">
+			<!-- <h2 class="text-2xl font-bold mb-4">Pending Orders</h2> -->
 
-		{#if loading}
-			<p class="text-gray-500">Loading...</p>
-		{:else if orders.length === 0}
-			<p class="text-gray-600">You have no pending orders.</p>
-		{:else}
-			<ul class="flex flex-col space-y-4 px-2 md:grid md:grid-cols-2 md:space-x-4 lg:grid-cols-3">
-				{#each orders as order}
-					<li class="space-y-2 rounded-xl border border-gray-300 p-4 shadow-md">
-						<div>
-							{#if order.expand?.user}
-								<p class="text-sm font-medium text-blue-800">
-									👤 {order.expand.user.name || order.expand.user.email || 'Unnamed User'}
+			{#if loading}
+				<p class="text-gray-500">Loading...</p>
+			{:else if orders.length === 0}
+				<p class="text-gray-600">You have no pending orders.</p>
+			{:else}
+				<ul class="flex flex-col space-y-4 px-2 md:grid md:grid-cols-2 md:space-x-4 lg:grid-cols-3">
+					{#each orders as order}
+						<li class="space-y-2 rounded-xl border border-gray-300 p-4 shadow-md">
+							<div>
+								{#if order.expand?.user}
+									<p class="text-sm font-medium text-blue-800">
+										👤 {order.expand.user.name || order.expand.user.email || 'Unnamed User'}
+									</p>
+								{:else}
+									👤 Unnamed User
+								{/if}
+							</div>
+							<div class="flex items-center justify-between">
+								<h3 class="text-lg font-semibold">Order Ref: {order.reference}</h3>
+								{#if order.status == 'Pending'}
+									<span
+										class="rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800"
+									>
+										{order.status}
+									</span>
+								{:else if order.status == 'Preparing'}
+									<span
+										class="rounded-full bg-orange-200 px-2.5 py-1 text-xs font-semibold text-orange-800"
+									>
+										{order.status}
+									</span>
+								{:else if order.status == 'Ready'}
+									<span
+										class="rounded-full bg-green-200 px-2.5 py-1 text-xs font-semibold text-green-800"
+									>
+										{order.status}
+									</span>
+								{/if}
+							</div>
+
+							<div class="text-sm text-gray-600">
+								<p>
+									<strong>Total:</strong> ₦{(
+										order.orderTotal ??
+										order.totalAmount ??
+										0
+									).toLocaleString()}
 								</p>
-							{:else}
-								👤 Unnamed User
-							{/if}
-						</div>
-						<div class="flex items-center justify-between">
-							<h3 class="text-lg font-semibold">Order Ref: {order.reference}</h3>
-							{#if order.status == 'Pending'}
-								<span
-									class="rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800"
-								>
-									{order.status}
-								</span>
-							{:else if order.status == 'Preparing'}
-								<span
-									class="rounded-full bg-orange-200 px-2.5 py-1 text-xs font-semibold text-orange-800"
-								>
-									{order.status}
-								</span>
-							{:else if order.status == 'Ready'}
-								<span
-									class="rounded-full bg-green-200 px-2.5 py-1 text-xs font-semibold text-green-800"
-								>
-									{order.status}
-								</span>
-							{/if}
-						</div>
+								<p><strong>Quantity:</strong> {order.quantity}</p>
+								<!-- <p><strong>Delivery Type:</strong> {order.deliveryType}</p> -->
+								{#if order.deliveryType === 'restaurantPickup'}
+									<p><strong>Delivery Type:</strong> Pickup</p>
+								{:else if order.deliveryType === 'home'}
+									<p><strong>Delivery Type:</strong> Home Delivery</p>
+								{:else if order.deliveryType === 'restaurant'}
+									<p><strong>Delivery Type:</strong> Dine-in</p>
+								{/if}
+								{#if order.deliveryType === 'restaurantPickup'}
+									<p><strong>Pickup Time:</strong> {order.pickupTime}</p>
+								{:else if order.deliveryType === 'home'}
+									<p><strong>Address:</strong> {order.homeAddress}</p>
+								{:else if order.deliveryType === 'restaurant'}
+									<p><strong>Table Number:</strong> {order.tableNumber}</p>
+								{/if}
+								<p><strong>Phone:</strong> {order.phone}</p>
+							</div>
 
-						<div class="text-sm text-gray-600">
-							<p>
-								<strong>Total:</strong> ₦{(
-									order.orderTotal ??
-									order.totalAmount ??
-									0
-								).toLocaleString()}
+							<p class="text-xs text-gray-400">
+								Ordered on: {new Date(order.created).toLocaleString()}
 							</p>
-							<p><strong>Quantity:</strong> {order.quantity}</p>
-							<!-- <p><strong>Delivery Type:</strong> {order.deliveryType}</p> -->
-							{#if order.deliveryType === 'restaurantPickup'}
-								<p><strong>Delivery Type:</strong> Pickup</p>
-							{:else if order.deliveryType === 'home'}
-								<p><strong>Delivery Type:</strong> Home Delivery</p>
-							{:else if order.deliveryType === 'restaurant'}
-								<p><strong>Delivery Type:</strong> Dine-in</p>
-							{/if}
-							{#if order.deliveryType === 'restaurantPickup'}
-								<p><strong>Pickup Time:</strong> {order.pickupTime}</p>
-							{:else if order.deliveryType === 'home'}
-								<p><strong>Address:</strong> {order.homeAddress}</p>
-							{:else if order.deliveryType === 'restaurant'}
-								<p><strong>Table Number:</strong> {order.tableNumber}</p>
-							{/if}
-							<p><strong>Phone:</strong> {order.phone}</p>
-						</div>
 
-						<p class="text-xs text-gray-400">
-							Ordered on: {new Date(order.created).toLocaleString()}
-						</p>
-
-						<select
-							class="border-secondary focus:ring-secondary relative items-end justify-end rounded border px-2 py-1 focus:ring-2 focus:outline-none"
-							bind:value={order.status}
-							on:change={() => updateOrderStatus(order.id, order.status, order.reference)}
-						>
-							{#each ['Pending', 'Preparing', 'Ready', 'Delivered', 'Cancelled'] as statusOption}
-								<option value={statusOption}>
-									{statusOption}
-								</option>
-							{/each}
-						</select>
-					</li>
-				{/each}
-			</ul>
-		{/if}
-	</section>
+							<select
+								class="border-secondary focus:ring-secondary relative items-end justify-end rounded border px-2 py-1 focus:ring-2 focus:outline-none"
+								bind:value={order.status}
+								on:change={() => updateOrderStatus(order.id, order.status, order.reference)}
+							>
+								{#each ['Pending', 'Preparing', 'Ready', 'Delivered', 'Cancelled'] as statusOption}
+									<option value={statusOption}>
+										{statusOption}
+									</option>
+								{/each}
+							</select>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</section>
+	{:else}
+		<p class="mt-8 text-center text-gray-500 italic">
+			You must be logged in as an admin inorder to view orders.
+		</p>
+		<a href="/login" class="btn btn-primary mx-auto mt-4 flex w-fit items-center justify-center"
+			>Login</a
+		>
+	{/if}
 </main>

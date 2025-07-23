@@ -408,8 +408,12 @@
 									<button
 										class=""
 										onclick={() => {
-											dishToDelete = dish;
-											deleteModal.showModal();
+											if (!$isLoggedIn) {
+												alert('You must be logged in as an admin to delete dish');
+											} else {
+												dishToDelete = dish;
+												deleteModal.showModal();
+											}
 										}}
 										><svg
 											class="cursor-pointer text-red-500"
