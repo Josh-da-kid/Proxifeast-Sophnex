@@ -6,7 +6,7 @@
 	import { onMount } from 'svelte';
 
 	function closeSideBar() {
-		const drawerToggle = document.getElementById('my-drawer-4');
+		const drawerToggle = document.getElementById('my-drawer-5');
 		if (drawerToggle instanceof HTMLInputElement) {
 			drawerToggle.checked = false;
 		}
@@ -54,7 +54,7 @@
 				<div>
 					<button
 						onclick={closeSideBar}
-						class="hover:text-secondary items-start justify-start hover:underline"
+						class="hover:text-secondary cursor-pointer items-start justify-start hover:underline"
 						><span class="text-secondary">&lt&lt</span> Back</button
 					>
 				</div>
