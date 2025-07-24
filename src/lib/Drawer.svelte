@@ -99,25 +99,27 @@
 						<label for="image" class="">Image of Dish</label>
 						<span class="text-gray-700">Upload dish image using:</span>
 						<div class="text-secondary space-x-1 p-2">
-							<label for="imageUrl">
+							<label for="url" class="cursor-pointer">
 								Manual URL Input
 								<input
 									type="radio"
+									class="cursor-pointer"
 									name="imageSource"
 									value="url"
-									id="imageUrl"
+									id="url"
 									onchange={handleImageSourceChange}
 								/>
 							</label>
 							<span class="text-black">Or</span>
-							<label for="imageUpload">
+							<label for="upload" class="cursor-pointer">
 								File Upload
 								<input
 									type="radio"
+									class="cursor-pointer"
 									name="imageSource"
 									value="file"
 									checked
-									id="imageUpload"
+									id="upload"
 									onchange={handleImageSourceChange}
 								/>
 							</label>

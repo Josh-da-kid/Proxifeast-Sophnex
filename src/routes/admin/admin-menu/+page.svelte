@@ -557,11 +557,12 @@
 						<span class="text-gray-700">Edit dish image using:</span>
 
 						<div class="text-secondary space-x-1 p-1">
-							<label for="imageUrl">
+							<label for="imageUrl" class="cursor-pointer">
 								Manual URL Input
 								<input
 									type="radio"
 									name="imageSource"
+									class="cursor-pointer"
 									value="url"
 									id="imageUrl"
 									checked={selectedDish.imageSource === 'url'}
@@ -569,12 +570,13 @@
 								/>
 							</label>
 							<span class="text-black">Or</span>
-							<label for="imageUpload">
+							<label for="imageUpload" class="cursor-pointer">
 								File Upload
 								<input
 									type="radio"
 									name="imageSource"
 									value="file"
+									class="cursor-pointer"
 									id="imageUpload"
 									checked={selectedDish.imageSource === 'file'}
 									onchange={handleImageSourceChange}
@@ -591,6 +593,13 @@
 								class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
 								required
 							/>
+							<button
+								onclick={() => {
+									selectedDish.image = '';
+								}}
+								class="btn bg-secondary mt-2 w-fit rounded-lg border p-2 text-white"
+								>Clear Input</button
+							>
 						{:else if selectedDish.imageSource === 'file'}
 							<label for="upload" class="mt-2 cursor-pointer">Click here to upload dish image</label
 							>
