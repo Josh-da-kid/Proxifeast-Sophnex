@@ -1,5 +1,6 @@
 <script>
 	import { page } from '$app/stores';
+	import { fly } from 'svelte/transition';
 
 	export let form;
 
@@ -17,12 +18,20 @@
 			setTimeout(() => {
 				showSuccess = false;
 			}, 6000);
+
+			const url = new URL(window.location.href);
+			url.searchParams.delete('reset');
+			history.replaceState(null, '', url.pathname + url.search);
 		}
 	}
 </script>
 
 {#if showSuccess}
-	<div class="alert alert-success mb-4 ml-4 w-[300px] md:w-[400px]">
+	<div
+		class="alert alert-success fixed z-5 mb-4 ml-4 w-[300px] md:w-[400px]"
+		in:fly={{ y: -20, duration: 300 }}
+		out:fly={{ y: -20, duration: 300 }}
+	>
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
 			class="h-6 w-6 shrink-0 stroke-current"

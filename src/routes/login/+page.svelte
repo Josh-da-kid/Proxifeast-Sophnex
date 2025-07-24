@@ -6,21 +6,20 @@
 
 	// Reactively check the query param
 	$: {
-	if ($page.url.searchParams.get('signup') === 'success') {
-		showSuccess = true;
+		if ($page.url.searchParams.get('signup') === 'success') {
+			showSuccess = true;
 
-		// Hide after 6 seconds
-		setTimeout(() => {
-			showSuccess = false;
-		}, 6000);
+			// Hide after 6 seconds
+			setTimeout(() => {
+				showSuccess = false;
+			}, 6000);
 
-		// Remove ?signup=success from the URL without reloading
-		const url = new URL(window.location.href);
-		url.searchParams.delete('signup');
-		history.replaceState(null, '', url.pathname + url.search);
+			// Remove ?signup=success from the URL without reloading
+			const url = new URL(window.location.href);
+			url.searchParams.delete('signup');
+			history.replaceState(null, '', url.pathname + url.search);
+		}
 	}
-}
-
 
 	let logoutSuccess = false;
 
@@ -36,7 +35,7 @@
 		}
 	}
 
-	export let form;
+	// export let form;
 	let email = '';
 	let password = '';
 	let error = '';

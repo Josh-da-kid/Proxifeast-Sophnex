@@ -14,8 +14,9 @@
 		<p class="mt-8 text-center text-gray-500 italic">
 			You must be logged in as an admin inorder to view reservation orders.
 		</p>
-		<a href="/login" class="btn btn-primary mx-auto mt-4 flex w-fit items-center justify-center"
-			>Login</a
+		<a
+			href="/admin/admin-login"
+			class="btn btn-primary mx-auto mt-4 flex w-fit items-center justify-center">Login</a
 		>
 	{/if}
 </main>

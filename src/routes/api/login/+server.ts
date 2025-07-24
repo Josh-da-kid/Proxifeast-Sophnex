@@ -1,20 +1,16 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
-import PocketBase from 'pocketbase';
 
-const pb = new PocketBase('https://playgzero.pb.itcass.net/');
-
-export const POST: RequestHandler = async ({ request }) => {
-	const data = await request.json(); // using JSON from fetch body
+export const POST: RequestHandler = async ({ request, locals }) => {
+	const data = await request.json();
 
 	try {
-		const { token, record } = await pb
+		const { record } = await locals.pb
 			.collection('users')
 			.authWithPassword(data.email, data.password);
 
 		if (!record.verified) {
-			pb.authStore.clear();
-
-			await pb.collection('users').requestVerification(data.email);
+			locals.pb.authStore.clear();
+			await locals.pb.collection('users').requestVerification(data.email);
 
 			return json({
 				error: true,
@@ -23,36 +19,33 @@ export const POST: RequestHandler = async ({ request }) => {
 			}, { status: 403 });
 		}
 
-		// Success
+		// Store user in locals (hooks will handle the cookie)
+		locals.user = record;
+
 		return json({
 			error: false,
-			message: 'Login successful!'
+			message: 'Login successful!',
+			user: record
 		});
 	} catch (err: any) {
-	const loginError = err?.response?.data?.data?.identity;
-    const message = err?.response?.data?.message;
-	const details = err?.response?.data?.details;
-    console.log(loginError)
-    console.log(message)
-    console.log(details)
+		const loginError = err?.response?.data?.data?.identity;
+		const message = err?.response?.data?.message;
+		const details = err?.response?.data?.details;
 
-	if (loginError === 'invalid login credentials') {
+		console.log(loginError, message, details);
+
 		return json(
-			{ success: false, message: 'Invalid email or password.' },
+			{
+				success: false,
+				message: loginError === 'invalid login credentials'
+					? 'Invalid email or password.'
+					: 'Login failed.',
+				error: err?.response?.data
+			},
 			{ status: 400 }
 		);
 	}
-
-	return json(
-		{
-			success: false,
-			message: 'Login failed.',
-			error: err?.response?.data
-		},
-		{ status: 400 }
-	);
-}
-
 };
+
 
 

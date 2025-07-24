@@ -8,23 +8,46 @@
 
 	export const user = derived(page, ($page) => $page.data.user);
 	// Fetch cart data
-	export async function fetchPendingOrders() {
-		try {
-			const records = await pb.collection('orders').getFullList({
-				filter: `status="Pending" || status="Preparing" || status="Ready"`,
-				expand: 'user' // 👈 expand the user relation
-			});
-			console.log('Pending orders:', records);
-			// console.log('User name:', records.expand?.name);
-			records.forEach((record) => {
-				console.log('Record:', record);
-				console.log('Expanded user:', record.expand?.user);
-				console.log('User name:', record.expand?.user?.name);
-			});
+	// export async function fetchPendingOrders() {
+	// 	try {
+	// 		const records = await pb.collection('orders').getFullList({
+	// 			filter: `status="Pending" || status="Preparing" || status="Ready"`,
+	// 			expand: 'user' // 👈 expand the user relation
+	// 		});
+	// 		console.log('Pending orders:', records);
+	// 		// console.log('User name:', records.expand?.name);
+	// 		records.forEach((record) => {
+	// 			console.log('Record:', record);
+	// 			console.log('Expanded user:', record.expand?.user);
+	// 			console.log('User name:', record.expand?.user?.name);
+	// 		});
 
-			return records;
+	// 		return records;
+	// 	} catch (err) {
+	// 		console.error('Failed to fetch pending orders:', err);
+	// 	}
+	// }
+
+	async function fetchPendingOrders() {
+		loading = true;
+
+		try {
+			const res = await fetch('/api/fetch-orders');
+			const data = await res.json();
+			// console.log('Fetched orders heyyyyyy'); // log all orders
+			// 			console.log('Fetched orders:', orders); // log all orders
+			// 			orders.forEach((order) => {
+			// 				console.log('Order::::', order);
+			// 				console.log('User::::', order.expand?.user); // should contain full user object
+			// 			});
+			orders = data.orders || [];
+			return orders; // ✅ ADD THIS LINE
 		} catch (err) {
-			console.error('Failed to fetch pending orders:', err);
+			console.error('Fetch failed', err);
+			orders = [];
+			return [];
+		} finally {
+			loading = false;
 		}
 	}
 
@@ -37,7 +60,7 @@
 		loading = false;
 	});
 
-	async function updateOrderStatus(orderId, newStatus, orderRef) {
+	async function updateOrderStatus(orderId: any, newStatus: any, orderRef: any) {
 		try {
 			await pb.collection('orders').update(orderId, { status: newStatus });
 			// ✅ Refetch orders immediately
@@ -62,7 +85,33 @@
 			<!-- <h2 class="text-2xl font-bold mb-4">Pending Orders</h2> -->
 
 			{#if loading}
-				<p class="text-gray-500">Loading...</p>
+				<!-- <p class="text-gray-500">Loading...</p> -->
+				<div class="text-secondary mt-8 flex items-center justify-center text-center">
+					<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24"
+						><path
+							fill="none"
+							stroke="currentColor"
+							stroke-dasharray="16"
+							stroke-dashoffset="16"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 3c4.97 0 9 4.03 9 9"
+							><animate
+								fill="freeze"
+								attributeName="stroke-dashoffset"
+								dur="0.2s"
+								values="16;0"
+							/><animateTransform
+								attributeName="transform"
+								dur="1.5s"
+								repeatCount="indefinite"
+								type="rotate"
+								values="0 12 12;360 12 12"
+							/></path
+						></svg
+					>
+				</div>
 			{:else if orders.length === 0}
 				<p class="text-gray-600">You have no pending orders.</p>
 			{:else}
@@ -70,13 +119,9 @@
 					{#each orders as order}
 						<li class="space-y-2 rounded-xl border border-gray-300 p-4 shadow-md">
 							<div>
-								{#if order.expand?.user}
-									<p class="text-sm font-medium text-blue-800">
-										👤 {order.expand.user.name || order.expand.user.email || 'Unnamed User'}
-									</p>
-								{:else}
-									👤 Unnamed User
-								{/if}
+								<p class="text-sm font-medium text-blue-800">
+									👤 {order.name || 'Unnamed User'}
+								</p>
 							</div>
 							<div class="flex items-center justify-between">
 								<h3 class="text-lg font-semibold">Order Ref: {order.reference}</h3>
@@ -152,8 +197,9 @@
 		<p class="mt-8 text-center text-gray-500 italic">
 			You must be logged in as an admin inorder to view orders.
 		</p>
-		<a href="/login" class="btn btn-primary mx-auto mt-4 flex w-fit items-center justify-center"
-			>Login</a
+		<a
+			href="/admin/admin-login"
+			class="btn btn-primary mx-auto mt-4 flex w-fit items-center justify-center">Login</a
 		>
 	{/if}
 </main>

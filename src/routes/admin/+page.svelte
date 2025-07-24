@@ -24,6 +24,13 @@
 			}, 2000);
 		}
 	});
+
+	let showError = false;
+
+	$: {
+		const params = $page.url.searchParams;
+		showError = params.get('not_admin') === '1';
+	}
 </script>
 
 {#if successAlert}
@@ -71,6 +78,30 @@
 			/>
 		</svg>
 		<span>{$page.form.error}</span>
+	</div>
+{/if}
+
+{#if showError}
+	<div
+		role="alert"
+		class="alert alert-error fixed top-1/2 z-20 mb-4"
+		in:fly={{ y: -20, duration: 300 }}
+		out:fly={{ y: -20, duration: 300 }}
+	>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			class="h-6 w-6 shrink-0 stroke-current"
+			fill="none"
+			viewBox="0 0 24 24"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M12 9v2m0 4h.01M12 5a7 7 0 100 14 7 7 0 000-14z"
+			/>
+		</svg>
+		<span>You must be an admin to access the admin panel.</span>
 	</div>
 {/if}
 

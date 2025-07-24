@@ -170,6 +170,7 @@
 					totalAmount: $total,
 					type: deliveryOption,
 					user: $user.id,
+					name: $user.name,
 					// dishes: cartId,
 					quantity: cartQuantity,
 					phone,

@@ -18,3 +18,18 @@
 // 	return { orders: ordersWithItems };
 // };
 
+// import type { PageServerLoad } from './$types';
+
+// export const load: PageServerLoad = async ({ locals }) => {
+// 	try {
+// 		const orders = await locals.pb.collection('orders').getFullList({
+// 			filter: `status = "Pending" || status = "Preparing" || status = "Ready"`,
+// 			expand: 'user'
+// 		});
+
+// 		return { orders };
+// 	} catch (err) {
+// 		console.error('Failed to fetch pending orders:', err);
+// 		return { orders: [] }; // fallback
+// 	}
+// };
