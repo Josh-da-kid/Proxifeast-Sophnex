@@ -100,12 +100,12 @@
 								</p>
 								<p><strong>Quantity:</strong> {order.quantity}</p>
 								<!-- <p><strong>Delivery Type:</strong> {order.deliveryType}</p> -->
-								{#if order.deliveryType === 'pickup'}
-									<p><strong>Delivery Type:</strong> Pickup</p>
+								{#if order.deliveryType === 'restaurant'}
+									<p><strong>Delivery Type:</strong> Table Service</p>
 								{:else if order.deliveryType === 'home'}
 									<p><strong>Delivery Type:</strong> Home Delivery</p>
 								{:else if order.deliveryType === 'restaurantPickup'}
-									<p><strong>Delivery Type:</strong> Dine-in</p>
+									<p><strong>Delivery Type:</strong> Pickup</p>
 								{/if}
 								{#if order.deliveryType === 'restaurantPickup'}
 									<p><strong>Pickup Time:</strong> {order.pickupTime}</p>

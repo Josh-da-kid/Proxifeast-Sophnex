@@ -468,7 +468,7 @@
 												/></svg
 											>
 										</div>
-										<span>Dine-in</span>
+										<span>Table Service</span>
 										<input
 											bind:group={deliveryOption}
 											value="restaurant"
@@ -539,29 +539,36 @@
 
 								<div class="space-y-4 text-start">
 									{#if deliveryOption == 'restaurant'}
-										<label for="table" class="flex w-[150px] flex-col">
+										<label for="table" class="flex flex-col">
 											<span>Table Number:</span>
 											<input
 												type="number"
 												min="1"
 												id="table"
 												bind:value={tableNumber}
-												placeholder="13"
-												class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
+												class=" border-secondary focus:ring-secondary mt-1 w-[150px] rounded-lg border p-2 focus:ring-2 focus:outline-none"
 												required
 											/>
+
+											<small
+												><span class="text-secondary mr-1 font-bold">N/B : </span>Input the table
+												number you're seated on.</small
+											>
 										</label>
 									{:else if deliveryOption == 'restaurantPickup'}
-										<label for="table" class="flex w-[150px] flex-col">
+										<label for="table" class="flex w-[250px] flex-col">
 											<span>Pickup Time:</span>
 											<input
 												type="text"
 												id="table"
 												bind:value={pickupTime}
-												placeholder="2:30 PM"
-												class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
+												class="border-secondary focus:ring-secondary mt-1 w-[150px] rounded-lg border p-2 focus:ring-2 focus:outline-none"
 												required
 											/>
+											<small
+												><span class="text-secondary mr-1 font-bold">N/B : </span>Input the time you
+												will be most likely to pickup your order.</small
+											>
 										</label>
 									{:else if deliveryOption == 'home'}
 										<label for="address" class="flex w-[250px] flex-col md:w-[300px]">
@@ -569,10 +576,13 @@
 											<textarea
 												id="address"
 												bind:value={homeAddress}
-												placeholder="17 murtala muhammad highway, Calabar, Cross River State"
 												class="border-secondary focus:ring-secondary mt-1 h-[100px] rounded-lg border p-2 focus:ring-2 focus:outline-none"
 												required
 											></textarea>
+											<small
+												><span class="text-secondary mr-1 font-bold">N/B : </span>Input the place
+												you want your order to be delivered to.</small
+											>
 										</label>
 									{/if}
 								</div>
@@ -593,7 +603,7 @@
 										/>
 										<small
 											><span class="text-secondary mr-1 font-bold">N/B : </span>This value cannot be
-											changed here</small
+											changed here.</small
 										>
 									</label>
 								</div>

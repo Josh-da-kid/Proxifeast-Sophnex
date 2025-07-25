@@ -66,7 +66,7 @@
 			// ✅ Refetch orders immediately
 			orders = await fetchPendingOrders();
 			console.log(`Order ${orderId} updated to ${newStatus}`);
-			alert(`Order ${orderRef} updated to ${newStatus}`);
+			// alert(`Order ${orderRef} updated to ${newStatus}`);
 		} catch (err) {
 			console.error('Failed to update status:', err);
 		}
@@ -113,7 +113,7 @@
 					>
 				</div>
 			{:else if orders.length === 0}
-				<p class="text-gray-600">You have no pending orders.</p>
+				<p class="text-center text-gray-600">You have no pending orders.</p>
 			{:else}
 				<ul class="flex flex-col space-y-4 px-2 md:grid md:grid-cols-2 md:space-x-4 lg:grid-cols-3">
 					{#each orders as order}
@@ -161,7 +161,7 @@
 								{:else if order.deliveryType === 'home'}
 									<p><strong>Delivery Type:</strong> Home Delivery</p>
 								{:else if order.deliveryType === 'restaurant'}
-									<p><strong>Delivery Type:</strong> Dine-in</p>
+									<p><strong>Delivery Type:</strong> Table Service</p>
 								{/if}
 								{#if order.deliveryType === 'restaurantPickup'}
 									<p><strong>Pickup Time:</strong> {order.pickupTime}</p>
