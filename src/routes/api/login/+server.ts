@@ -11,6 +11,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		if (!record.verified) {
 			locals.pb.authStore.clear();
 			await locals.pb.collection('users').requestVerification(data.email);
+			// await locals.pb.collection('users').requestOTP(data.email);
 
 			return json({
 				error: true,

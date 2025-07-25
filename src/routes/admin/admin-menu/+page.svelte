@@ -609,7 +609,6 @@
 								name="imageFile"
 								accept="image/*"
 								class="border-secondary w-fit cursor-pointer border p-2"
-								required
 							/>
 							<small class="mt-1 text-sm text-gray-500"
 								>Only JPEG or PNG files under 2MB are allowed.</small

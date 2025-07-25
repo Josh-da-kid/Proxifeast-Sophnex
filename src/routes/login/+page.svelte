@@ -77,6 +77,16 @@
 		}
 		isLoading = false;
 	}
+
+	let requestDiv = false;
+	async function requestCode(e: any) {
+		e.preventDefault();
+		requestDiv = true;
+	}
+
+	async function verifyCode(e: any) {
+		e.preventDefault();
+	}
 </script>
 
 {#if showSuccess}
@@ -197,6 +207,24 @@
 						{#if success.length > 0}
 							<p class="mt-2 text-sm text-green-700">{success}</p>
 						{/if}
+
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<!-- svelte-ignore a11y_missing_attribute -->
+						<!-- <a onclick={requestCode} class="hover:underline"> Receive verification code instead </a> -->
+
+						<!-- <div class="flex gap-3">
+							<input
+								type="text"
+								class="border-secondary focus:ring-secondary h-10 w-[100px] rounded-lg border p-2 focus:ring-2 focus:outline-none"
+							/>
+							{#if requestDiv}
+								<button onclick={verifyCode} class="btn bg-secondary text-white">Submit Code</button
+								>
+							{:else}
+								<button onclick={requestCode} class="btn bg-secondary text-white">Send Code</button>
+							{/if}
+						</div> -->
 
 						<button name="login" type="submit" class="btn btn-neutral mt-4 w-full">Login</button>
 						<div class="mt-2 flex justify-between text-sm">
