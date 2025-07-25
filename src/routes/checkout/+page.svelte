@@ -387,7 +387,7 @@
 
 					<!-- Temu-style right-aligned totals and buttons -->
 					<div
-						class="scroll-hidden mt-8 flex max-h-[80vh] overflow-y-auto md:mt-0 md:mr-12 md:justify-end md:px-12 md:pr-6"
+						class="scroll-hidde mt-8 flex max-h-[70vh] overflow-y-auto md:mt-0 md:mr-12 md:max-h-[80vh] md:justify-end md:px-12 md:pr-6"
 					>
 						<div class="space-y-3 text-right">
 							<h2 class="mt-4 mb-4 text-start text-2xl font-bold">Order Summary</h2>
