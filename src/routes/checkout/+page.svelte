@@ -170,6 +170,13 @@
 				alert('Payment complete! Reference: ' + response.reference);
 				// const dishIds = $cart.map((item) => item.expand?.dish?.id);
 				const cartQuantity = $cart.length;
+				const orderedDishes = $cart.map((item) => ({
+					dish: item.expand?.dish?.id,
+					name: item.expand?.dish?.name,
+					quantity: item.quantity,
+					amount: item.amount
+				}));
+
 				// const cartId = $cart?.id;
 				// console.log('cartId:', cartId);
 				// console.log("cartId:", dishIds)
@@ -180,6 +187,7 @@
 					totalAmount: $total,
 					type: deliveryOption,
 					user: $user.id,
+					dishes: orderedDishes,
 					name: $user.name,
 					// dishes: cartId,
 					quantity: cartQuantity,
@@ -210,6 +218,7 @@
 					.then((res) => res.json())
 					.then((data) => {
 						alert('Order saved successfully!');
+						clearCart();
 					})
 					.catch((err) => {
 						console.error(err);

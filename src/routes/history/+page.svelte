@@ -117,6 +117,29 @@
 								<p><strong>Phone:</strong> {order.phone}</p>
 							</div>
 
+							<div class="dropdown dropdown-hover">
+								<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+								<!-- svelte-ignore a11y_label_has_associated_control -->
+								<label tabindex="0" class="btn btn-sm btn-outline mb-1">View Dishes</label>
+								<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+								<ul
+									tabindex="0"
+									class="dropdown-content menu bg-base-100 rounded-box z-[1] mx-auto flex w-fit items-center justify-center p-2 shadow"
+								>
+									{#each order.dishes as item, i}
+										<li>
+											<div>
+												🍽️ <strong class="text-primary">{item.name}</strong>
+
+												<span class="text-gray-500"
+													>Qty: {item.quantity} × ₦{item.amount.toLocaleString()}</span
+												>
+											</div>
+										</li>
+									{/each}
+								</ul>
+							</div>
+
 							<p class="text-xs text-gray-400">
 								Completed on: {new Date(order.updated).toLocaleString()}
 							</p>
