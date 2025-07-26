@@ -19,7 +19,7 @@
 		category: '',
 		availability: '',
 		image: '',
-		imageSource: '',
+		imageSource: 'url',
 		quantity: 1,
 		defaultAmount: '',
 		promoAmount: ''
@@ -40,7 +40,11 @@
 
 	function openEditDrawer(dish: any) {
 		const isFileUpload = dish.image?.startsWith('https://playgzero.pb.itcass.net/api/files/');
-		selectedDish = { ...dish, imageSource: isFileUpload ? 'file' : 'url' };
+		// selectedDish = { ...dish, imageSource: isFileUpload ? 'file' : 'url' };
+		selectedDish = {
+			...dish,
+			imageSource: 'url' // ✅ Always set to 'url' on drawer open
+		};
 		const drawer = document.getElementById('my-drawer-4') as HTMLInputElement;
 		if (drawer) drawer.checked = true;
 	}
@@ -577,8 +581,8 @@
 									name="imageSource"
 									value="file"
 									class="cursor-pointer"
-									id="imageUpload"
 									checked={selectedDish.imageSource === 'file'}
+									id="imageUpload"
 									onchange={handleImageSourceChange}
 								/>
 							</label>
@@ -606,10 +610,12 @@
 							<input
 								type="file"
 								id="upload"
+								required
 								name="imageFile"
 								accept="image/*"
 								class="border-secondary w-fit cursor-pointer border p-2"
 							/>
+							<!-- bind:value={selectedDish.image} -->
 							<small class="mt-1 text-sm text-gray-500"
 								>Only JPEG or PNG files under 2MB are allowed.</small
 							>
