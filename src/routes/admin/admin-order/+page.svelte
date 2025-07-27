@@ -292,12 +292,16 @@
 										0
 									).toLocaleString()}
 								</p>
+								{#if order.deliveryType === 'home'}
+									<p><strong>Delivery Fee:</strong> ₦2,000</p>
+								{/if}
 								<p><strong>Quantity:</strong> {order.quantity}</p>
 								<!-- <p><strong>Delivery Type:</strong> {order.deliveryType}</p> -->
 								{#if order.deliveryType === 'restaurantPickup'}
 									<p><strong>Delivery Type:</strong> Pickup</p>
 								{:else if order.deliveryType === 'home'}
 									<p><strong>Delivery Type:</strong> Home Delivery</p>
+									<p><strong>Delivery Fee:</strong> ₦2,000</p>
 								{:else if order.deliveryType === 'restaurant'}
 									<p><strong>Delivery Type:</strong> Table Service</p>
 								{/if}
