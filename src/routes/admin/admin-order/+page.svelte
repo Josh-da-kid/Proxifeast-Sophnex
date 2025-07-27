@@ -20,90 +20,40 @@
 	const searchSubmitted = derived(page, ($page) => {
 		return ($page.url.searchParams.get('search')?.trim() ?? '') !== '';
 	});
-	// Fetch cart data
-	// export async function fetchPendingOrders() {
-	// 	try {
-	// 		const records = await pb.collection('orders').getFullList({
-	// 			filter: `status="Pending" || status="Preparing" || status="Ready"`,
-	// 			expand: 'user' // 👈 expand the user relation
-	// 		});
-	// 		console.log('Pending orders:', records);
-	// 		// console.log('User name:', records.expand?.name);
-	// 		records.forEach((record) => {
-	// 			console.log('Record:', record);
-	// 			console.log('Expanded user:', record.expand?.user);
-	// 			console.log('User name:', record.expand?.user?.name);
-	// 		});
-
-	// 		return records;
-	// 	} catch (err) {
-	// 		console.error('Failed to fetch pending orders:', err);
-	// 	}
-	// }
-
-	// async function fetchPendingOrders() {
-	// 	loading = true;
-
-	// 	try {
-	// 		const res = await fetch('/api/fetch-orders');
-	// 		const data = await res.json();
-	// 		// console.log('Fetched orders heyyyyyy'); // log all orders
-	// 		// 			console.log('Fetched orders:', orders); // log all orders
-	// 		// 			orders.forEach((order) => {
-	// 		// 				console.log('Order::::', order);
-	// 		// 				console.log('User::::', order.expand?.user); // should contain full user object
-	// 		// 			});
-	// 		orders = data.orders || [];
-	// 		return orders; // ✅ ADD THIS LINE
-	// 	} catch (err) {
-	// 		console.error('Fetch failed', err);
-	// 		orders = [];
-	// 		return [];
-	// 	} finally {
-	// 		loading = false;
-	// 	}
-	// }
 
 	// Fetch cart data
 	export async function fetchPendingOrders() {
 		const userId = get(user)?.id;
 		console.log(userId);
-		// const search = urlParams.get('search')?.trim() ?? '';
-		// const category = urlParams.get('category')?.trim() ?? 'All';
+
 		const searchParams = get(page).url.searchParams;
 		const search = searchParams.get('search')?.trim() ?? '';
 		const category = searchParams.get('category')?.trim() ?? 'All';
 
 		if (!userId) return;
 
-		// Build dynamic filter
-		// let filter = `(user="${userId}")`;
-		// Build base filter
 		let filterParts: string[] = [];
 
 		if (category !== 'All') {
-			// filter = ` && status="${category}"`;
 			filterParts.push(`status="${category}"`);
 		} else {
-			// filter = ` && (status="Delivered" || status="Cancelled"`;
 			filterParts.push(`(status="Pending" || status="Preparing" || status="Ready")`);
 		}
 
 		if (search) {
-			// filter = ` && (reference~"${search}" || name~"${search}" || phone~"${search}")`;
-			filterParts.push(`(reference~"${search}" || name~"${search}" || phone~"${search}")`);
+			filterParts.push(
+				`(reference~"${search}" || name~"${search}" || phone~"${search}" || deliveryType~"${search}")`
+			);
 		}
 
 		const filter = filterParts.join(' && ');
 		try {
 			const records = await pb.collection('orders').getFullList({
-				// filter: `user="${userId}" && (status="Pending" || status="Preparing" || status="Ready")`,
 				filter,
 				sort: '-created',
 				expand: 'dish'
 			});
-			// Set to your store or return it as needed
-			// cart.set(records);
+
 			console.log('Pending orders:', records);
 			return records;
 		} catch (err) {
@@ -133,7 +83,6 @@
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 
 	async function clearSearch() {
-		// searchInput = '';
 		window.location.href = '/admin/admin-order';
 	}
 
@@ -141,7 +90,6 @@
 		e.preventDefault();
 
 		if (!searchInput.trim() && selectedCategoryInput === 'All') {
-			// Do nothing if no filters
 			return;
 		}
 
@@ -304,14 +252,14 @@
 								{:else if order.deliveryType === 'home'}
 									<p><strong>Delivery Type:</strong> Home Delivery</p>
 									<p><strong>Delivery Fee:</strong> ₦2,000</p>
-								{:else if order.deliveryType === 'restaurant'}
+								{:else if order.deliveryType === 'tableService'}
 									<p><strong>Delivery Type:</strong> Table Service</p>
 								{/if}
 								{#if order.deliveryType === 'restaurantPickup'}
 									<p><strong>Pickup Time:</strong> {order.pickupTime}</p>
 								{:else if order.deliveryType === 'home'}
 									<p><strong>Address:</strong> {order.homeAddress}</p>
-								{:else if order.deliveryType === 'restaurant'}
+								{:else if order.deliveryType === 'tableService'}
 									<p><strong>Table Number:</strong> {order.tableNumber}</p>
 								{/if}
 								<p><strong>Phone:</strong> {order.phone}</p>

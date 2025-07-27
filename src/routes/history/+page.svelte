@@ -104,7 +104,7 @@
 								{/if}
 								<p><strong>Quantity:</strong> {order.quantity}</p>
 								<!-- <p><strong>Delivery Type:</strong> {order.deliveryType}</p> -->
-								{#if order.deliveryType === 'restaurant'}
+								{#if order.deliveryType === 'tableService'}
 									<p><strong>Delivery Type:</strong> Table Service</p>
 								{:else if order.deliveryType === 'home'}
 									<p><strong>Delivery Type:</strong> Home Delivery</p>
@@ -115,7 +115,7 @@
 									<p><strong>Pickup Time:</strong> {order.pickupTime}</p>
 								{:else if order.deliveryType === 'home'}
 									<p><strong>Address:</strong> {order.homeAddress}</p>
-								{:else if order.deliveryType === 'restaurant'}
+								{:else if order.deliveryType === 'tableService'}
 									<p><strong>Table Number:</strong> {order.tableNumber}</p>
 								{/if}
 								<p><strong>Phone:</strong> {order.phone}</p>

@@ -43,7 +43,9 @@
 		}
 
 		if (search) {
-			filterParts.push(`(reference~"${search}" || name~"${search}" || phone~"${search}")`);
+			filterParts.push(
+				`(reference~"${search}" || name~"${search}" || phone~"${search}" || deliveryType~"${search}")`
+			);
 		}
 
 		const filter = filterParts.join(' && ');
@@ -251,14 +253,14 @@
 									<p><strong>Delivery Type:</strong> Pickup</p>
 								{:else if order.deliveryType === 'home'}
 									<p><strong>Delivery Type:</strong> Home Delivery</p>
-								{:else if order.deliveryType === 'restaurant'}
+								{:else if order.deliveryType === 'tableService'}
 									<p><strong>Delivery Type:</strong> Dine-in</p>
 								{/if}
 								{#if order.deliveryType === 'restaurantPickup'}
 									<p><strong>Pickup Time:</strong> {order.pickupTime}</p>
 								{:else if order.deliveryType === 'home'}
 									<p><strong>Address:</strong> {order.homeAddress}</p>
-								{:else if order.deliveryType === 'restaurant'}
+								{:else if order.deliveryType === 'tableService'}
 									<p><strong>Table Number:</strong> {order.tableNumber}</p>
 								{/if}
 								<p><strong>Phone:</strong> {order.phone}</p>

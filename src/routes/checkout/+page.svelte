@@ -213,7 +213,7 @@
 					pickupTime
 				};
 
-				if (deliveryOption === 'restaurant') {
+				if (deliveryOption === 'tableService') {
 					orderData.tableNumber = tableNumber;
 				} else if (deliveryOption === 'home') {
 					orderData.homeAddress = homeAddress;
@@ -453,7 +453,7 @@
 								<div class="space-y-2 space-x-4 text-start">
 									<p class="font-bold">Delivery Type:</p>
 
-									<label for="restaurant" class="flex gap-2">
+									<label for="tableService" class="flex gap-2">
 										<div
 											class="wide-tooltip tooltip tooltip-right relative z-50"
 											data-tip="this is a delivery to the table you're seated on in the restaurant"
@@ -473,9 +473,9 @@
 										<span>Table Service</span>
 										<input
 											bind:group={deliveryOption}
-											value="restaurant"
+											value="tableService"
 											type="radio"
-											id="restaurant"
+											id="tableService"
 											name="delivery"
 											required
 										/>
@@ -536,11 +536,8 @@
 									</label>
 								</div>
 
-								<!-- <p>Selected: {deliveryOption}</p>
-							<p>Selected: {paymentOption}</p> -->
-
 								<div class="space-y-4 text-start">
-									{#if deliveryOption == 'restaurant'}
+									{#if deliveryOption == 'tableService'}
 										<label for="table" class="flex flex-col">
 											<span>Table Number:</span>
 											<input
@@ -807,7 +804,7 @@
 						<div class="space-y-2 space-x-4 text-start">
 							<p class="font-bold">Delivery Type:</p>
 
-							<label for="restaurant" class="flex gap-2">
+							<label for="tableService" class="flex gap-2">
 								<div
 									class="wide-tooltip tooltip tooltip-right relative z-50"
 									data-tip="this is a delivery to the table you're seated on in the restaurant"
@@ -827,9 +824,9 @@
 								<span>Table Service</span>
 								<input
 									bind:group={deliveryOption}
-									value="restaurant"
+									value="tableService"
 									type="radio"
-									id="restaurant"
+									id="tableService"
 									name="delivery"
 									required
 								/>
@@ -890,11 +887,8 @@
 							</label>
 						</div>
 
-						<!-- <p>Selected: {deliveryOption}</p>
-							<p>Selected: {paymentOption}</p> -->
-
 						<div class="space-y-4 text-start">
-							{#if deliveryOption == 'restaurant'}
+							{#if deliveryOption == 'tableService'}
 								<label for="table" class="flex flex-col">
 									<span>Table Number:</span>
 									<input
@@ -1014,9 +1008,6 @@
 						</label>
 
 						<div class="flex items-center justify-center gap-3">
-							<!-- <button class="btn btn-outline btn-sm" on:click={() => clearModal.showModal()}>
-								Clear Cart
-							</button> -->
 							<button
 								type="submit"
 								class="btn btn-secondary btn-sm mb-8 rounded-full p-6 text-lg transition-transform duration-300 hover:scale-105 md:w-[350px]"
