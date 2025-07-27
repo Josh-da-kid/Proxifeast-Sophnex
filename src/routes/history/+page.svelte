@@ -16,6 +16,7 @@
 		try {
 			const records = await pb.collection('orders').getFullList({
 				filter: `user="${userId}" && status="Delivered"`,
+				sort: '-updated',
 				expand: 'dish'
 			});
 			// Set to your store or return it as needed
