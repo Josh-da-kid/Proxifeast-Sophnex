@@ -4,9 +4,9 @@
 </script>
 
 <!-- Contact Section -->
-<section id="contact" class="bg-base-100 px-6 py-16 text-center md:px-20">
+<section id="contact" class="px-6 py-16 text-center md:px-20">
 	<h2
-		class="font-playfair text-primary mt-10 mb-8 text-5xl font-semibold"
+		class="font-playfair text-primary mb-8 text-5xl font-semibold"
 		in:fly={{ y: -100, duration: 800 }}
 	>
 		Contact Us
@@ -21,10 +21,11 @@
 			in:scale={{ duration: 700, easing: cubicOut }}
 		>
 			<iframe
+				title="Proxifeast Restaurant Location"
 				class="h-64 w-full md:h-96"
 				src="https://maps.google.com/maps?q=Calabar&t=&z=13&ie=UTF8&iwloc=&output=embed"
 				loading="lazy"
-				aria-label="Google Maps location of Chef Zhanga Foods"
+				aria-label="Google Maps location of ProxiFeast Restaurant"
 				frameborder="0"
 			></iframe>
 		</div>

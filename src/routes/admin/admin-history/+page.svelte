@@ -9,10 +9,6 @@
 
 	export const user = derived(page, ($page) => $page.data.user);
 
-	// let orders: RecordModel[] = [];
-	// let orders: any = [];
-	// let loading = true;
-
 	let searchInput = $state('');
 	let selectedCategoryInput = $state('All');
 	// let orders: RecordModel[] = [];
@@ -26,27 +22,6 @@
 	});
 
 	// Fetch cart data
-	// export async function fetchPendingOrders() {
-	// 	try {
-	// 		const records = await pb.collection('orders').getFullList({
-	// 			filter: `status="Delivered" || status="Cancelled"`,
-	// 			expand: 'user' // 👈 expand the user relation
-	// 		});
-	// 		console.log('Pending orders:', records);
-	// 		// console.log('User name:', records.expand?.name);
-	// 		records.forEach((record) => {
-	// 			console.log('Record:', record);
-	// 			console.log('Expanded user:', record.expand?.user);
-	// 			console.log('User name:', record.expand?.user?.name);
-	// 		});
-
-	// 		return records;
-	// 	} catch (err) {
-	// 		console.error('Failed to fetch pending orders:', err);
-	// 	}
-	// }
-
-	// Fetch cart data
 	export async function fetchPendingOrders() {
 		const userId = get(user)?.id;
 		console.log(userId);
@@ -58,34 +33,27 @@
 
 		if (!userId) return;
 
-		// Build dynamic filter
-		// let filter = `(user="${userId}")`;
 		// Build base filter
 		let filterParts: string[] = [];
 
 		if (category !== 'All') {
-			// filter = ` && status="${category}"`;
 			filterParts.push(`status="${category}"`);
 		} else {
-			// filter = ` && (status="Delivered" || status="Cancelled"`;
 			filterParts.push(`(status="Delivered" || status="Cancelled")`);
 		}
 
 		if (search) {
-			// filter = ` && (reference~"${search}" || name~"${search}" || phone~"${search}")`;
 			filterParts.push(`(reference~"${search}" || name~"${search}" || phone~"${search}")`);
 		}
 
 		const filter = filterParts.join(' && ');
 		try {
 			const records = await pb.collection('orders').getFullList({
-				// filter: `user="${userId}" && (status="Pending" || status="Preparing" || status="Ready")`,
 				filter,
 				sort: '-updated',
 				expand: 'dish'
 			});
-			// Set to your store or return it as needed
-			// cart.set(records);
+
 			console.log('Pending orders:', records);
 			return records;
 		} catch (err) {
@@ -115,7 +83,6 @@
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 
 	async function clearSearch() {
-		// searchInput = '';
 		window.location.href = '/admin/admin-history';
 	}
 
@@ -123,7 +90,6 @@
 		e.preventDefault();
 
 		if (!searchInput.trim() && selectedCategoryInput === 'All') {
-			// Do nothing if no filters
 			return;
 		}
 
@@ -134,14 +100,14 @@
 
 		const target = `/admin/admin-history/?${query.toString()}`;
 
-		await goto(target); // navigate
+		await goto(target);
 		window.location.reload(); // force full page reload
 	}
 </script>
 
 <main>
 	{#if $isLoggedIn}
-		<h1 class="mb-4 text-center text-2xl font-bold" in:fly={{ x: 200, duration: 800 }}>
+		<h1 class="mb-4 text-center text-2xl font-bold md:mt-8" in:fly={{ x: 200, duration: 800 }}>
 			Order History
 		</h1>
 

@@ -365,7 +365,7 @@
 		id="home"
 		class="hero md:px-20l flex min-h-[75vh] flex-col items-center justify-center overflow-hidden px-6 text-center md:px-0"
 	>
-		<h3 class="text-secondary mt-4 ml-4 animate-bounce text-2xl font-bold">
+		<h3 class="text-secondary mt-4 ml-4 animate-bounce text-2xl font-bold md:mt-8">
 			Hi {$user?.name || 'there'}!!
 		</h3>
 		<h1

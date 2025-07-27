@@ -260,7 +260,7 @@
 	</div>
 {/if}
 
-<h2 class="mb-4 ml-4 text-center text-4xl font-bold" in:fly={{ x: 200, duration: 800 }}>
+<h2 class="mb-4 ml-4 text-center text-4xl font-bold md:mt-8" in:fly={{ x: 200, duration: 800 }}>
 	All Dishes
 </h2>
 

@@ -3,9 +3,9 @@
 </script>
 
 <!-- About Section -->
-<section id="about" class="bg-base-200 rounded-t-xl px-6 py-16 text-center md:px-20">
+<section id="about" class="rounded-t-xl px-6 py-16 text-center md:px-20">
 	<h2
-		class="font-playfair text-primary mt-10 mb-8 text-5xl font-semibold"
+		class="font-playfair text-primary mb-8 text-5xl font-semibold"
 		in:fly={{ x: 200, duration: 800 }}
 	>
 		About Chef Zhanga Foods

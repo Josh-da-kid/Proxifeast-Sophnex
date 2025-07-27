@@ -98,7 +98,7 @@
 
 <main>
 	{#if $isLoggedIn}
-		<h1 class="mb-4 text-center text-2xl font-bold" in:fly={{ x: 200, duration: 800 }}>
+		<h1 class="mb-4 text-center text-2xl font-bold md:mt-8" in:fly={{ x: 200, duration: 800 }}>
 			Unsettled Orders
 		</h1>
 

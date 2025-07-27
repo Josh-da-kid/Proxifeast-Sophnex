@@ -265,7 +265,6 @@
 
 <main>
 	{#if $isLoggedIn}
-		<!-- <section class="flex h-screen overflow-y-auto w-full justify-between gap-8 p-6 px-8 md:flex"> -->
 		{#if loading}
 			<div class="text-secondary mt-15 flex items-center justify-center text-center">
 				<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24"
@@ -294,7 +293,9 @@
 				>
 			</div>
 		{:else}
-			<section class="max-h-screen w-full justify-between gap-8 overflow-y-auto p-6 px-8 md:flex">
+			<section
+				class="max-h-screen w-full justify-between gap-8 overflow-y-auto p-6 px-8 md:mt-8 md:flex"
+			>
 				{#if $cart.length > 0}
 					<div class="scroll-hidden max-h-[80vh] overflow-y-auto pr-2 md:w-[800px]">
 						<ul class="space-y-4">

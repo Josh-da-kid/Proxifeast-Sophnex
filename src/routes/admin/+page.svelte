@@ -106,7 +106,7 @@
 {/if}
 
 <h1
-	class="mb-4 flex items-center justify-center text-center text-3xl font-bold md:text-4xl"
+	class="mb-4 flex items-center justify-center text-center text-3xl font-bold md:mt-8 md:text-4xl"
 	in:fly={{ x: 200, duration: 800 }}
 >
 	Welcome to ProxiFeast Admin Dashboard
