@@ -11,6 +11,7 @@ export const toggleMenu = () => (isMenuOpen = !isMenuOpen);
 		// { id: 'menu', label: 'Menu' },
 		{ id: 'about', label: 'About' },
 		{ id: 'contact', label: 'Contact' },
+		{ id: 'checkout', label: 'Checkout' },
 		{ id: 'pending', label: 'Pending Orders' },
 		{ id: 'history', label: 'Order History' },
 		// { id: 'signup', label: 'Signup/Login' }
