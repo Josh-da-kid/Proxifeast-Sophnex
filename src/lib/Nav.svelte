@@ -100,12 +100,12 @@
 					? 'bg-white font-bold text-blue-700'
 					: ''}">Order History</a
 			>
-			<a
+			<!-- <a
 				href="/admin/admin-reservation"
 				class="btn btn-ghost {$page.url.pathname === '/admin/admin-reservation'
 					? 'bg-white font-bold text-blue-700'
 					: ''}">Reservations</a
-			>
+			> -->
 
 			<div>
 				{#if $user}
@@ -171,19 +171,19 @@
 			{/each}
 		</div>
 
-		<div>
+		<!-- <div>
 			<a href="/reservation">
 				<button class="btn btn-ghost bg-secondary ml-2 hidden text-lg lg:flex">
 					Book Reservation
 				</button>
 			</a>
-		</div>
+		</div> -->
 
 		<div>
 			{#if $user}
 				<button
 					onclick={my_modal_1.showModal()}
-					class="btn btn-ghost ml-2 hidden bg-white text-lg text-blue-700 lg:flex"
+					class="btn btn-ghost bg-secondary ml-2 hidden text-lg lg:flex"
 				>
 					Logout
 				</button>
@@ -259,7 +259,7 @@
 					>
 				</li>
 
-				<li>
+				<!-- <li>
 					<a
 						onclick={closeSideBar}
 						href="/admin/admin-reservation"
@@ -267,7 +267,7 @@
 							? 'bg-white font-bold text-blue-700'
 							: ''}"><button class="rounded-lg p-2">Reservations</button></a
 					>
-				</li>
+				</li> -->
 				<li>
 					{#if $user}
 						<button
@@ -370,7 +370,7 @@
 					>
 				</li>
 
-				<li>
+				<!-- <li>
 					<a
 						onclick={closeSideBar}
 						href="/reservation"
@@ -378,7 +378,7 @@
 							? 'bg-white font-bold text-blue-700'
 							: ''}"><button class="rounded-lg p-2">Book Reservation</button></a
 					>
-				</li>
+				</li> -->
 				<li>
 					{#if $user}
 						<button
