@@ -103,36 +103,38 @@
 		</h1>
 
 		<form method="GET" onsubmit={handleSearchSubmit} class="gap-2 sm:flex">
-			<div class="mx-auto flex items-center justify-center gap-2 p-2">
-				<input
-					type="text"
-					name="search"
-					placeholder="Search order..."
-					bind:value={searchInput}
-					class="input input-bordered border-secondary focus:ring-secondary w-full max-w-xs border focus:ring-2 focus:outline-none md:w-[400px]"
-				/>
+			<div class="mx-auto items-center justify-center gap-2 p-2 sm:flex">
+				<div class="flex gap-2 px-2">
+					<input
+						type="text"
+						name="search"
+						placeholder="Search order..."
+						bind:value={searchInput}
+						class="input input-bordered border-secondary focus:ring-secondary w-full max-w-xs border focus:ring-2 focus:outline-none md:w-[400px]"
+					/>
 
-				{#if searchInput.trim() && $searchSubmitted}
-					<!-- svelte-ignore a11y_consider_explicit_label -->
+					{#if searchInput.trim() && $searchSubmitted}
+						<!-- svelte-ignore a11y_consider_explicit_label -->
 
-					<button type="button" onclick={clearSearch} class="btn btn-secondary">
-						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-							<path
-								fill="none"
-								stroke="currentColor"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="1.5"
-								d="M6.758 17.243L12.001 12m5.243-5.243L12 12m0 0L6.758 6.757M12.001 12l5.243 5.243"
-							/>
-						</svg>
-					</button>
-				{/if}
-				{#if searchInput.length > 0 && !$searchSubmitted}
-					<button type="submit" class="btn btn-secondary">Search</button>
-				{/if}
+						<button type="button" onclick={clearSearch} class="btn btn-secondary">
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+								<path
+									fill="none"
+									stroke="currentColor"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="1.5"
+									d="M6.758 17.243L12.001 12m5.243-5.243L12 12m0 0L6.758 6.757M12.001 12l5.243 5.243"
+								/>
+							</svg>
+						</button>
+					{/if}
+					{#if searchInput.length > 0 && !$searchSubmitted}
+						<button type="submit" class="btn btn-secondary">Search</button>
+					{/if}
+				</div>
 
-				<div class="ml-4 px-2 sm:ml-0 sm:p-3">
+				<div class="mt-2 ml-4 px-2 sm:mt-0 sm:ml-0 sm:p-3">
 					<select
 						name="category"
 						bind:value={selectedCategoryInput}
