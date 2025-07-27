@@ -48,10 +48,11 @@
 	class:translate-y-[-100%]={!showHeader}
 	class:translate-y-0={showHeader}
 >
-	<div class="flex-1 px-1">
+	<div class="flex-1 flex-col px-1">
 		<a href="/" class="font-playfair text-2xl font-bold normal-case md:text-3xl">
 			Proxi<span class="text-secondary text-3xl md:text-4xl">Feast </span></a
 		>
+		<span class="hidden lg:flex">{$user?.email}</span>
 	</div>
 
 	<div class="flex justify-center lg:hidden">
@@ -83,14 +84,12 @@
 
 			<div>
 				{#if $user}
-					<!-- <form action="/logout" method="POST"> -->
 					<button
 						onclick={my_modal_2.showModal()}
 						class="btn btn-ghost ml-2 hidden bg-white text-lg text-blue-700 md:flex"
 					>
 						Logout
 					</button>
-					<!-- </form> -->
 
 					<dialog id="my_modal_2" class="modal">
 						<div class="modal-box text-black">
@@ -149,14 +148,12 @@
 
 		<div>
 			{#if $user}
-				<!-- <form action="/logout" method="POST"> -->
 				<button
 					onclick={my_modal_1.showModal()}
 					class="btn btn-ghost ml-2 hidden bg-white text-lg text-blue-700 lg:flex"
 				>
 					Logout
 				</button>
-				<!-- </form> -->
 
 				<dialog id="my_modal_1" class="modal">
 					<div class="modal-box text-black">
@@ -220,14 +217,14 @@
 				</li>
 				<li>
 					{#if $user}
-						<!-- <form action="/logout" method="POST"> -->
 						<button
 							onclick={my_modal_1.showModal()}
 							class="btn btn-ghost ml-2 bg-white text-lg text-blue-700 md:flex"
 						>
 							Logout
 						</button>
-						<!-- </form> -->
+
+						<p class="text-lg font-bold">{$user.email}</p>
 
 						<dialog id="my_modal_1" class="modal">
 							<div class="modal-box text-black">
@@ -301,14 +298,14 @@
 				</li>
 				<li>
 					{#if $user}
-						<!-- <form action="/logout" method="POST"> -->
 						<button
 							onclick={my_modal_2.showModal()}
 							class="btn btn-ghost ml-2 bg-white text-lg text-blue-700 md:flex"
 						>
 							Logout
 						</button>
-						<!-- </form> -->
+
+						<p class="text-lg font-bold">{$user.email}</p>
 
 						<dialog id="my_modal_2" class="modal">
 							<div class="modal-box text-black">
