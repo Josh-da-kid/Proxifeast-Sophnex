@@ -1,14 +1,3 @@
-<!-- <script lang="ts">
-	import { cart, clearCart, fetchCart, removeFromCart, total } from '$lib/stores/cart';
-	import { onMount } from 'svelte';
-
-	onMount(async () => {
-		console.log('Fetching cart...');
-		await fetchCart();
-		console.log('Cart after fetch:', $cart);
-	});
-</script> -->
-
 <script lang="ts">
 	import { writable, derived, get } from 'svelte/store';
 	import { page } from '$app/stores';
@@ -143,19 +132,48 @@
 	let paymentOption = $state('');
 	let fullName = '';
 	let phone = $state('');
+	let prefix = $state('+234');
 	let tableNumber = $state('');
 	let orderTotal = $state('');
 	let homeAddress = $state('');
-	let pickupTime = $state('');
+	let hour = $state('12');
+	let minutes = $state('00');
+	let meridian = $state('PM');
+
+	let pickupTime = $derived(`${hour}:${String(minutes).padStart(2, '0')} ${meridian}`);
+
+	function isValidPhone(prefix: string, phone: string): boolean {
+		// Remove spaces and normalize
+		prefix = prefix.trim();
+		phone = phone.trim().replace(/\s+/g, '');
+
+		// Ensure phone contains only digits
+		if (!/^\d+$/.test(phone)) return false;
+
+		// Nigeria-specific validation: +234 followed by 10 digits starting with 7, 8, or 9
+		if (prefix === '+234') {
+			// Must start with 7, 8, or 9 and be 10 digits long
+			return /^[789][01]\d{8}$/.test(phone);
+		}
+
+		// Basic fallback validation: for other countries (e.g. +1, +44), require 7–15 digits
+		return phone.length >= 7 && phone.length <= 15;
+	}
 
 	// @ts-ignore
 	const PaystackPop = (window as any).PaystackPop;
 
-	let email = $user?.email; // get from form input
-	let amount = $total; // in Naira, e.g. ₦2500
+	let email = $user?.email;
+	let amount = $total;
+	const formattedPhone = $derived(`${prefix}${phone}`);
 
 	function payWithPaystack(e: Event) {
 		e.preventDefault();
+
+		if (!isValidPhone(prefix, phone)) {
+			alert('Please enter a valid Nigerian phone number.');
+			return;
+		}
 		if (deliveryOption == 'home') {
 			amount = $total + 2000;
 		} else {
@@ -169,7 +187,7 @@
 			ref: 'ORD-' + Math.floor(Math.random() * 1000000000 + 1),
 			callback: function (response: any) {
 				alert('Payment complete! Reference: ' + response.reference);
-				// const dishIds = $cart.map((item) => item.expand?.dish?.id);
+
 				const cartQuantity = $cart.length;
 				const orderedDishes = $cart.map((item) => ({
 					dish: item.expand?.dish?.id,
@@ -178,9 +196,6 @@
 					amount: item.amount
 				}));
 
-				// const cartId = $cart?.id;
-				// console.log('cartId:', cartId);
-				// console.log("cartId:", dishIds)
 				console.log('cartQuantity:', cartQuantity);
 				// ✅ Save order to DB here
 				const orderData = {
@@ -190,9 +205,8 @@
 					user: $user.id,
 					dishes: orderedDishes,
 					name: $user.name,
-					// dishes: cartId,
 					quantity: cartQuantity,
-					phone,
+					formattedPhone,
 					tableNumber,
 					homeAddress,
 					orderTotal,
@@ -435,44 +449,6 @@
 							{/if}
 
 							<form onsubmit={payWithPaystack} class="space-y-4">
-								<!-- <div class="space-x-4 text-start md:w-[300px]">
-								<p class="font-bold">Mode of transfer:</p>
-
-								<label for="transfer">
-									<span>Bank transfer</span>
-									<input
-										bind:group={paymentOption}
-										type="radio"
-										id="transfer"
-										value="transfer"
-										name="payment"
-										required
-									/>
-								</label>
-
-								<label for="card">
-									<span>Card Payment</span>
-									<input
-										bind:group={paymentOption}
-										type="radio"
-										id="card"
-										value="card"
-										name="payment"
-									/>
-								</label>
-
-								 <label for="onDelivery">
-									<span>Pay on Delivery/Pickup</span>
-									<input
-										bind:group={paymentOption}
-										type="radio"
-										id="onDelivery"
-										value="onDelivery"
-										name="payment"
-									/>
-								</label> 
-							</div> -->
-
 								<div class="space-y-2 space-x-4 text-start">
 									<p class="font-bold">Delivery Type:</p>
 
@@ -583,13 +559,45 @@
 									{:else if deliveryOption == 'restaurantPickup'}
 										<label for="table" class="flex w-[250px] flex-col">
 											<span>Pickup Time:</span>
-											<input
-												type="text"
-												id="table"
-												bind:value={pickupTime}
-												class="border-secondary focus:ring-secondary mt-1 w-[150px] rounded-lg border p-2 focus:ring-2 focus:outline-none"
-												required
-											/>
+											<p class="mt-2 text-gray-600">Pickup Time: {pickupTime}</p>
+
+											<div class="flex gap-2">
+												<input
+													type="number"
+													id="hour"
+													bind:value={hour}
+													min="1"
+													max="12"
+													placeholder="HH"
+													class="border-secondary focus:ring-secondary mt-1 w-[60px] rounded-lg border p-2 focus:ring-2 focus:outline-none"
+													required
+												/>
+
+												<span class="flex items-center justify-center text-2xl font-extrabold"
+													>:</span
+												>
+
+												<input
+													type="number"
+													id="minutes"
+													bind:value={minutes}
+													min="0"
+													max="59"
+													placeholder="MM"
+													class="border-secondary focus:ring-secondary mt-1 w-[60px] rounded-lg border p-2 focus:ring-2 focus:outline-none"
+													required
+												/>
+
+												<select
+													id="meridian"
+													class="border-secondary h-12 w-[60px] rounded-lg border p-1"
+													required
+													bind:value={meridian}
+												>
+													<option value="AM">AM</option>
+													<option value="PM">PM</option>
+												</select>
+											</div>
 											<small
 												><span class="text-secondary mr-1 font-bold">N/B : </span>Input the time you
 												will be most likely to pickup your order.</small
@@ -636,19 +644,36 @@
 								<div class="space-x-4 text-start">
 									<label for="phone" class="flex w-[250px] flex-col">
 										<span>Phone Number:</span>
-										<input
-											type="text"
-											placeholder="+2347068346403"
-											id="phone"
-											bind:value={phone}
-											name="delivery"
-											class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
-											required
-										/>
+
+										<div class="flex gap-2">
+											<input
+												bind:value={prefix}
+												type="text"
+												class="focus:ring-secondary border-secondary h-[55px] w-[70px] rounded-lg border p-1 focus:ring-2 focus:outline-none"
+												minlength="4"
+												maxlength="4"
+												placeholder="+234"
+											/>
+											<input
+												type="text"
+												placeholder="70123456789"
+												id="phone"
+												bind:value={phone}
+												name="delivery"
+												minlength="10"
+												maxlength="10"
+												class="border-secondary focus:ring-secondary mt-1 w-[200px] rounded-lg border p-3 focus:ring-2 focus:outline-none"
+												required
+											/>
+										</div>
+
 										<small class="mt-1"
 											><span class="font-bold">Note:</span> you'll be contacted with this phone number
 											when your order is ready</small
 										>
+										{#if phone && !isValidPhone(prefix, phone)}
+											<p class="mt-1 text-sm text-red-500">Invalid phone number format</p>
+										{/if}
 									</label>
 								</div>
 
@@ -658,9 +683,6 @@
 								</label>
 
 								<div class="flex items-center justify-center gap-3">
-									<!-- <button class="btn btn-outline btn-sm" on:click={() => clearModal.showModal()}>
-								Clear Cart
-							</button> -->
 									<button
 										type="submit"
 										class="btn btn-secondary btn-sm mb-8 rounded-full p-6 text-lg transition-transform duration-300 hover:scale-105 md:w-[350px]"
@@ -781,44 +803,6 @@
 					{/if}
 
 					<form onsubmit={payWithPaystack} class="space-y-4">
-						<!-- <div class="space-x-4 text-start md:w-[300px]">
-								<p class="font-bold">Mode of transfer:</p>
-
-								<label for="transfer">
-									<span>Bank transfer</span>
-									<input
-										bind:group={paymentOption}
-										type="radio"
-										id="transfer"
-										value="transfer"
-										name="payment"
-										required
-									/>
-								</label>
-
-								<label for="card">
-									<span>Card Payment</span>
-									<input
-										bind:group={paymentOption}
-										type="radio"
-										id="card"
-										value="card"
-										name="payment"
-									/>
-								</label>
-
-								 <label for="onDelivery">
-									<span>Pay on Delivery/Pickup</span>
-									<input
-										bind:group={paymentOption}
-										type="radio"
-										id="onDelivery"
-										value="onDelivery"
-										name="payment"
-									/>
-								</label> 
-							</div> -->
-
 						<div class="space-y-2 space-x-4 text-start">
 							<p class="font-bold">Delivery Type:</p>
 
@@ -929,13 +913,43 @@
 							{:else if deliveryOption == 'restaurantPickup'}
 								<label for="table" class="flex w-[250px] flex-col">
 									<span>Pickup Time:</span>
-									<input
-										type="text"
-										id="table"
-										bind:value={pickupTime}
-										class="border-secondary focus:ring-secondary mt-1 w-[150px] rounded-lg border p-2 focus:ring-2 focus:outline-none"
-										required
-									/>
+									<p class="mt-2 text-gray-600">Pickup Time: {pickupTime}</p>
+
+									<div class="flex gap-2">
+										<input
+											type="number"
+											id="hour"
+											bind:value={hour}
+											min="1"
+											max="12"
+											placeholder="HH"
+											class="border-secondary focus:ring-secondary mt-1 w-[60px] rounded-lg border p-2 focus:ring-2 focus:outline-none"
+											required
+										/>
+
+										<span class="flex items-center justify-center text-2xl font-extrabold">:</span>
+
+										<input
+											type="number"
+											id="minutes"
+											bind:value={minutes}
+											min="0"
+											max="59"
+											placeholder="MM"
+											class="border-secondary focus:ring-secondary mt-1 w-[60px] rounded-lg border p-2 focus:ring-2 focus:outline-none"
+											required
+										/>
+
+										<select
+											id="meridian"
+											class="border-secondary h-12 w-[60px] rounded-lg border p-1"
+											required
+											bind:value={meridian}
+										>
+											<option value="AM">AM</option>
+											<option value="PM">PM</option>
+										</select>
+									</div>
 									<small
 										><span class="text-secondary mr-1 font-bold">N/B : </span>Input the time you
 										will be most likely to pickup your order.</small
@@ -959,42 +973,37 @@
 						</div>
 
 						<div class="space-x-4 text-start">
-							<p class="font-bold">Contact Info:</p>
-							<label for="phone" class="flex w-[250px] flex-col">
-								<span>Full Name:</span>
-								<input
-									type="text"
-									placeholder="John Doe"
-									id="name"
-									bind:value={$user.name}
-									readonly
-									name="delivery"
-									class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
-									required
-								/>
-								<small
-									><span class="text-secondary mr-1 font-bold">N/B : </span>This value cannot be
-									changed here.</small
-								>
-							</label>
-						</div>
-
-						<div class="space-x-4 text-start">
-							<label for="phone" class="flex w-[250px] flex-col">
+							<label for="phone" class="flex w-[200px] flex-col">
 								<span>Phone Number:</span>
-								<input
-									type="text"
-									placeholder="+2347068346403"
-									id="phone"
-									bind:value={phone}
-									name="delivery"
-									class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
-									required
-								/>
+
+								<div class="mt-1 flex gap-2">
+									<input
+										bind:value={prefix}
+										type="text"
+										class="focus:ring-secondary border-secondary h-[55px] w-[70px] rounded-lg border p-1 focus:ring-2 focus:outline-none"
+										minlength="4"
+										maxlength="4"
+										placeholder="+234"
+									/>
+									<input
+										type="text"
+										placeholder="70123456789"
+										id="phone"
+										bind:value={phone}
+										name="delivery"
+										minlength="10"
+										maxlength="10"
+										class="border-secondary focus:ring-secondary mt-1 w-[200px] rounded-lg border p-3 focus:ring-2 focus:outline-none"
+										required
+									/>
+								</div>
 								<small class="mt-1"
 									><span class="font-bold">Note:</span> you'll be contacted with this phone number when
 									your order is ready</small
 								>
+								{#if phone && !isValidPhone(prefix, phone)}
+									<p class="mt-1 text-sm text-red-500">Invalid phone number format</p>
+								{/if}
 							</label>
 						</div>
 

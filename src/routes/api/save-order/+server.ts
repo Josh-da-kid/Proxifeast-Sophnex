@@ -11,7 +11,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		const record = await pb.collection('orders').create({
 			user: data.user,
 			name: data.name,
-			phone: data.phone,
+			phone: data.formattedPhone,
 			deliveryType: data.type,
 			status: "Pending",
 			// dishes: data.dishes,
