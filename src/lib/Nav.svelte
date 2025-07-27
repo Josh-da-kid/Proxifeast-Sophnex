@@ -75,18 +75,43 @@
 	</div>
 
 	{#if $isAdminPage}
-		<nav class="hidden lg:flex">
-			<a href="/admin" class="btn btn-ghost">Dashboard</a>
-			<a href="/admin/admin-menu" class="btn btn-ghost">Menu</a>
-			<a href="/admin/admin-order" class="btn btn-ghost">Pending Orders</a>
-			<a href="/admin/admin-history" class="btn btn-ghost">Order History</a>
-			<a href="/admin/admin-reservation" class="btn btn-ghost">Reservations</a>
+		<nav class="hidden gap-2 lg:flex">
+			<a
+				href="/admin"
+				class="btn btn-ghost {$page.url.pathname === '/admin'
+					? 'bg-white font-bold text-blue-700'
+					: ''}">Dashboard</a
+			>
+			<a
+				href="/admin/admin-menu"
+				class="btn btn-ghost {$page.url.pathname === '/admin/admin-menu'
+					? 'bg-white font-bold text-blue-700'
+					: ''}">Menu</a
+			>
+			<a
+				href="/admin/admin-order"
+				class="btn btn-ghost {$page.url.pathname === '/admin/admin-order'
+					? 'bg-white font-bold text-blue-700'
+					: ''}">Pending Orders</a
+			>
+			<a
+				href="/admin/admin-history"
+				class="btn btn-ghost {$page.url.pathname === '/admin/admin-history'
+					? 'bg-white font-bold text-blue-700'
+					: ''}">Order History</a
+			>
+			<a
+				href="/admin/admin-reservation"
+				class="btn btn-ghost {$page.url.pathname === '/admin/admin-reservation'
+					? 'bg-white font-bold text-blue-700'
+					: ''}">Reservations</a
+			>
 
 			<div>
 				{#if $user}
 					<button
 						onclick={my_modal_2.showModal()}
-						class="btn btn-ghost ml-2 hidden bg-white text-lg text-blue-700 md:flex"
+						class="btn btn-ghost bg-secondary ml-2 hidden text-lg md:flex"
 					>
 						Logout
 					</button>
@@ -119,20 +144,28 @@
 		</nav>
 	{:else}
 		<div
-			class={`bg-primary flex-none flex-col p-6 lg:flex lg:flex-row lg:bg-transparent lg:p-0 ${
+			class={`bg-primary flex-none flex-col gap-2 p-6 lg:flex lg:flex-row lg:bg-transparent lg:p-0 ${
 				isMenuOpen ? 'flex' : 'hidden'
 			} lg:flex`}
 		>
 			<div>
 				<a href="/#menu">
-					<button class="btn btn-ghost text-lg">Menu</button>
+					<button
+						class="btn btn-ghost text-lg {$page.url.pathname === '/' && $page.url.hash === '#menu'
+							? 'bg-white font-bold text-blue-700'
+							: ''}"
+						onclick={() => (isMenuOpen = false)}>Menu</button
+					>
 				</a>
 			</div>
 
 			{#each menuItems as item}
 				<a
 					href={getHref(item.id)}
-					class="btn btn-ghost nav-link text-lg font-semibold normal-case"
+					class="btn btn-ghost nav-link text-lg font-semibold normal-case {$page.url.pathname ===
+					getHref(item.id)
+						? 'bg-white font-bold text-blue-700'
+						: ''}"
 					onclick={() => (isMenuOpen = false)}>{item.label}</a
 				>
 			{/each}
@@ -190,36 +223,56 @@
 			<label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 			<ul class="menu min-h-full w-80 bg-blue-800 p-4 text-lg text-white">
 				<li>
-					<a onclick={closeSideBar} href="/admin"
-						><button class="rounded-lg p-2">Dashboard</button></a
+					<a
+						onclick={closeSideBar}
+						href="/admin"
+						class="btn-ghost {$page.url.pathname === '/admin'
+							? 'bg-white font-bold text-blue-700'
+							: ''}"><button class="rounded-lg p-2">Dashboard</button></a
 					>
 				</li>
 				<li>
-					<a onclick={closeSideBar} href="/admin/admin-menu"
-						><button class="rounded-lg p-2">Menu</button></a
+					<a
+						onclick={closeSideBar}
+						href="/admin/admin-menu"
+						class="btn-ghost {$page.url.pathname === '/admin/admin-menu'
+							? 'bg-white font-bold text-blue-700'
+							: ''}"><button class="rounded-lg p-2">Menu</button></a
 					>
 				</li>
 				<li>
-					<a onclick={closeSideBar} href="/admin/admin-order"
-						><button class="rounded-lg p-2">Pending Orders</button></a
+					<a
+						onclick={closeSideBar}
+						href="/admin/admin-order"
+						class="btn-ghost {$page.url.pathname === '/admin/admin-order'
+							? 'bg-white font-bold text-blue-700'
+							: ''}"><button class="rounded-lg p-2">Pending Orders</button></a
 					>
 				</li>
 				<li>
-					<a onclick={closeSideBar} href="/admin/admin-history"
-						><button class="rounded-lg p-2">Order History</button></a
+					<a
+						onclick={closeSideBar}
+						href="/admin/admin-history"
+						class="btn-ghost {$page.url.pathname === '/admin/admin-history'
+							? 'bg-white font-bold text-blue-700'
+							: ''}"><button class="rounded-lg p-2">Order History</button></a
 					>
 				</li>
 
 				<li>
-					<a onclick={closeSideBar} href="/admin/admin-reservation"
-						><button class="rounded-lg p-2">Reservations</button></a
+					<a
+						onclick={closeSideBar}
+						href="/admin/admin-reservation"
+						class="btn-ghost {$page.url.pathname === '/admin/admin-reservation'
+							? 'bg-white font-bold text-blue-700'
+							: ''}"><button class="rounded-lg p-2">Reservations</button></a
 					>
 				</li>
 				<li>
 					{#if $user}
 						<button
 							onclick={my_modal_1.showModal()}
-							class="btn btn-ghost ml-2 bg-white text-lg text-blue-700 md:flex"
+							class="btn btn-ghost bg-secondary mt-2 ml-2 text-lg md:flex"
 						>
 							Logout
 						</button>
@@ -245,12 +298,10 @@
 						</dialog>
 					{:else}
 						<!-- svelte-ignore node_invalid_placement_ssr -->
-						<!-- <form onclick={closeSideBar} action="/admin/admin-login">
-					<button class="rounded-lg p-2 btn text-lg text-blue-700">Login</button>
-				</form> -->
+
 						<a
 							onclick={closeSideBar}
-							class="btn rounded-lg p-2 text-blue-700"
+							class="btn bg-secondary mt-2 rounded-lg p-2 text-white"
 							href="/admin/admin-login">Login</a
 						>
 					{/if}
@@ -265,42 +316,74 @@
 			<label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 			<ul class="menu min-h-full w-80 bg-blue-800 p-4 text-lg text-white">
 				<li>
-					<a onclick={closeSideBar} href="/#menu"><button class="rounded-lg p-2">Menu</button></a>
-				</li>
-				<li>
-					<a onclick={closeSideBar} href="/about"><button class="rounded-lg p-2">About</button></a>
-				</li>
-				<li>
-					<a onclick={closeSideBar} href="/contact"
-						><button class="rounded-lg p-2">Contact</button></a
+					<a
+						onclick={closeSideBar}
+						href="/#menu"
+						class="btn-ghost text-lg {$page.url.pathname === '/' && $page.url.hash === '#menu'
+							? 'bg-white font-bold text-blue-700'
+							: ''}"><button class="rounded-lg p-2">Menu</button></a
 					>
 				</li>
 				<li>
-					<a onclick={closeSideBar} href="/checkout"
-						><button class="rounded-lg p-2">Checkout</button></a
+					<a
+						onclick={closeSideBar}
+						href="/about"
+						class="btn-ghost {$page.url.pathname === '/about'
+							? 'bg-white font-bold text-blue-700'
+							: ''}"><button class="rounded-lg p-2">About</button></a
 					>
 				</li>
 				<li>
-					<a onclick={closeSideBar} href="/pending"
-						><button class="rounded-lg p-2">Pending Orders</button></a
+					<a
+						onclick={closeSideBar}
+						href="/contact"
+						class="btn-ghost {$page.url.pathname === '/contact'
+							? 'bg-white font-bold text-blue-700'
+							: ''}"><button class="rounded-lg p-2">Contact</button></a
 					>
 				</li>
 				<li>
-					<a onclick={closeSideBar} href="/history"
-						><button class="rounded-lg p-2">Order History</button></a
+					<a
+						onclick={closeSideBar}
+						href="/checkout"
+						class="btn-ghost {$page.url.pathname === '/checkout'
+							? 'bg-white font-bold text-blue-700'
+							: ''}"><button class="rounded-lg p-2">Checkout</button></a
+					>
+				</li>
+				<li>
+					<a
+						onclick={closeSideBar}
+						href="/pending"
+						class="btn-ghost {$page.url.pathname === '/pending'
+							? 'bg-white font-bold text-blue-700'
+							: ''}"><button class="rounded-lg p-2">Pending Orders</button></a
+					>
+				</li>
+				<li>
+					<a
+						onclick={closeSideBar}
+						href="/history"
+						class="btn-ghost {$page.url.pathname === '/history'
+							? 'bg-white font-bold text-blue-700'
+							: ''}"><button class="rounded-lg p-2">Order History</button></a
 					>
 				</li>
 
 				<li>
-					<a onclick={closeSideBar} href="/reservation"
-						><button class="rounded-lg p-2">Book Reservation</button></a
+					<a
+						onclick={closeSideBar}
+						href="/reservation"
+						class="btn-ghost {$page.url.pathname === '/reservation'
+							? 'bg-white font-bold text-blue-700'
+							: ''}"><button class="rounded-lg p-2">Book Reservation</button></a
 					>
 				</li>
 				<li>
 					{#if $user}
 						<button
 							onclick={my_modal_2.showModal()}
-							class="btn btn-ghost ml-2 bg-white text-lg text-blue-700 md:flex"
+							class="btn btn-ghost bg-secondary mt-2 ml-2 text-lg md:flex"
 						>
 							Logout
 						</button>
@@ -327,8 +410,10 @@
 					{:else}
 						<!-- svelte-ignore node_invalid_placement_ssr -->
 
-						<a onclick={closeSideBar} href="/login" class="btn rounded-lg p-2 text-lg text-blue-700"
-							>Signup/Login</a
+						<a
+							onclick={closeSideBar}
+							href="/login"
+							class="bg-secondary btn mt-2 rounded-lg p-2 text-lg text-white">Signup/Login</a
 						>
 					{/if}
 				</li>

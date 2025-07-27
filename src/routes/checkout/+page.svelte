@@ -672,7 +672,14 @@
 						</div>
 					</div>
 				{:else}
-					<p class="text-center text-gray-500 italic">Your cart is empty.</p>
+					<div class="mx-auto flex flex-col items-center justify-center text-center">
+						<p class=" text-gray-500 italic">Your cart is empty.</p>
+						<a href="/#menu" class="mt-1"
+							><button class="btn btn-primary transition-transform duration-300 hover:scale-105"
+								>Order</button
+							></a
+						>
+					</div>
 				{/if}
 			</section>
 		{/if}
@@ -725,11 +732,11 @@
 </main>
 
 <!-- mobile -->
-{#if $isLoggedIn}
-	<div class="fixed top-1/2 right-2">
+{#if $isLoggedIn && $cart.length > 0}
+	<div class="fixed top-1/2 right-2 md:hidden">
 		<button
 			onclick={openSideBar}
-			class="bg-primary btn animate-bounce rounded-lg p-2 font-bold text-white transition-transform duration-300 hover:scale-105 md:hidden"
+			class="bg-primary btn animate-bounce rounded-lg p-2 font-bold text-white transition-transform duration-300 hover:scale-105"
 		>
 			Checkout
 		</button>
