@@ -892,7 +892,7 @@
 						</svg>
 						<span>Your cart is currently empty.</span>
 						<div>
-							<a onclick={closeSideBar} href="/#menu">
+							<a onclick={back} href="/#menu">
 								<button class="btn btn-sm btn-primary">Order</button>
 							</a>
 						</div>

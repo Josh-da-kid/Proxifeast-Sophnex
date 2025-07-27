@@ -320,7 +320,7 @@
 									<form method="dialog">
 										<button class="btn btn-primary">Cancel</button>
 									</form>
-									<form action="?/logout" method="POST">
+									<form action="/logout" method="POST">
 										<!-- if there is a button in form, it will close the modal -->
 										<button class="btn btn-secondary">Logout</button>
 									</form>
