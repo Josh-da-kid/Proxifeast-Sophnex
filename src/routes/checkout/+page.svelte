@@ -15,6 +15,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import pb from '$lib/pb';
 	import { clearCartFrontend } from '$lib/stores/cart';
+	import { goto } from '$app/navigation';
 
 	// Cart store
 	export const cart = writable<any[]>([]);
@@ -218,6 +219,7 @@
 					.then((res) => res.json())
 					.then((data) => {
 						alert('Order saved successfully!');
+						goto('/pending');
 						clearCart();
 					})
 					.catch((err) => {
@@ -230,6 +232,20 @@
 			}
 		});
 		handler.openIframe();
+	}
+
+	function closeSideBar() {
+		const drawerToggle = document.getElementById('my-drawer-5');
+		if (drawerToggle instanceof HTMLInputElement) {
+			drawerToggle.checked = false;
+		}
+	}
+
+	function openSideBar() {
+		const drawerToggle = document.getElementById('my-drawer-5');
+		if (drawerToggle instanceof HTMLInputElement) {
+			drawerToggle.checked = true;
+		}
 	}
 </script>
 
@@ -707,3 +723,293 @@
 		</div>
 	</dialog>
 </main>
+
+<!-- mobile -->
+{#if $isLoggedIn}
+	<div class="fixed top-1/2 right-2">
+		<button
+			onclick={openSideBar}
+			class="bg-primary btn animate-bounce rounded-lg p-2 font-bold text-white transition-transform duration-300 hover:scale-105 md:hidden"
+		>
+			Checkout
+		</button>
+	</div>
+{/if}
+
+<div class="drawer drawer-end z-[9999]">
+	<input id="my-drawer-5" type="checkbox" class="drawer-toggle" />
+	<div class="drawer-content"></div>
+	<div class="drawer-side">
+		<label for="my-drawer-5" aria-label="close sidebar" class="drawer-overlay"></label>
+
+		<div class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4 pl-6 md:min-w-1/3">
+			<div>
+				<button
+					onclick={closeSideBar}
+					class="hover:text-secondary cursor-pointer items-start justify-start hover:underline"
+					><span class="text-secondary">&lt&lt</span> Back</button
+				>
+			</div>
+			<!-- <h2 class="mb-2 text-xl font-bold">Create New Dish</h2> -->
+
+			<div class=" ">
+				<div class="space-y-3 text-right">
+					<h2 class="mt-4 mb-4 text-start text-2xl font-bold">Order Summary</h2>
+					<div class="flex w-full justify-between">
+						<p class="text-xl font-bold">Total:</p>
+						<p class="text-xl font-bold">₦{$total.toLocaleString()}</p>
+					</div>
+					{#if deliveryOption == 'home'}
+						<div class="flex w-full justify-between">
+							<p class="text-start text-lg font-bold text-green-500">DELIVERY FEE:</p>
+							<p class="text-start text-lg font-bold text-green-500">₦2,000</p>
+						</div>
+
+						<div class="text-secondary flex w-full justify-between">
+							<p class="text-start text-xl font-bold">Order Total</p>
+							<p class="text-start text-lg font-bold">
+								₦{($total + 2000).toLocaleString()}
+							</p>
+						</div>
+					{/if}
+
+					<form onsubmit={payWithPaystack} class="space-y-4">
+						<!-- <div class="space-x-4 text-start md:w-[300px]">
+								<p class="font-bold">Mode of transfer:</p>
+
+								<label for="transfer">
+									<span>Bank transfer</span>
+									<input
+										bind:group={paymentOption}
+										type="radio"
+										id="transfer"
+										value="transfer"
+										name="payment"
+										required
+									/>
+								</label>
+
+								<label for="card">
+									<span>Card Payment</span>
+									<input
+										bind:group={paymentOption}
+										type="radio"
+										id="card"
+										value="card"
+										name="payment"
+									/>
+								</label>
+
+								 <label for="onDelivery">
+									<span>Pay on Delivery/Pickup</span>
+									<input
+										bind:group={paymentOption}
+										type="radio"
+										id="onDelivery"
+										value="onDelivery"
+										name="payment"
+									/>
+								</label> 
+							</div> -->
+
+						<div class="space-y-2 space-x-4 text-start">
+							<p class="font-bold">Delivery Type:</p>
+
+							<label for="restaurant" class="flex gap-2">
+								<div
+									class="wide-tooltip tooltip tooltip-right relative z-50"
+									data-tip="this is a delivery to the table you're seated on in the restaurant"
+								>
+									<svg
+										class="text-secondary"
+										xmlns="http://www.w3.org/2000/svg"
+										width="24"
+										height="24"
+										viewBox="0 0 24 24"
+										><path
+											fill="currentColor"
+											d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8"
+										/></svg
+									>
+								</div>
+								<span>Table Service</span>
+								<input
+									bind:group={deliveryOption}
+									value="restaurant"
+									type="radio"
+									id="restaurant"
+									name="delivery"
+									required
+								/>
+							</label>
+
+							<label for="restaurantPickup" class="flex gap-2">
+								<div
+									class="wide-tooltip tooltip tooltip-right relative z-50"
+									data-tip="you get to pickup your order in the restaurant counter"
+								>
+									<svg
+										class="text-secondary"
+										xmlns="http://www.w3.org/2000/svg"
+										width="24"
+										height="24"
+										viewBox="0 0 24 24"
+										><path
+											fill="currentColor"
+											d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8"
+										/></svg
+									>
+								</div>
+								<span>Pickup</span>
+								<input
+									bind:group={deliveryOption}
+									value="restaurantPickup"
+									type="radio"
+									id="restaurantPickup"
+									name="delivery"
+								/>
+							</label>
+
+							<label for="home" class="flex gap-2">
+								<div
+									class="tooltip tooltip-right relative z-50"
+									data-tip="delivery directly to your doorstep"
+								>
+									<svg
+										class="text-secondary"
+										xmlns="http://www.w3.org/2000/svg"
+										width="24"
+										height="24"
+										viewBox="0 0 24 24"
+										><path
+											fill="currentColor"
+											d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8"
+										/></svg
+									>
+								</div>
+								<span>Home delivery</span>
+								<input
+									bind:group={deliveryOption}
+									value="home"
+									type="radio"
+									id="home"
+									name="delivery"
+								/>
+							</label>
+						</div>
+
+						<!-- <p>Selected: {deliveryOption}</p>
+							<p>Selected: {paymentOption}</p> -->
+
+						<div class="space-y-4 text-start">
+							{#if deliveryOption == 'restaurant'}
+								<label for="table" class="flex flex-col">
+									<span>Table Number:</span>
+									<input
+										type="number"
+										min="1"
+										id="table"
+										bind:value={tableNumber}
+										class=" border-secondary focus:ring-secondary mt-1 w-[150px] rounded-lg border p-2 focus:ring-2 focus:outline-none"
+										required
+									/>
+
+									<small
+										><span class="text-secondary mr-1 font-bold">N/B : </span>Input the table number
+										you're seated on.</small
+									>
+								</label>
+							{:else if deliveryOption == 'restaurantPickup'}
+								<label for="table" class="flex w-[250px] flex-col">
+									<span>Pickup Time:</span>
+									<input
+										type="text"
+										id="table"
+										bind:value={pickupTime}
+										class="border-secondary focus:ring-secondary mt-1 w-[150px] rounded-lg border p-2 focus:ring-2 focus:outline-none"
+										required
+									/>
+									<small
+										><span class="text-secondary mr-1 font-bold">N/B : </span>Input the time you
+										will be most likely to pickup your order.</small
+									>
+								</label>
+							{:else if deliveryOption == 'home'}
+								<label for="address" class="flex w-[250px] flex-col md:w-[300px]">
+									<span>Home Address:</span>
+									<textarea
+										id="address"
+										bind:value={homeAddress}
+										class="border-secondary focus:ring-secondary mt-1 h-[100px] rounded-lg border p-2 focus:ring-2 focus:outline-none"
+										required
+									></textarea>
+									<small
+										><span class="text-secondary mr-1 font-bold">N/B : </span>Input the place you
+										want your order to be delivered to.</small
+									>
+								</label>
+							{/if}
+						</div>
+
+						<div class="space-x-4 text-start">
+							<p class="font-bold">Contact Info:</p>
+							<label for="phone" class="flex w-[250px] flex-col">
+								<span>Full Name:</span>
+								<input
+									type="text"
+									placeholder="John Doe"
+									id="name"
+									bind:value={$user.name}
+									readonly
+									name="delivery"
+									class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
+									required
+								/>
+								<small
+									><span class="text-secondary mr-1 font-bold">N/B : </span>This value cannot be
+									changed here.</small
+								>
+							</label>
+						</div>
+
+						<div class="space-x-4 text-start">
+							<label for="phone" class="flex w-[250px] flex-col">
+								<span>Phone Number:</span>
+								<input
+									type="text"
+									placeholder="+2347068346403"
+									id="phone"
+									bind:value={phone}
+									name="delivery"
+									class="border-secondary focus:ring-secondary mt-1 rounded-lg border p-2 focus:ring-2 focus:outline-none"
+									required
+								/>
+								<small class="mt-1"
+									><span class="font-bold">Note:</span> you'll be contacted with this phone number when
+									your order is ready</small
+								>
+							</label>
+						</div>
+
+						<label class="flex justify-center gap-2 text-start md:w-[350px]">
+							<input type="checkbox" id="policy" class="h-8 w-8" required />
+							<span>I confirm my order and agree to the terms and refund policy</span>
+						</label>
+
+						<div class="flex items-center justify-center gap-3">
+							<!-- <button class="btn btn-outline btn-sm" on:click={() => clearModal.showModal()}>
+								Clear Cart
+							</button> -->
+							<button
+								type="submit"
+								class="btn btn-secondary btn-sm mb-8 rounded-full p-6 text-lg transition-transform duration-300 hover:scale-105 md:w-[350px]"
+							>
+								Submit Order & Pay
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

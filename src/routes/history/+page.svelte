@@ -124,7 +124,7 @@
 								<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 								<ul
 									tabindex="0"
-									class="dropdown-content menu bg-base-100 rounded-box z-[1] mx-auto flex w-fit items-center justify-center p-2 shadow"
+									class="dropdown-content menu bg-base-100 rounded-box z-[1] mx-auto flex max-h-64 w-64 overflow-y-auto p-2 shadow"
 								>
 									{#each order.dishes as item, i}
 										<li>

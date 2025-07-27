@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import pb from '$lib/pb';
 	import type { RecordModel } from 'pocketbase';
@@ -7,6 +8,18 @@
 	import { fly } from 'svelte/transition';
 
 	export const user = derived(page, ($page) => $page.data.user);
+
+	let searchInput = $state('');
+	let selectedCategoryInput = $state('All');
+	// let orders: RecordModel[] = [];
+	let orders: any = $state([]);
+	let loading = $state(true);
+
+	const categories = $page.data.categories ?? [];
+
+	const searchSubmitted = derived(page, ($page) => {
+		return ($page.url.searchParams.get('search')?.trim() ?? '') !== '';
+	});
 	// Fetch cart data
 	// export async function fetchPendingOrders() {
 	// 	try {
@@ -28,34 +41,78 @@
 	// 	}
 	// }
 
-	async function fetchPendingOrders() {
-		loading = true;
+	// async function fetchPendingOrders() {
+	// 	loading = true;
 
+	// 	try {
+	// 		const res = await fetch('/api/fetch-orders');
+	// 		const data = await res.json();
+	// 		// console.log('Fetched orders heyyyyyy'); // log all orders
+	// 		// 			console.log('Fetched orders:', orders); // log all orders
+	// 		// 			orders.forEach((order) => {
+	// 		// 				console.log('Order::::', order);
+	// 		// 				console.log('User::::', order.expand?.user); // should contain full user object
+	// 		// 			});
+	// 		orders = data.orders || [];
+	// 		return orders; // ✅ ADD THIS LINE
+	// 	} catch (err) {
+	// 		console.error('Fetch failed', err);
+	// 		orders = [];
+	// 		return [];
+	// 	} finally {
+	// 		loading = false;
+	// 	}
+	// }
+
+	// Fetch cart data
+	export async function fetchPendingOrders() {
+		const userId = get(user)?.id;
+		console.log(userId);
+		// const search = urlParams.get('search')?.trim() ?? '';
+		// const category = urlParams.get('category')?.trim() ?? 'All';
+		const searchParams = get(page).url.searchParams;
+		const search = searchParams.get('search')?.trim() ?? '';
+		const category = searchParams.get('category')?.trim() ?? 'All';
+
+		if (!userId) return;
+
+		// Build dynamic filter
+		// let filter = `(user="${userId}")`;
+		// Build base filter
+		let filterParts: string[] = [];
+
+		if (category !== 'All') {
+			// filter = ` && status="${category}"`;
+			filterParts.push(`status="${category}"`);
+		} else {
+			// filter = ` && (status="Delivered" || status="Cancelled"`;
+			filterParts.push(`(status="Pending" || status="Preparing" || status="Ready")`);
+		}
+
+		if (search) {
+			// filter = ` && (reference~"${search}" || name~"${search}" || phone~"${search}")`;
+			filterParts.push(`(reference~"${search}" || name~"${search}" || phone~"${search}")`);
+		}
+
+		const filter = filterParts.join(' && ');
 		try {
-			const res = await fetch('/api/fetch-orders');
-			const data = await res.json();
-			// console.log('Fetched orders heyyyyyy'); // log all orders
-			// 			console.log('Fetched orders:', orders); // log all orders
-			// 			orders.forEach((order) => {
-			// 				console.log('Order::::', order);
-			// 				console.log('User::::', order.expand?.user); // should contain full user object
-			// 			});
-			orders = data.orders || [];
-			return orders; // ✅ ADD THIS LINE
+			const records = await pb.collection('orders').getFullList({
+				// filter: `user="${userId}" && (status="Pending" || status="Preparing" || status="Ready")`,
+				filter,
+				expand: 'dish'
+			});
+			// Set to your store or return it as needed
+			// cart.set(records);
+			console.log('Pending orders:', records);
+			return records;
 		} catch (err) {
-			console.error('Fetch failed', err);
-			orders = [];
-			return [];
-		} finally {
-			loading = false;
+			console.error('Failed to fetch pending orders:', err);
 		}
 	}
 
-	// let orders: RecordModel[] = [];
-	let orders: any = [];
-	let loading = true;
-
 	onMount(async () => {
+		searchInput = $page.url.searchParams.get('search') ?? '';
+		selectedCategoryInput = $page.url.searchParams.get('category') ?? 'All';
 		orders = (await fetchPendingOrders()) || [];
 		loading = false;
 	});
@@ -73,6 +130,30 @@
 	}
 
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
+
+	async function clearSearch() {
+		// searchInput = '';
+		window.location.href = '/admin/admin-order';
+	}
+
+	async function handleSearchSubmit(e: Event) {
+		e.preventDefault();
+
+		if (!searchInput.trim() && selectedCategoryInput === 'All') {
+			// Do nothing if no filters
+			return;
+		}
+
+		const query = new URLSearchParams();
+		if (searchInput.trim()) query.set('search', searchInput.trim());
+		if (selectedCategoryInput && selectedCategoryInput !== 'All')
+			query.set('category', selectedCategoryInput);
+
+		const target = `/admin/admin-order/?${query.toString()}`;
+
+		await goto(target); // navigate
+		window.location.reload(); // force full page reload
+	}
 </script>
 
 <main>
@@ -80,6 +161,62 @@
 		<h1 class="mb-4 text-center text-2xl font-bold" in:fly={{ x: 200, duration: 800 }}>
 			All Pending Orders
 		</h1>
+
+		<form method="GET" onsubmit={handleSearchSubmit} class="gap-2 sm:flex">
+			<div class="mx-auto flex items-center justify-center gap-2 p-2">
+				<input
+					type="text"
+					name="search"
+					placeholder="Search order..."
+					bind:value={searchInput}
+					class="input input-bordered border-secondary focus:ring-secondary w-full max-w-xs border focus:ring-2 focus:outline-none md:w-[400px]"
+				/>
+
+				{#if searchInput.trim() && $searchSubmitted}
+					<!-- svelte-ignore a11y_consider_explicit_label -->
+
+					<button type="button" onclick={clearSearch} class="btn btn-secondary">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+							<path
+								fill="none"
+								stroke="currentColor"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="1.5"
+								d="M6.758 17.243L12.001 12m5.243-5.243L12 12m0 0L6.758 6.757M12.001 12l5.243 5.243"
+							/>
+						</svg>
+					</button>
+				{/if}
+				{#if searchInput.length > 0 && !$searchSubmitted}
+					<button type="submit" class="btn btn-secondary">Search</button>
+				{/if}
+
+				<div class="ml-4 px-2 sm:ml-0 sm:p-3">
+					<select
+						name="category"
+						bind:value={selectedCategoryInput}
+						class="select select-bordered border-secondary focus:ring-secondary w-fit"
+						onchange={(e) => {
+							const selected = e.currentTarget.value;
+							if (selected === 'All') {
+								clearSearch();
+							} else {
+								// auto submit when other categories change
+								e.currentTarget.form?.requestSubmit();
+							}
+						}}
+					>
+						<option value="All">All Statuses</option>
+						<option value="Pending">Pending</option>
+						<option value="Preparing">Preparing</option>
+						<option value="Ready">Ready</option>
+						<!-- <option value="Delivered">Delivered</option>
+						<option value="Cancelled">Cancelled</option> -->
+					</select>
+				</div>
+			</div>
+		</form>
 
 		<section class="p-4">
 			<!-- <h2 class="text-2xl font-bold mb-4">Pending Orders</h2> -->
@@ -180,7 +317,7 @@
 								<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 								<ul
 									tabindex="0"
-									class="dropdown-content menu bg-base-100 rounded-box z-[1] mx-auto flex w-fit items-center justify-center p-2 shadow"
+									class="dropdown-content menu bg-base-100 rounded-box z-[1] mx-auto flex max-h-64 w-64 overflow-y-auto p-2 shadow"
 								>
 									{#each order.dishes as item, i}
 										<li>
@@ -203,7 +340,7 @@
 							<select
 								class="border-secondary focus:ring-secondary relative items-end justify-end rounded border px-2 py-1 focus:ring-2 focus:outline-none"
 								bind:value={order.status}
-								on:change={() => updateOrderStatus(order.id, order.status, order.reference)}
+								onchange={() => updateOrderStatus(order.id, order.status, order.reference)}
 							>
 								{#each ['Pending', 'Preparing', 'Ready', 'Delivered', 'Cancelled'] as statusOption}
 									<option value={statusOption}>

@@ -52,7 +52,10 @@
 		</div>
 
 		<main class="flex-grow pt-20">{@render children()}</main>
-		<Footer />
+
+		<div class="bottom-0 z-2">
+			<Footer />
+		</div>
 	</div>
 {/if}
 
