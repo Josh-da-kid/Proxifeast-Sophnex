@@ -7,7 +7,6 @@
 	import { derived, get } from 'svelte/store';
 	import { fly } from 'svelte/transition';
 
-	// src/routes/admin/+page.svelte
 	const dishes = $page.form?.dishes ?? $page.data.dishes;
 
 	const categories = $page.data.categories ?? [];
@@ -62,10 +61,6 @@
 		errorAlert = true;
 	}
 
-	let searchTerm = $state('');
-	let selectedCategory = $state('All');
-	// let searchSubmitted = $state(false);
-
 	const searchSubmitted = derived(page, ($page) => {
 		return ($page.url.searchParams.get('search')?.trim() ?? '') !== '';
 	});
@@ -76,15 +71,9 @@
 	onMount(() => {
 		const url = get(page).url;
 
-		// searchTerm = url.searchParams.get('search')?.trim() ?? '';
-		// selectedCategory = url.searchParams.get('category') ?? 'All';
-		// searchSubmitted = searchTerm !== '';
-
 		searchInput = $page.url.searchParams.get('search') ?? '';
-		// console.log({ category: $page.url.searchParams.get('category') });
 		selectedCategoryInput = $page.url.searchParams.get('category') ?? 'All';
 		console.log({ selectedCategoryInput });
-		// console.log('Hello');
 
 		if (successAlert) {
 			setTimeout(() => {
@@ -102,7 +91,6 @@
 
 	async function clearSearch() {
 		await goto('/admin/admin-menu'); // navigate
-		// searchInput = '';
 		window.location.reload(); // force full browser reload after navigation
 	}
 
@@ -144,7 +132,7 @@
 					deleteSuccessful = false;
 				}, 2000);
 			}
-			// await goto('/admin/admin-menu');
+
 			window.location.reload();
 		} catch (error) {
 			console.error('Failed to delete dish:', error);
@@ -157,13 +145,13 @@
 		}
 	}
 
-	// let imageSource = $state('file'); // 'url' or 'file'
-
 	function handleImageSourceChange(e: any) {
 		selectedDish.imageSource = e.target.value;
 	}
 
 	let modalImage: string | null = $state(null);
+
+	export const user = derived(page, ($page) => $page.data.user);
 </script>
 
 {#if successAlert}
@@ -462,7 +450,9 @@
 
 									<dialog id="my_modal_2" bind:this={deleteModal} class="modal">
 										<div class="modal-box">
-											<h3 class="text-lg font-bold">Hey !</h3>
+											<h3 class="text-lg font-bold">
+												Hey <span class="text-secondary">{$user?.name}!</span>
+											</h3>
 											{#if dishToDelete}
 												<p class="py-4">
 													Are you sure you want to delete <span class="font-bold"
