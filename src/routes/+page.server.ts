@@ -3,22 +3,12 @@ export const actions = {
 	createDish: async ({ locals, request }) => {
 		const formData = await request.formData();
 		const data = Object.fromEntries([...formData]);
-        console.log('createDish called');
-		console.log(data);
-
-
-
-		 
-       
+  
     },
 	
 	addToCart: async ({ request, locals }) => {
 		const formData = await request.formData();
 		const data = Object.fromEntries(formData.entries());
-		console.log('Adding to cart as user:', locals.user?.id);
-			console.log('locals.user:', locals.user); // 👈 Add this
-console.log('locals.user?.id:', locals.user?.id);
-console.log('locals.user?.id:');
 
 		try {
 			const add = await locals.pb.collection('cart').create({
@@ -30,16 +20,11 @@ console.log('locals.user?.id:');
 				defaultAmount: parseInt(data.defaultAmount),
 				promoAmount: data.promoAmount ? parseInt(data.promoAmount) : null,
 				user: locals.user.id 
-				// user: "s4968zdfd9xeo5s"
+				
 			});
-			console.log('Adding to cart as user:', locals.user?.id);
-			console.log('locals.user:', locals.user); // 👈 Add this
-console.log('locals.user?.id:', locals.user?.id);
-
 
 			return { success: true, add };
 		} catch (err) {
-			console.error(err);
 			return { success: false, error: 'add to cart failed.' };
 		}
 	}

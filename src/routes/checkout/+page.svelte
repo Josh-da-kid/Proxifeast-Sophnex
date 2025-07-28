@@ -35,7 +35,7 @@
 			});
 			cart.set(records);
 		} catch (err) {
-			console.error('Failed to fetch cart:', err);
+			// console.error('Failed to fetch cart:', err);
 		} finally {
 			loading = false; // ✅ Set after fetch completes
 		}
@@ -195,8 +195,6 @@
 					quantity: item.quantity,
 					amount: item.amount
 				}));
-
-				console.log('cartQuantity:', cartQuantity);
 				// ✅ Save order to DB here
 				const orderData = {
 					reference: response.reference,

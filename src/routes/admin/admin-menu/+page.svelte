@@ -35,11 +35,8 @@
 		}
 	}
 
-	console.log('Grouped dishes:', groupedDishes);
-
 	function openEditDrawer(dish: any) {
 		const isFileUpload = dish.image?.startsWith('https://playgzero.pb.itcass.net/api/files/');
-		// selectedDish = { ...dish, imageSource: isFileUpload ? 'file' : 'url' };
 		selectedDish = {
 			...dish,
 			imageSource: 'url' // ✅ Always set to 'url' on drawer open
@@ -73,7 +70,6 @@
 
 		searchInput = $page.url.searchParams.get('search') ?? '';
 		selectedCategoryInput = $page.url.searchParams.get('category') ?? 'All';
-		console.log({ selectedCategoryInput });
 
 		if (successAlert) {
 			setTimeout(() => {
@@ -123,7 +119,6 @@
 
 		try {
 			await pb.collection('dishes').delete(dishToDelete.id);
-			console.log('Dish deleted');
 
 			deleteModal.close();
 			deleteSuccessful = true;

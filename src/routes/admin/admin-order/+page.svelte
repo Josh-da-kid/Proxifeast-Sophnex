@@ -24,8 +24,6 @@
 	// Fetch cart data
 	export async function fetchPendingOrders() {
 		const userId = get(user)?.id;
-		console.log(userId);
-
 		const searchParams = get(page).url.searchParams;
 		const search = searchParams.get('search')?.trim() ?? '';
 		const category = searchParams.get('category')?.trim() ?? 'All';
@@ -53,8 +51,6 @@
 				sort: '-created',
 				expand: 'dish'
 			});
-
-			console.log('Pending orders:', records);
 			return records;
 		} catch (err) {
 			console.error('Failed to fetch pending orders:', err);
@@ -73,8 +69,6 @@
 			await pb.collection('orders').update(orderId, { status: newStatus });
 			// ✅ Refetch orders immediately
 			orders = await fetchPendingOrders();
-			console.log(`Order ${orderId} updated to ${newStatus}`);
-			// alert(`Order ${orderRef} updated to ${newStatus}`);
 		} catch (err) {
 			console.error('Failed to update status:', err);
 		}

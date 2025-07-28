@@ -36,8 +36,6 @@ const categorySet = new Set(
 );
 const categories = Array.from(categorySet).sort();
 
-console.log(category)
-
 		return {
 			dishes,
 			searchTerm: search,
@@ -106,7 +104,6 @@ export const actions = {
 
 					const uploaded = await locals.pb.collection('uploads').create(uploadForm);
 					imageUrl = locals.pb.files.getUrl(uploaded, uploaded.imageFile);
-					console.log('Uploaded new image:', imageUrl);
 				} catch (uploadErr) {
 					console.error('Upload failed:', uploadErr);
 					return {

@@ -24,9 +24,6 @@
 	// Fetch cart data
 	export async function fetchPendingOrders() {
 		const userId = get(user)?.id;
-		console.log(userId);
-		// const search = urlParams.get('search')?.trim() ?? '';
-		// const category = urlParams.get('category')?.trim() ?? 'All';
 		const searchParams = get(page).url.searchParams;
 		const search = searchParams.get('search')?.trim() ?? '';
 		const category = searchParams.get('category')?.trim() ?? 'All';
@@ -48,14 +45,10 @@
 
 		try {
 			const records = await pb.collection('orders').getFullList({
-				// filter: `user="${userId}" && (status="Pending" || status="Preparing" || status="Ready")`,
 				filter,
 				sort: '-created',
 				expand: 'dish'
 			});
-			// Set to your store or return it as needed
-			// cart.set(records);
-			console.log('Pending orders:', records);
 			return records;
 		} catch (err) {
 			console.error('Failed to fetch pending orders:', err);

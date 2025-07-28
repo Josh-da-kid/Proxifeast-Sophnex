@@ -47,8 +47,6 @@
 		}
 	}
 
-	console.log('Grouped dishes:', groupedDishes);
-
 	let addToCartAlert = $state(false);
 
 	let cartErrorAlert = $state(false);
@@ -62,13 +60,11 @@
 		try {
 			if ($isLoggedIn) {
 				await addToCartPB(pb, dish.id, quantity, $user.id, dish.defaultAmount, dish.promoAmount);
-				console.log('done');
 				await fetchCart();
 				addToCartAlert = true;
 				setTimeout(() => {
 					addToCartAlert = false;
 				}, 2000);
-				// window.location.reload();
 			} else {
 				cartErrorAlert = true;
 				setTimeout(() => {
@@ -76,14 +72,11 @@
 				}, 2000);
 			}
 		} catch (err) {
-			console.log('Error adding to cart. Please try again.', err);
 			cartErrorAlert = true;
 			setTimeout(() => {
 				cartErrorAlert = false;
 			}, 2000);
 		}
-
-		console.log('add to cart function called');
 	}
 
 	function closeSideBar() {
@@ -179,7 +172,6 @@
 
 	export async function fetchCart() {
 		try {
-			console.log('Current user ID:', $user.id);
 			if (!$user.id) return cart.set([]);
 
 			const records = await pb.collection('cart').getFullList({
@@ -189,7 +181,7 @@
 
 			cart.set(records);
 		} catch (err) {
-			console.error('Failed to fetch cart:', err);
+			// console.error('Failed to fetch cart:', err);
 		}
 	}
 
@@ -224,24 +216,8 @@
 
 		try {
 			await pb.collection('cart').delete(dishToDelete.id);
-			console.log('Dish deleted');
-
-			// deleteModal.close();
-			// deleteSuccessful = true;
-			// if (deleteSuccessful) {
-			// 	setTimeout(() => {
-			// 		deleteSuccessful = false;
-			// 	}, 2000);
-			// }
-			// window.location.reload();
 		} catch (error) {
 			console.error('Failed to delete dish:', error);
-			// deleteUnsuccessful = true;
-			// if (deleteUnsuccessful) {
-			// 	setTimeout(() => {
-			// 		deleteUnsuccessful = false;
-			// 	}, 2000);
-			// }
 		}
 	}
 
@@ -482,13 +458,6 @@
 						class="card card-compact bg-base-200 transform overflow-hidden rounded-xl shadow-lg transition-transform duration-300 hover:scale-105"
 						in:fly={{ y: 50, duration: 600 }}
 					>
-						<!-- <figure>
-							
-							 <a href={dish.image} class="h-72 w-full object-cover" target="_blank">
-								<img src={dish.image} alt={dish.name}  />
-							 </a>
-						</figure> -->
-
 						<!-- Modal -->
 						{#if modalImage}
 							<div

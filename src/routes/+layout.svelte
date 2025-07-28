@@ -40,6 +40,14 @@
 	});
 </script>
 
+<svelte:head>
+	<title>Proxifeast – Online Food Ordering System</title>
+	<meta
+		name="description"
+		content="Proxifeast is a restaurant online food ordering system. It is an online menu where users scan a QR code from the restaurant tables and this takes them directly to the online menu where they can order and checkout their orders easily without stress."
+	/>
+</svelte:head>
+
 {#if loading}
 	<div class="bg-opacity-70 fixed inset-0 z-50 flex items-center justify-center bg-white">
 		<div class="border-secondary h-12 w-12 animate-spin rounded-full border-t-4 border-b-4"></div>

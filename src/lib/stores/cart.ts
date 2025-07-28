@@ -16,26 +16,15 @@ type CartItem = {
 export const cart = writable<any[]>([]);
 
 export const total = derived(cart, ($cart) =>
-	// $cart.reduce((acc, item) => acc + item.dishAmount, 0)
+
 $cart.reduce((acc, item) => acc + (item.expand?.dish?.price || 0), 0)
 
 );
-
-// export async function fetchCart() {
-// 	try {
-// 		const records = await pb.collection('cart').getFullList();
-// 		cart.set(records);
-// 	} catch (err) {
-// 		console.error('Failed to fetch cart:', err);
-// 	}
-// }
-
 
 export async function fetchCart() {
 	
 	try {
 		const userId = pb.authStore.model?.id;
-		console.log('Current user ID:', userId);
 		if (!userId) return cart.set([]);
 
 		const records = await pb.collection('cart').getFullList({
@@ -46,14 +35,11 @@ export async function fetchCart() {
 		cart.set(records);
 		
 	} catch (err) {
-		console.error('Failed to fetch cart:', err);
+		// console.error('Failed to fetch cart:', err);
 	}
 
 	
 }
-
-
-
 
 
 export async function clearCart() {

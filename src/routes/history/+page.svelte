@@ -10,7 +10,6 @@
 	// Fetch cart data
 	export async function fetchPendingOrders() {
 		const userId = get(user)?.id;
-		console.log(userId);
 		if (!userId) return;
 
 		try {

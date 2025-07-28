@@ -1,53 +1,11 @@
-// export const actions = {
-// 	createDish: async ({ locals, request }) => {
-// 		const formData = await request.formData();
-// 		const data = Object.fromEntries([...formData]);
-
-// 		console.log('createDish called');
-// 		console.log(data);
-
-// 		// Save to PocketBase
-// 		try {
-// 			const record = await locals.pb.collection('dishes').create({
-// 				name: data.name,
-// 				description: data.description,
-//                 category: data.category,
-// 				image: data.image,
-// 				quantity: parseInt(data.quantity),
-// 				availability: data.availability,
-// 				defaultAmount: parseInt(data.defaultAmount),
-// 				promoAmount: data.promoAmount ? parseInt(data.promoAmount) : null
-// 			});
-
-// 			console.log('Record saved to PocketBase:', record);
-
-// 			return {
-// 				success: true,
-// 				record
-// 			};
-// 		} catch (error) {
-// 			console.error('PocketBase Error:', error);
-
-// 			return {
-// 				success: false,
-// 				error: 'Failed to create dish.'
-// 			};
-// 		}
-// 	}
-// };
-
-
-
 export const actions = {
 	createDish: async ({ locals, request }) => {
 		const formData = await request.formData();
 
-		console.log('createDish called');
-
 		// For debugging
-		for (let [key, value] of formData.entries()) {
-			console.log(key, value);
-		}
+		// for (let [key, value] of formData.entries()) {
+		// 	console.log(key, value);
+		// }
 
 		let imageUrl = '';
 		const imageSource = formData.get('imageSource'); // 'file' or 'url'
@@ -63,7 +21,6 @@ export const actions = {
 
 					const uploaded = await locals.pb.collection('uploads').create(uploadForm);
 					imageUrl = locals.pb.files.getUrl(uploaded, uploaded.imageFile);
-					console.log('Image uploaded to uploads collection:', imageUrl);
 				} catch (uploadErr) {
 					console.error('Error uploading image to uploads collection:', uploadErr);
 					return {
@@ -94,8 +51,6 @@ export const actions = {
 					? parseInt(formData.get('promoAmount'))
 					: null
 			});
-
-			console.log('Record saved to PocketBase:', record);
 
 			return {
 				success: true,

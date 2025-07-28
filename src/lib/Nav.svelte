@@ -207,7 +207,7 @@
 				</dialog>
 			{:else}
 				<a href="/login">
-					<button class="btn btn-ghost ml-2 hidden bg-white text-lg text-blue-700 md:flex">
+					<button class="btn btn-ghost ml-2 hidden bg-white text-lg text-blue-700 lg:flex">
 						Signup/Login
 					</button>
 				</a>

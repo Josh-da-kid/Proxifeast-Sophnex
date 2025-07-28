@@ -33,8 +33,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const message = err?.response?.data?.message;
 		const details = err?.response?.data?.details;
 
-		console.log(loginError, message, details);
-
 		return json(
 			{
 				success: false,

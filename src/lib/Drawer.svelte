@@ -26,12 +26,8 @@
 	// $: isLoggedIn = $page.data.user !== null;
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 
-	console.log($page.data.user);
-
 	onMount(async () => {
-		console.log('Fetching cart...');
 		await fetchCart();
-		console.log('Cart after fetch:', $cart);
 	});
 
 	let imageSource = $state('file'); // 'url' or 'file'
