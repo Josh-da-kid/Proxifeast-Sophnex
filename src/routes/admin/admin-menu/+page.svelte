@@ -162,6 +162,8 @@
 	function handleImageSourceChange(e: any) {
 		selectedDish.imageSource = e.target.value;
 	}
+
+	let modalImage: string | null = $state(null);
 </script>
 
 {#if successAlert}
@@ -341,8 +343,31 @@
 					class="card card-compact bg-base-200 transform overflow-hidden rounded-xl shadow-lg transition-transform duration-300 hover:scale-105"
 					in:fly={{ y: 50, duration: 600 }}
 				>
-					<figure>
-						<img src={dish.image} alt={dish.name} class="h-48 w-full object-cover" />
+					<!-- Modal -->
+					{#if modalImage}
+						<div class="bg-opacity-60 fixed inset-0 z-50 flex items-center justify-center bg-black">
+							<div class="relative w-full max-w-2xl rounded-xl bg-white p-4">
+								<button
+									class="btn btn-lg btn-circle bg-secondary absolute top-2 right-2 text-white"
+									onclick={() => (modalImage = null)}>✕</button
+								>
+								<img
+									src={modalImage}
+									alt="Dish"
+									class="h-auto max-h-[80vh] w-full rounded-lg object-contain"
+								/>
+							</div>
+						</div>
+					{/if}
+					<!-- Dish Figure -->
+					<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<figure onclick={() => (modalImage = dish.image)} class="cursor-pointer">
+						<img
+							src={dish.image}
+							alt={dish.name}
+							class="h-48 w-full rounded-lg object-cover transition-transform duration-200 hover:scale-105"
+						/>
 					</figure>
 
 					<div class="card-body">
@@ -542,19 +567,6 @@
 							<option value="Unavailable">Unavailable</option>
 						</select>
 					</div>
-
-					<!-- <div class="mt-2 flex flex-col">
-						<label for="image" class="">Image of Dish</label>
-						<input
-							type="text"
-							id="image"
-							name="image"
-							bind:value={selectedDish.image}
-							placeholder="e.g. https://friedricensauce.img"
-							class="input focus:ring-secondary border-secondary focus:ring-2 focus:outline-none"
-							readonly
-						/>
-					</div> -->
 
 					<div class="mt-4 flex flex-col">
 						<label for="image" class="">Image of Dish</label>
