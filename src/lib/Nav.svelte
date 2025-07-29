@@ -41,6 +41,8 @@
 
 	// Directly use the derived user store for reactivity
 	const user = derived(page, ($page) => $page.data.user);
+
+	const restaurantName = get(page).data.restaurant.name;
 </script>
 
 <nav
@@ -50,7 +52,7 @@
 >
 	<div class="flex-1 flex-col px-1">
 		<a href="/" class="font-playfair text-2xl font-bold normal-case md:text-3xl">
-			Proxi<span class="text-secondary text-3xl md:text-4xl">Feast </span></a
+			{restaurantName}</a
 		>
 		<span class="hidden lg:flex">{$user?.email}</span>
 	</div>

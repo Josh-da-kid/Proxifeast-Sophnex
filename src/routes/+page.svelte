@@ -255,6 +255,9 @@
 	}
 
 	let modalImage: string | null = $state(null);
+	const restaurantDescription = get(page).data.restaurant.description;
+	const restaurantTitle = get(page).data.restaurant.title;
+	const restaurantLogo = get(page).data.restaurant.logoUrl;
 </script>
 
 <!-- Cart FAB Icon -->
@@ -346,17 +349,17 @@
 			class="font-playfair text-primary mb-4 text-4xl font-bold drop-shadow-md sm:text-6xl lg:text-7xl"
 			in:fly={{ y: -100, duration: 800 }}
 		>
-			Your Feast is Just a Scan Away
+			{restaurantTitle}
 		</h1>
 		<p
 			class="text-base-content mb-8 max-w-xl text-lg md:text-xl"
 			in:fade={{ delay: 600, duration: 900 }}
 		>
-			Authentic Nigerian flavors crafted with love and passion. Fresh, local ingredients in every
-			bite.
+			{restaurantDescription}
 		</p>
+		<!-- https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80 -->
 		<img
-			src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80"
+			src={restaurantLogo}
 			alt="Delicious Nigerian dish"
 			class="flex max-w-xl items-center justify-center rounded-xl text-center shadow-lg transition-transform duration-700 ease-in-out hover:scale-105 md:h-[450px] md:w-screen md:max-w-full"
 			in:scale={{ duration: 1000, easing: cubicOut }}
