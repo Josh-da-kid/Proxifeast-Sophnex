@@ -51,7 +51,7 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 	// const domain = host.replace(/^www\./, '').toLowerCase(); // optional: strip www
 	const host = request.headers.get('host') || '';
 	const domain = host.split(':')[0];
-	console.log("domain:", domain)
+	// console.log("domain:", domain)
 
 	try {
 		// ✅ Look up the restaurant by domain
