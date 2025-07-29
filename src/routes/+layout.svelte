@@ -7,6 +7,8 @@
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import { afterNavigate } from '$app/navigation';
+	import { get } from 'svelte/store';
+	import { page } from '$app/stores';
 
 	let { children } = $props();
 
@@ -38,10 +40,12 @@
 	afterNavigate(() => {
 		loading = false;
 	});
+
+	const restaurantName = $page.data.restaurant.name;
 </script>
 
 <svelte:head>
-	<title>Proxifeast – Online Food Ordering System</title>
+	<title>{restaurantName} – Online Food Ordering System</title>
 	<meta
 		name="description"
 		content="Proxifeast is a restaurant online food ordering system. It is an online menu where users scan a QR code from the restaurant tables and this takes them directly to the online menu where they can order and checkout their orders easily without stress."
