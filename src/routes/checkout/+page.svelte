@@ -8,7 +8,6 @@
 
 	const restaurantId = derived(page, ($page) => $page.data.restaurant?.id);
 	const paystackKey = derived(page, ($page) => $page.data.restaurant?.paystackKey);
-	console.log('paystack key:', $paystackKey);
 	export const cart = writable<any[]>([]);
 	export const total = derived(cart, ($cart) =>
 		$cart.reduce((acc, item) => acc + (item.amount || 0), 0)
