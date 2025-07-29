@@ -30,6 +30,7 @@
 
 		// 👇 Get current restaurant ID
 		const restaurantId = get(page).data.restaurant?.id;
+		console.log(restaurantId);
 		if (!userId || !restaurantId) return;
 
 		let filterParts: string[] = [];
