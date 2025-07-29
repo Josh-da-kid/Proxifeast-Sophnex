@@ -1,24 +1,27 @@
-import { json } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
+import { json, type RequestHandler } from "@sveltejs/kit";
 
-export const GET: RequestHandler = async ({ locals }) => {
+export const GET: RequestHandler = async ({ request, locals }) => {
 	try {
+		// Get current domain
+		const host = request.headers.get('host') || '';
+		const domain = host.split(':')[0];
+
+		// Get restaurant ID by domain
+		const restaurant = await locals.pb
+			.collection('restaurants')
+			.getFirstListItem(`domain="${domain}"`);
+
+		// Fetch orders specific to that restaurant
 		const orders = await locals.pb.collection('orders').getFullList({
-			filter: 'status = "Pending" || status = "Preparing" || status = "Ready"',
+			filter: `restaurant = "${restaurant.id}" && (status = "Pending" || status = "Preparing" || status = "Ready")`,
 			expand: 'user',
-            sort: '-created'
+			sort: '-created'
 		});
 
-		// return new Response(JSON.stringify({ orders }), {
-		// 	status: 200,
-		// 	headers: {
-		// 		'Content-Type': 'application/json'
-		// 	}
-		// });
-        return json({ orders });
+		return json({ orders });
 	} catch (error) {
 		console.error('Failed to fetch orders:', error);
-		// return new Response(JSON.stringify({ error: 'Failed to fetch orders' }), { status: 500 });
-        return json({ orders: [], error: 'Failed to fetch orders' }, { status: 500 });
+		return json({ orders: [], error: 'Failed to fetch orders' }, { status: 500 });
 	}
 };
+

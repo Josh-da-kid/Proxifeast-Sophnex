@@ -6,25 +6,26 @@ export async function addToCartPB(
 	quantity: number = 1,
 	userId: string,
 	defaultAmount: number,
-	promoAmount: number
+	promoAmount: number,
+	restaurantId: string // ✅ new argument
 ) {
 	try {
 		// Determine price
 		const unitPrice = promoAmount || defaultAmount;
 
-		// Check if this dish already exists in the user's cart
+		// Check if this dish already exists in the user's cart for this restaurant
 		let existing: any = null;
 
 		try {
 			existing = await pb.collection('cart').getFirstListItem(
-				`user="${userId}" && dish="${dishId}"`
+				`user="${userId}" && dish="${dishId}" && restaurantId="${restaurantId}"`
 			);
 		} catch (err) {
-			// if no item found, PocketBase throws error — ignore it
+			// No item found — ignore
 		}
 
 		if (existing) {
-			// update existing cart item
+			// Update existing cart item
 			const updatedQuantity = existing.quantity + quantity;
 			const updatedAmount = unitPrice * updatedQuantity;
 
@@ -35,14 +36,15 @@ export async function addToCartPB(
 
 			return updated;
 		} else {
-			// add new cart item
+			// Add new cart item
 			const totalAmount = unitPrice * quantity;
 
 			const record = await pb.collection('cart').create({
 				dish: dishId,
 				quantity,
 				amount: totalAmount,
-				user: userId
+				user: userId,
+				restaurantId // ✅ include restaurantId
 			});
 
 			return record;
@@ -52,4 +54,5 @@ export async function addToCartPB(
 		throw err;
 	}
 }
+
 

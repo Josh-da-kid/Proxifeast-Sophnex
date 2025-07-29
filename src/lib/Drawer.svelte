@@ -57,6 +57,8 @@
 				<h2 class="mb-2 text-xl font-bold">Create New Dish</h2>
 
 				<form action="/admin?/createDish" method="POST" enctype="multipart/form-data">
+					<input type="hidden" name="restaurantId" value={$page.data.user.restaurantId} />
+
 					<div class="flex flex-col">
 						<label for="name" class="">Name of Dish</label>
 						<input

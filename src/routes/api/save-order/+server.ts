@@ -1,11 +1,21 @@
 // src/routes/api/save-order/+server.ts
-import type { RequestHandler } from '@sveltejs/kit';
+import { error, type RequestHandler } from '@sveltejs/kit';
 import PocketBase from 'pocketbase';
 
 const pb = new PocketBase('https://playgzero.pb.itcass.net/');
 
 export const POST: RequestHandler = async ({ request }) => {
 	const data = await request.json();
+
+	const host = request.headers.get('host') || '';
+		const domain = host.split(':')[0];
+	
+		// 1. Get restaurant by domain
+		const restaurant = await pb.collection('restaurants').getFirstListItem(`domain="${domain}"`);
+	
+		if (!restaurant) {
+			throw error(400, 'Restaurant not found');
+		}
 
 	try {
 		const record = await pb.collection('orders').create({
@@ -27,7 +37,8 @@ export const POST: RequestHandler = async ({ request }) => {
             tableNumber: data.tableNumber || '',
 			homeAddress: data.homeAddress || '',
 			pickupTime: data.pickupTime || '',
-            orderTotal: data.orderTotal || data.totalAmount
+            orderTotal: data.orderTotal || data.totalAmount,
+			restaurantId: restaurant.id
 		});
 
 		return new Response(JSON.stringify({ success: true, record }), { status: 200 });

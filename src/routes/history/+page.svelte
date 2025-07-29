@@ -10,17 +10,19 @@
 	// Fetch cart data
 	export async function fetchPendingOrders() {
 		const userId = get(user)?.id;
-		if (!userId) return;
+		const restaurantId = get(page).data.restaurant?.id;
+
+		if (!userId || !restaurantId) return;
+
+		// Final filter string combining all conditions
+		const filter = `restaurantId="${restaurantId}" && user="${userId}" && (status="Delivered" || status="Cancelled")`;
 
 		try {
 			const records = await pb.collection('orders').getFullList({
-				filter: `user="${userId}" && status="Delivered"`,
+				filter,
 				sort: '-updated',
 				expand: 'dish'
 			});
-			// Set to your store or return it as needed
-			// cart.set(records);
-			console.log('settled orders:', records);
 			return records;
 		} catch (err) {
 			console.error('Failed to fetch settled orders:', err);
@@ -84,6 +86,13 @@
 								{#if order.status == 'Delivered'}
 									<span
 										class="rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800"
+									>
+										{order.status}
+									</span>
+								{/if}
+								{#if order.status == 'Cancelled'}
+									<span
+										class="rounded-full bg-red-400 px-2.5 py-1 text-xs font-semibold text-white"
 									>
 										{order.status}
 									</span>

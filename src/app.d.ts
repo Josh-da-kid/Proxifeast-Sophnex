@@ -6,6 +6,7 @@ declare global {
 		interface Locals {
 			pb: PocketBase;
 			user: Record<string, any> | null; // 👈 Add this line
+			restaurant?: RecordModel | null;
 		}
 		// interface Error {}
 		// interface Locals {}

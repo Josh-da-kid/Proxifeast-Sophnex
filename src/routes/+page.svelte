@@ -54,13 +54,24 @@
 
 	async function handleAddToCart(dish: any) {
 		if (dish.availability !== 'Available') return;
+
 		const quantity = Number(dishQuantities[dish.id] || 1);
 
-		// 2. Add to PocketBase cart collection
 		try {
 			if ($isLoggedIn) {
-				await addToCartPB(pb, dish.id, quantity, $user.id, dish.defaultAmount, dish.promoAmount);
-				await fetchCart();
+				await addToCartPB(
+					pb,
+					dish.id,
+					quantity,
+					$user.id,
+					dish.defaultAmount,
+					dish.promoAmount,
+					dish.restaurantId
+				);
+
+				// ✅ Pass restaurantId to fetchCart
+				await fetchCart(dish.restaurantId);
+
 				addToCartAlert = true;
 				setTimeout(() => {
 					addToCartAlert = false;
@@ -91,9 +102,15 @@
 
 	let searchInput = $state('');
 	let selectedCategoryInput = $state('All');
+	const restaurantId = get(page).data.restaurant.id;
+
+	let deleteModal: HTMLDialogElement;
+	let clearModal: HTMLDialogElement;
+	let dishToDelete: any = $state(null);
 
 	onMount(() => {
-		fetchCart();
+		fetchCart(restaurantId); // make sure restaurantId is in scope
+
 		const url = get(page).url;
 		if (window.location.hash === '#menu') {
 			const el = document.getElementById('menu');
@@ -120,12 +137,6 @@
 			}, 2000);
 		}
 	});
-
-	// function updateQuantity(dishId: string, value: string) {
-	// 	const qty = parseInt(value);
-	// 	dishQuantities[dishId] = isNaN(qty) || qty < 1 ? 1 : qty;
-	// 	dishQuantities = { ...dishQuantities }; // ✅ trigger reactivity
-	// }
 
 	let alert = $state(false);
 
@@ -161,63 +172,47 @@
 		$cart.reduce((acc, item) => acc + (item.amount || 0), 0)
 	);
 
-	// export async function fetchCart() {
-	// 	try {
-	// 		const records = await pb.collection('cart').getFullList();
-	// 		cart.set(records);
-	// 	} catch (err) {
-	// 		console.error('Failed to fetch cart:', err);
-	// 	}
-	// }
-
-	export async function fetchCart() {
+	export async function fetchCart(restaurantId: string) {
 		try {
-			if (!$user.id) return cart.set([]);
+			if (!$user.id || !restaurantId) return cart.set([]);
 
 			const records = await pb.collection('cart').getFullList({
-				filter: `user="${$user.id}"`,
-				expand: 'dish' // if dish is a relation
+				filter: `user="${$user.id}" && restaurantId="${restaurantId}"`,
+				expand: 'dish'
 			});
 
 			cart.set(records);
 		} catch (err) {
-			// console.error('Failed to fetch cart:', err);
+			console.error('Failed to fetch cart:', err);
 		}
 	}
 
-	export async function clearCart() {
+	export async function clearCart(restaurantId: string, clearModal?: HTMLDialogElement) {
 		const userId = $user.id;
-		if (!userId) return;
+		if (!userId || !restaurantId) return;
+
 		try {
-			const items = await pb.collection('cart').getFullList();
+			// Get only cart items for this user and restaurant
+			const items = await pb.collection('cart').getFullList({
+				filter: `user="${userId}" && restaurantId="${restaurantId}"`
+			});
+
 			await Promise.all(items.map((item) => pb.collection('cart').delete(item.id)));
-			await fetchCart();
+			await fetchCart(restaurantId);
+
+			// ✅ Close the modal if provided
+			clearModal?.close();
 		} catch (err) {
 			console.error('Failed to clear cart:', err);
 		}
-		// deleteModal.close();
 	}
 
-	export async function removeFromCart(id: string) {
+	export async function removeFromCart(id: string, restaurantId: string) {
 		try {
 			await pb.collection('cart').delete(id);
-			await fetchCart();
+			await fetchCart(restaurantId);
 		} catch (err) {
 			console.error('Failed to remove item:', err);
-		}
-	}
-
-	let deleteModal: HTMLDialogElement;
-	let clearModal: HTMLDialogElement;
-	let dishToDelete: any = $state(null);
-
-	async function handleDeleteDish() {
-		if (!dishToDelete) return;
-
-		try {
-			await pb.collection('cart').delete(dishToDelete.id);
-		} catch (error) {
-			console.error('Failed to delete dish:', error);
 		}
 	}
 
@@ -227,7 +222,8 @@
 		userId,
 		newQty,
 		promoAmount,
-		defaultAmount
+		defaultAmount,
+		restaurantId // 👈 include this
 	}: {
 		itemId: string;
 		dishId: string;
@@ -235,16 +231,16 @@
 		newQty: number;
 		promoAmount?: number;
 		defaultAmount: number;
+		restaurantId: string; // 👈 include this
 	}) {
 		const unitPrice = promoAmount ?? defaultAmount;
 
 		if (newQty < 1) {
-			await removeFromCart(itemId);
+			await removeFromCart(itemId, restaurantId); // scoped remove
 			return;
 		}
 
 		try {
-			// Update the cart item directly using itemId
 			const updatedAmount = unitPrice * newQty;
 
 			await pb.collection('cart').update(itemId, {
@@ -252,7 +248,7 @@
 				amount: updatedAmount
 			});
 
-			await fetchCart(); // Refresh cart store
+			await fetchCart(restaurantId); // scoped fetch
 		} catch (err) {
 			console.error('Failed to update quantity:', err);
 		}
@@ -654,7 +650,6 @@
 									<h3 class="text-lg font-bold">
 										Hey <span class="text-secondary">{$user?.name}!</span>
 									</h3>
-									<!-- <p class="py-4">Are you sure you want to remove  from cart?</p> -->
 
 									<p class="py-4">Are you sure you want to clear your cart?</p>
 
@@ -664,7 +659,9 @@
 											<button class="btn">Close</button>
 										</form>
 										<button
-											onclick={clearCart}
+											onclick={() => {
+												clearCart(restaurantId, clearModal);
+											}}
 											class="btn btn-xs btn-error bg-red-500 p-5 text-lg text-white"
 										>
 											Clear Cart
@@ -677,9 +674,6 @@
 				</div>
 
 				{#if $cart.length > 0}
-					<!-- <ul
-					class="max-h-screen w-full justify-between gap-8 space-y-4 overflow-y-auto p-6 px-8 md:flex"
-				> -->
 					<ul class="scroll-hidden max-h-[80vh] justify-center space-y-4 overflow-y-auto pr-2">
 						{#each $cart as item (item.id)}
 							<li class="flex items-center justify-between border-b border-gray-400 pb-2 text-lg">
@@ -719,16 +713,6 @@
 									</div>
 								</div>
 
-								<!-- <button
-								onclick={() => {
-									dishToDelete = item;
-									deleteModal.showModal();
-								}}
-								class="btn btn-xs btn-error mt-2 bg-red-500 p-4 text-lg text-white"
-							>
-								Remove
-							</button> -->
-
 								<div class="flex items-center justify-center gap-4">
 									<!-- svelte-ignore a11y_consider_explicit_label -->
 									<button
@@ -743,7 +727,8 @@
 													userId: $user.id,
 													newQty: item.quantity - 1,
 													promoAmount: item.expand.dish.promoAmount,
-													defaultAmount: item.expand.dish.amount
+													defaultAmount: item.expand.dish.amount,
+													restaurantId: item.expand.dish.restaurantId
 												});
 											}
 										}}
@@ -769,7 +754,8 @@
 												userId: $user.id,
 												newQty: item.quantity + 1,
 												promoAmount: item.expand.dish.promoAmount,
-												defaultAmount: item.expand.dish.amount
+												defaultAmount: item.expand.dish.amount,
+												restaurantId: item.expand.dish.restaurantId
 											});
 										}}
 										class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
@@ -830,7 +816,7 @@
 											</form>
 											<button
 												onclick={() => {
-													removeFromCart(dishToDelete.id);
+													removeFromCart(dishToDelete.id, dishToDelete.restaurantId);
 													deleteModal.close();
 												}}
 												class="btn btn-xs btn-error bg-red-500 p-4 text-lg text-white"
@@ -843,43 +829,6 @@
 							</li>
 						{/each}
 					</ul>
-
-					<!-- <div class="mt-4">
-					<p class="text-lg font-semibold">Total: ₦{$total.toLocaleString()}</p>
-					<div class="mt-2 flex gap-2">
-						<button
-							onclick={() => {
-								clearModal.showModal();
-							}}
-							class="btn btn-sm btn-secondary">Clear</button
-						>
-						<a onclick={closeSideBar} href="/checkout" class="btn btn-sm btn-primary">Checkout</a>
-
-						<dialog id="my_modal_3" bind:this={clearModal} class="modal">
-							<div class="modal-box">
-								<h3 class="text-lg font-bold">
-									Hey <span class="text-secondary">{$user.name}!</span>
-								</h3>
-								<p class="py-4">Are you sure you want to remove  from cart?</p>
-
-								<p class="py-4">Are you sure you want to clear your cart?</p>
-
-								<div class="modal-action">
-									<form method="dialog">
-										if there is a button in form, it will close the modal
-										<button class="btn">Close</button>
-									</form>
-									<button
-										onclick={clearCart}
-										class="btn btn-xs btn-error bg-red-500 p-5 text-lg text-white"
-									>
-										Clear Cart
-									</button>
-								</div>
-							</div>
-						</dialog>
-					</div>
-				</div> -->
 				{:else}
 					<div role="alert" class="alert alert-info mt-4">
 						<svg

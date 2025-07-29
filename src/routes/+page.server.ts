@@ -7,27 +7,34 @@ export const actions = {
     },
 	
 	addToCart: async ({ request, locals }) => {
-		const formData = await request.formData();
-		const data = Object.fromEntries(formData.entries());
+	const formData = await request.formData();
+	const data = Object.fromEntries(formData.entries());
 
-		try {
-			const add = await locals.pb.collection('cart').create({
-				name: data.name,
-				description: data.description,
-				category: data.category,
-				image: data.image,
-				quantity: parseInt(data.quantity),
-				defaultAmount: parseInt(data.defaultAmount),
-				promoAmount: data.promoAmount ? parseInt(data.promoAmount) : null,
-				user: locals.user.id 
-				
-			});
-
-			return { success: true, add };
-		} catch (err) {
-			return { success: false, error: 'add to cart failed.' };
-		}
+	if (!data.restaurantId) {
+		return { success: false, error: 'Missing restaurant ID' };
 	}
+
+	try {
+		const add = await locals.pb.collection('cart').create({
+			name: data.name,
+			description: data.description,
+			category: data.category,
+			image: data.image,
+			quantity: parseInt(data.quantity),
+			defaultAmount: parseInt(data.defaultAmount),
+			promoAmount: data.promoAmount ? parseInt(data.promoAmount) : null,
+			user: locals.user.id,
+			dish: data.dish, // relation to dish
+			restaurant: data.restaurantId // ✅ restaurant reference
+		});
+
+		return { success: true, add };
+	} catch (err) {
+		console.error(err);
+		return { success: false, error: 'add to cart failed.' };
+	}
+}
+
 
 }
 
@@ -36,9 +43,19 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const search = url.searchParams.get('search')?.trim() ?? '';
 	const category = url.searchParams.get('category')?.trim() ?? 'All';
+	const restaurantId = locals.user?.restaurantId;
 
-	let dishes;
-	let filters: string[] = [];
+	if (!restaurantId) {
+		return {
+			dishes: [],
+			searchTerm: search,
+			selectedCategory: category,
+			categories: [],
+			error: 'Missing restaurant ID'
+		};
+	}
+
+	let filters: string[] = [`restaurantId = "${restaurantId}"`];
 
 	if (search) {
 		filters.push(`(name ~ "${search}" || description ~ "${search}")`);
@@ -51,31 +68,23 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const filter = filters.join(' && ');
 
 	try {
-		const options: any = {
+		const dishes = await locals.pb.collection('dishes').getFullList({
 			sort: '-created',
-			fields: '*'
-		};
+			fields: '*',
+			filter
+		});
 
-		if (filter) {
-			options.filter = filter;
-		}
-
-		dishes = await locals.pb.collection('dishes').getFullList(options);
-
-		const allDishes = await locals.pb.collection('dishes').getFullList({
-	fields: 'category'
-});
-const categorySet = new Set(
-	allDishes.map((dish) => dish.category).filter(Boolean)
-);
-const categories = Array.from(categorySet).sort();
-
+		const categorySet = new Set(
+			dishes.map((dish) => dish.category).filter(Boolean)
+		);
+		const categories = Array.from(categorySet).sort();
 
 		return {
 			dishes,
 			searchTerm: search,
 			selectedCategory: category,
-			categories
+			categories,
+			restaurantId // ✅ forward restaurantId to the page
 		};
 	} catch (error) {
 		console.error('Failed to fetch dishes:', error);
@@ -83,7 +92,9 @@ const categories = Array.from(categorySet).sort();
 			dishes: [],
 			searchTerm: search,
 			selectedCategory: category,
-			error: 'Failed to load dishes'
+			categories: [],
+			error: 'Failed to load dishes',
+			restaurantId
 		};
 	}
 };

@@ -1,12 +1,23 @@
 // src/routes/api/register/+server.ts
 
-import { json, type RequestHandler } from '@sveltejs/kit';
+import { error, json, type RequestHandler } from '@sveltejs/kit';
 import PocketBase, { ClientResponseError } from 'pocketbase';
 
 const pb = new PocketBase('https://playgzero.pb.itcass.net/');
 
 export const POST: RequestHandler = async ({ request }) => {
 	const data = await request.json();
+
+
+	const host = request.headers.get('host') || '';
+	const domain = host.split(':')[0];
+
+	// 1. Get restaurant by domain
+	const restaurant = await pb.collection('restaurants').getFirstListItem(`domain="${domain}"`);
+
+	if (!restaurant) {
+		throw error(400, 'Restaurant not found');
+	}
 
 	try {
 		// Step 1: Create new user
@@ -15,7 +26,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			email: data.email,
 			password: data.password,
 			passwordConfirm: data.passwordConfirm,
-			isAdmin: 'False'
+			isAdmin: 'False',
+			restaurantId: restaurant.id
 		});
 
 		// Step 2: Authenticate user

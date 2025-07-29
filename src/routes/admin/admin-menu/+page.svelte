@@ -12,6 +12,7 @@
 	const categories = $page.data.categories ?? [];
 
 	let selectedDish = $state({
+		restaurantId: '',
 		id: '',
 		name: '',
 		description: '',
@@ -499,6 +500,7 @@
 
 				<form action="?/editDish" method="POST" enctype="multipart/form-data">
 					<input type="hidden" name="id" value={selectedDish.id} />
+					<input type="hidden" name="restaurantId" value={selectedDish.restaurantId} />
 					<div class="flex flex-col">
 						<label for="name" class="">Name of Dish</label>
 						<input

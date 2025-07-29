@@ -28,9 +28,14 @@
 		const search = searchParams.get('search')?.trim() ?? '';
 		const category = searchParams.get('category')?.trim() ?? 'All';
 
-		if (!userId) return;
+		// 👇 Get current restaurant ID
+		const restaurantId = get(page).data.restaurant?.id;
+		if (!userId || !restaurantId) return;
 
 		let filterParts: string[] = [];
+
+		// 👇 Add restaurant filter
+		filterParts.push(`restaurantId="${restaurantId}"`);
 
 		if (category !== 'All') {
 			filterParts.push(`status="${category}"`);
@@ -45,6 +50,7 @@
 		}
 
 		const filter = filterParts.join(' && ');
+
 		try {
 			const records = await pb.collection('orders').getFullList({
 				filter,

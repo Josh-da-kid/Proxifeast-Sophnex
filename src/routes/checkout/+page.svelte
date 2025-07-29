@@ -6,22 +6,21 @@
 	import { clearCartFrontend } from '$lib/stores/cart';
 	import { goto } from '$app/navigation';
 
-	// Cart store
+	const restaurantId = derived(page, ($page) => $page.data.restaurant?.id);
 	export const cart = writable<any[]>([]);
-
 	export const total = derived(cart, ($cart) =>
 		$cart.reduce((acc, item) => acc + (item.amount || 0), 0)
 	);
-
 	export const user = derived(page, ($page) => $page.data.user);
+	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 
 	let deleteModal: HTMLDialogElement;
 	let clearModal: HTMLDialogElement;
-	let dishToDelete: any = null;
+	let dishToDelete: any = $state(null);
 	let loading = $state(true);
 
-	// Fetch cart data
-	export async function fetchCart() {
+	// ✅ Fetch cart
+	export async function fetchCart(restaurantId?: string) {
 		const userId = get(user)?.id;
 		if (!userId) {
 			loading = false;
@@ -29,57 +28,62 @@
 		}
 
 		try {
+			let filter = `user="${userId}"`;
+			if (restaurantId) {
+				filter += ` && restaurantId="${restaurantId}"`;
+			}
+
 			const records = await pb.collection('cart').getFullList({
-				filter: `user="${userId}"`,
+				filter,
 				expand: 'dish'
 			});
 			cart.set(records);
 		} catch (err) {
-			// console.error('Failed to fetch cart:', err);
+			console.error('Failed to fetch cart:', err);
 		} finally {
-			loading = false; // ✅ Set after fetch completes
+			loading = false;
 		}
 	}
 
-	// Remove item
+	// ✅ Remove item
 	export async function removeFromCart(id: string) {
 		try {
 			await pb.collection('cart').delete(id);
-			await fetchCart();
+			await fetchCart(get(restaurantId));
 		} catch (err) {
 			console.error('Failed to remove item:', err);
 		}
 	}
 
-	// Clear entire cart
-	export async function clearCart() {
+	// ✅ Clear entire cart
+	export async function clearCart(restaurantId?: string) {
 		const userId = get(user)?.id;
-		if (!userId) return;
+		if (!userId || !restaurantId) return;
 
 		try {
 			const items = await pb.collection('cart').getFullList({
-				filter: `user="${userId}"`
+				filter: `user="${userId}" && restaurantId="${restaurantId}"`
 			});
 			await Promise.all(items.map((item) => pb.collection('cart').delete(item.id)));
-			await fetchCart();
-			clearModal.close(); // Close modal on success
+			await fetchCart(restaurantId);
+			clearModal?.close();
 		} catch (err) {
 			console.error('Failed to clear cart:', err);
 		}
 	}
 
-	// function closeSideBar() {
-	// 	const drawerToggle = document.getElementById('my-drawer-4');
-	// 	if (drawerToggle instanceof HTMLInputElement) {
-	// 		drawerToggle.checked = false;
-	// 	}
-	// }
-
+	// ✅ Lifecycle: fetch cart on mount
 	onMount(() => {
-		fetchCart();
-		loading = false;
+		const rid = get(restaurantId);
+		if (rid) fetchCart(rid);
+		document.body.classList.add('overflow-hidden');
 	});
 
+	onDestroy(() => {
+		document.body.classList.remove('overflow-hidden');
+	});
+
+	// ✅ Quantity update
 	async function updateQuantity({
 		itemId,
 		dishId,
@@ -103,31 +107,20 @@
 		}
 
 		try {
-			// Update the cart item directly using itemId
-			const updatedAmount = unitPrice * newQty;
-
 			await pb.collection('cart').update(itemId, {
 				quantity: newQty,
-				amount: updatedAmount
+				amount: unitPrice * newQty
 			});
 
-			await fetchCart(); // Refresh cart store
+			await fetchCart(get(restaurantId));
 		} catch (err) {
 			console.error('Failed to update quantity:', err);
 		}
 	}
 
-	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
-
-	onMount(() => {
-		document.body.classList.add('overflow-hidden');
-		fetchCart();
-	});
-
-	onDestroy(() => {
-		document.body.classList.remove('overflow-hidden');
-	});
-
+	// ====================
+	// Order + Paystack
+	// ====================
 	let deliveryOption = $state('');
 	let paymentOption = $state('');
 	let fullName = '';
@@ -141,31 +134,22 @@
 	let meridian = $state('PM');
 
 	let pickupTime = $derived(`${hour}:${String(minutes).padStart(2, '0')} ${meridian}`);
+	const formattedPhone = $derived(`${prefix}${phone}`);
+	const PaystackPop = (window as any).PaystackPop;
+	let email = get(user)?.email;
+	let amount = get(total);
 
 	function isValidPhone(prefix: string, phone: string): boolean {
-		// Remove spaces and normalize
 		prefix = prefix.trim();
 		phone = phone.trim().replace(/\s+/g, '');
-
-		// Ensure phone contains only digits
 		if (!/^\d+$/.test(phone)) return false;
 
-		// Nigeria-specific validation: +234 followed by 10 digits starting with 7, 8, or 9
 		if (prefix === '+234') {
-			// Must start with 7, 8, or 9 and be 10 digits long
 			return /^[789][01]\d{8}$/.test(phone);
 		}
 
-		// Basic fallback validation: for other countries (e.g. +1, +44), require 7–15 digits
 		return phone.length >= 7 && phone.length <= 15;
 	}
-
-	// @ts-ignore
-	const PaystackPop = (window as any).PaystackPop;
-
-	let email = $user?.email;
-	let amount = $total;
-	const formattedPhone = $derived(`${prefix}${phone}`);
 
 	function payWithPaystack(e: Event) {
 		e.preventDefault();
@@ -174,15 +158,13 @@
 			alert('Please enter a valid Nigerian phone number.');
 			return;
 		}
-		if (deliveryOption == 'home') {
-			amount = $total + 2000;
-		} else {
-			amount = $total;
-		}
+
+		amount = deliveryOption === 'home' ? get(total) + 2000 : get(total);
+
 		let handler = PaystackPop.setup({
-			key: 'pk_test_9b2f9f60021d75c2ef1ebbddaf0c58d33065c683', // replace with your public key
+			key: 'pk_test_9b2f9f60021d75c2ef1ebbddaf0c58d33065c683',
 			email: email,
-			amount: amount * 100, // convert to kobo
+			amount: amount * 100,
 			currency: 'NGN',
 			ref: 'ORD-' + Math.floor(Math.random() * 1000000000 + 1),
 			callback: function (response: any) {
@@ -195,15 +177,15 @@
 					quantity: item.quantity,
 					amount: item.amount
 				}));
-				// ✅ Save order to DB here
+
 				const orderData = {
 					reference: response.reference,
-					totalAmount: $total,
+					totalAmount: get(total),
 					type: deliveryOption,
-					user: $user.id,
+					user: get(user).id,
 					dishes: orderedDishes,
-					name: $user.name,
-					quantity: cartQuantity,
+					name: get(user).name,
+					quantity: $cart.length,
 					formattedPhone,
 					tableNumber,
 					homeAddress,
@@ -215,24 +197,21 @@
 					orderData.tableNumber = tableNumber;
 				} else if (deliveryOption === 'home') {
 					orderData.homeAddress = homeAddress;
-					orderData.orderTotal = $total + 2000;
+					orderData.orderTotal = get(total) + 2000;
 				} else if (deliveryOption === 'restaurantPickup') {
 					orderData.pickupTime = pickupTime;
 				}
 
-				// Save to DB
 				fetch('/api/save-order', {
 					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
+					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify(orderData)
 				})
 					.then((res) => res.json())
 					.then((data) => {
 						alert('Order saved successfully!');
 						goto('/pending');
-						clearCart();
+						clearCart($cart[0]?.restaurantId);
 					})
 					.catch((err) => {
 						console.error(err);
@@ -243,21 +222,18 @@
 				alert('Transaction was cancelled');
 			}
 		});
+
 		handler.openIframe();
 	}
 
 	function closeSideBar() {
 		const drawerToggle = document.getElementById('my-drawer-5');
-		if (drawerToggle instanceof HTMLInputElement) {
-			drawerToggle.checked = false;
-		}
+		if (drawerToggle instanceof HTMLInputElement) drawerToggle.checked = false;
 	}
 
 	function openSideBar() {
 		const drawerToggle = document.getElementById('my-drawer-5');
-		if (drawerToggle instanceof HTMLInputElement) {
-			drawerToggle.checked = true;
-		}
+		if (drawerToggle instanceof HTMLInputElement) drawerToggle.checked = true;
 	}
 </script>
 
@@ -743,7 +719,12 @@
 				<form method="dialog">
 					<button class="btn">Cancel</button>
 				</form>
-				<button class="btn btn-error text-white" onclick={clearCart}>Yes, Clear All</button>
+				<button
+					class="btn btn-error text-white"
+					onclick={() => {
+						clearCart($restaurantId);
+					}}>Yes, Clear All</button
+				>
 			</div>
 		</div>
 	</dialog>

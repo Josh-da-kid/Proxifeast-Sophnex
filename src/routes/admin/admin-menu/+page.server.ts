@@ -3,9 +3,20 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const search = url.searchParams.get('search')?.trim() ?? '';
 	const category = url.searchParams.get('category')?.trim() ?? 'All';
+	const restaurantId = locals.user?.restaurantId;
+
+	if (!restaurantId) {
+		return {
+			dishes: [],
+			searchTerm: search,
+			selectedCategory: category,
+			categories: [],
+			error: 'Restaurant ID is required'
+		};
+	}
 
 	let dishes;
-	let filters: string[] = [];
+	let filters: string[] = [`restaurantId="${restaurantId}"`]; // <-- Ensure only this restaurant's dishes show
 
 	if (search) {
 		filters.push(`(name ~ "${search}" || description ~ "${search}")`);
@@ -19,29 +30,29 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	try {
 		const options: any = {
-			sort: '-created'
+			sort: '-created',
+			filter
 		};
-
-		if (filter) {
-			options.filter = filter;
-		}
 
 		dishes = await locals.pb.collection('dishes').getFullList(options);
 
+		// Fetch only this restaurant's dishes to extract categories
 		const allDishes = await locals.pb.collection('dishes').getFullList({
-	fields: 'category'
-});
-const categorySet = new Set(
-	allDishes.map((dish) => dish.category).filter(Boolean)
-);
-const categories = Array.from(categorySet).sort();
+			filter: `restaurantId="${restaurantId}"`,
+			fields: 'category'
+		});
+
+		const categorySet = new Set(
+			allDishes.map((dish) => dish.category).filter(Boolean)
+		);
+		const categories = Array.from(categorySet).sort();
 
 		return {
 			dishes,
 			searchTerm: search,
 			selectedCategory: category,
-			categories
-			
+			categories,
+			restaurantId // optional: return it to the page
 		};
 	} catch (error) {
 		console.error('Failed to fetch dishes:', error);
@@ -49,40 +60,11 @@ const categories = Array.from(categorySet).sort();
 			dishes: [],
 			searchTerm: search,
 			selectedCategory: category,
+			categories: [],
 			error: 'Failed to load dishes'
 		};
 	}
-
-	
 };
-
-
-
-// export const actions = {
-// 	editDish: async ({ request, locals }) => {
-// 		const formData = await request.formData();
-// 		const data = Object.fromEntries(formData.entries());
-
-// 		try {
-// 			const updated = await locals.pb.collection('dishes').update(data.id, {
-// 				name: data.name,
-// 				description: data.description,
-// 				category: data.category,
-// 				image: data.image,
-// 				quantity: parseInt(data.quantity),
-// 				availability: data.availability,
-// 				defaultAmount: parseInt(data.defaultAmount),
-// 				promoAmount: data.promoAmount ? parseInt(data.promoAmount) : null
-// 			});
-
-// 			return { success: true, updated };
-// 		} catch (err) {
-// 			console.error(err);
-// 			return { success: false, error: 'Update failed.' };
-// 		}
-// 	}
-
-//  };
 
 
 
@@ -93,10 +75,9 @@ export const actions = {
 		let imageUrl = '';
 		const imageSource = formData.get('imageSource'); // 'url' or 'file'
 
-		// Handle file upload if user selected "file"
+		// Upload image if selected as file
 		if (imageSource === 'file') {
 			const file = formData.get('imageFile');
-
 			if (file instanceof File && file.size > 0) {
 				try {
 					const uploadForm = new FormData();
@@ -119,17 +100,28 @@ export const actions = {
 			}
 		}
 
-		// Continue with update
+		// Get restaurantId — either from the form or from the logged-in user's restaurant
+		const restaurantId = formData.get('restaurantId') || locals.user?.restaurantId;
+
+		if (!restaurantId) {
+			return {
+				success: false,
+				error: 'Restaurant ID is missing.'
+			};
+		}
+
+		// Proceed to update the dish
 		try {
 			const updated = await locals.pb.collection('dishes').update(formData.get('id'), {
 				name: formData.get('name'),
 				description: formData.get('description'),
 				category: formData.get('category'),
-				image: imageUrl, // ✅ always final image URL
+				image: imageUrl,
 				quantity: parseInt(formData.get('quantity')),
 				availability: formData.get('availability'),
 				defaultAmount: parseInt(formData.get('defaultAmount')),
-				promoAmount: formData.get('promoAmount') ? parseInt(formData.get('promoAmount')) : null
+				promoAmount: formData.get('promoAmount') ? parseInt(formData.get('promoAmount')) : null,
+				restaurantId: restaurantId // ✅ important!
 			});
 
 			return { success: true, updated };

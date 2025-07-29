@@ -24,14 +24,15 @@
 	// Fetch cart data
 	export async function fetchPendingOrders() {
 		const userId = get(user)?.id;
+		const restaurantId = get(page).data.restaurant?.id; // ✅ Get restaurantId
 		const searchParams = get(page).url.searchParams;
 		const search = searchParams.get('search')?.trim() ?? '';
 		const category = searchParams.get('category')?.trim() ?? 'All';
 
-		if (!userId) return;
+		if (!userId || !restaurantId) return;
 
 		// Build dynamic filter
-		let filter = `(user="${userId}")`;
+		let filter = `(restaurantId="${restaurantId}")`;
 
 		if (category !== 'All') {
 			filter += ` && status="${category}"`;

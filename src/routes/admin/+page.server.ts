@@ -2,27 +2,21 @@ export const actions = {
 	createDish: async ({ locals, request }) => {
 		const formData = await request.formData();
 
-		// For debugging
-		// for (let [key, value] of formData.entries()) {
-		// 	console.log(key, value);
-		// }
-
 		let imageUrl = '';
 		const imageSource = formData.get('imageSource'); // 'file' or 'url'
 
-		// Handle image upload if imageSource is 'file'
 		if (imageSource === 'file') {
 			const file = formData.get('imageFile');
 
 			if (file instanceof File && file.size > 0) {
 				try {
 					const uploadForm = new FormData();
-					uploadForm.append('imageFile', file); // 'imageFile' is the file field in the 'uploads' collection
+					uploadForm.append('imageFile', file);
 
 					const uploaded = await locals.pb.collection('uploads').create(uploadForm);
-					imageUrl = locals.pb.files.getUrl(uploaded, uploaded.imageFile);
+					imageUrl = locals.pb.files.getURL(uploaded, uploaded.imageFile);
 				} catch (uploadErr) {
-					console.error('Error uploading image to uploads collection:', uploadErr);
+					console.error('Error uploading image:', uploadErr);
 					return {
 						success: false,
 						error: 'Failed to upload image file.'
@@ -36,7 +30,16 @@ export const actions = {
 			}
 		}
 
-		// Save dish record with final image URL
+		// Get restaurantId from the form
+		const restaurantId = formData.get('restaurantId');
+
+		if (!restaurantId || typeof restaurantId !== 'string') {
+			return {
+				success: false,
+				error: 'restaurantId is required.'
+			};
+		}
+
 		try {
 			const record = await locals.pb.collection('dishes').create({
 				name: formData.get('name'),
@@ -49,7 +52,8 @@ export const actions = {
 				defaultAmount: parseInt(formData.get('defaultAmount')),
 				promoAmount: formData.get('promoAmount')
 					? parseInt(formData.get('promoAmount'))
-					: null
+					: null,
+				restaurantId // <-- this links the dish to a restaurant
 			});
 
 			return {
@@ -58,7 +62,6 @@ export const actions = {
 			};
 		} catch (error) {
 			console.error('PocketBase Error:', error);
-
 			return {
 				success: false,
 				error: 'Failed to create dish.'
@@ -66,5 +69,6 @@ export const actions = {
 		}
 	}
 };
+
 
 
