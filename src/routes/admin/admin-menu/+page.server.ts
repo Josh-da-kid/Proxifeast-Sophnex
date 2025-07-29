@@ -1,9 +1,15 @@
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals, url }) => {
+export const load: PageServerLoad = async ({ locals, url, request }) => {
 	const search = url.searchParams.get('search')?.trim() ?? '';
 	const category = url.searchParams.get('category')?.trim() ?? 'All';
-	const restaurantId = locals.user?.restaurantId;
+	// const restaurantId = locals.user?.restaurantId;
+	const host = request.headers.get('host') || '';
+	const domain = host.split(':')[0];
+
+	const restaurant = await locals.pb.collection('restaurants').getFirstListItem(`domain = "${domain}"`);
+
+		const restaurantId = restaurant.id;
 
 	if (!restaurantId) {
 		return {

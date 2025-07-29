@@ -40,43 +40,44 @@ export const actions = {
 
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals, url }) => {
+
+
+export const load: PageServerLoad = async ({ locals, url, request }) => {
 	const search = url.searchParams.get('search')?.trim() ?? '';
 	const category = url.searchParams.get('category')?.trim() ?? 'All';
-	const restaurantId = locals.user?.restaurantId;
 
-	if (!restaurantId) {
-		return {
-			dishes: [],
-			searchTerm: search,
-			selectedCategory: category,
-			categories: [],
-			error: 'Missing restaurant ID'
-		};
-	}
-
-	let filters: string[] = [`restaurantId = "${restaurantId}"`];
-
-	if (search) {
-		filters.push(`(name ~ "${search}" || description ~ "${search}")`);
-	}
-
-	if (category && category !== 'All') {
-		filters.push(`category = "${category}"`);
-	}
-
-	const filter = filters.join(' && ');
+	// ✅ Get host from the request headers
+	// const host = request.headers.get('host') || '';
+	// const domain = host.replace(/^www\./, '').toLowerCase(); // optional: strip www
+	const host = request.headers.get('host') || '';
+	const domain = host.split(':')[0];
+	// console.log("domain:", domain)
 
 	try {
+		// ✅ Look up the restaurant by domain
+		const restaurant = await locals.pb.collection('restaurants').getFirstListItem(`domain = "${domain}"`);
+
+		const restaurantId = restaurant.id;
+
+		let filters: string[] = [`restaurantId = "${restaurantId}"`];
+
+		if (search) {
+			filters.push(`(name ~ "${search}" || description ~ "${search}")`);
+		}
+
+		if (category && category !== 'All') {
+			filters.push(`category = "${category}"`);
+		}
+
+		const filter = filters.join(' && ');
+
 		const dishes = await locals.pb.collection('dishes').getFullList({
 			sort: '-created',
 			fields: '*',
 			filter
 		});
 
-		const categorySet = new Set(
-			dishes.map((dish) => dish.category).filter(Boolean)
-		);
+		const categorySet = new Set(dishes.map((dish) => dish.category).filter(Boolean));
 		const categories = Array.from(categorySet).sort();
 
 		return {
@@ -84,17 +85,18 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			searchTerm: search,
 			selectedCategory: category,
 			categories,
-			restaurantId // ✅ forward restaurantId to the page
+			restaurant,
+			restaurantId
 		};
 	} catch (error) {
-		console.error('Failed to fetch dishes:', error);
+		console.error('Error loading restaurant or dishes:', error);
 		return {
 			dishes: [],
 			searchTerm: search,
 			selectedCategory: category,
 			categories: [],
-			error: 'Failed to load dishes',
-			restaurantId
+			error: 'Restaurant not found or failed to load dishes'
 		};
 	}
 };
+
