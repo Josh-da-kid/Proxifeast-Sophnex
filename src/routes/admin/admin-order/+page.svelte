@@ -14,6 +14,7 @@
 	// let orders: RecordModel[] = [];
 	let orders: any = $state([]);
 	let loading = $state(true);
+	const restaurantName = get(page).data.restaurant?.name;
 
 	const categories = $page.data.categories ?? [];
 
@@ -264,6 +265,7 @@
 									<p><strong>Table Number:</strong> {order.tableNumber}</p>
 								{/if}
 								<p><strong>Phone:</strong> {order.phone}</p>
+								<p><strong>Restaurant:</strong> {restaurantName}</p>
 							</div>
 
 							<div class="dropdown dropdown-hover">

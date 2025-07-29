@@ -31,6 +31,7 @@
 
 	let orders: RecordModel[] = [];
 	let loading = true;
+	const restaurantName = get(page).data.restaurant?.name;
 
 	onMount(async () => {
 		orders = (await fetchPendingOrders()) || [];
@@ -127,6 +128,7 @@
 									<p><strong>Table Number:</strong> {order.tableNumber}</p>
 								{/if}
 								<p><strong>Phone:</strong> {order.phone}</p>
+								<p><strong>Restaurant:</strong> {restaurantName}</p>
 							</div>
 
 							<div class="dropdown dropdown-hover">

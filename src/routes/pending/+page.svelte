@@ -14,6 +14,7 @@
 
 	let searchInput = $state('');
 	let selectedCategoryInput = $state('All');
+	const restaurantName = get(page).data.restaurant?.name;
 
 	const categories = $page.data.categories ?? [];
 
@@ -241,6 +242,7 @@
 									<p><strong>Table Number:</strong> {order.tableNumber}</p>
 								{/if}
 								<p><strong>Phone:</strong> {order.phone}</p>
+								<p><strong>Restaurant:</strong> {restaurantName}</p>
 							</div>
 							<div class="dropdown dropdown-hover">
 								<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
