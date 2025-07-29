@@ -54,7 +54,7 @@
 		<a href="/" class="font-playfair text-2xl font-bold normal-case md:text-3xl">
 			{restaurantName}</a
 		>
-		<span class="hidden lg:flex">{$user?.email}</span>
+		<span class="hidden font-bold lg:flex">{$user?.email}</span>
 	</div>
 
 	<div class="flex justify-center lg:hidden">

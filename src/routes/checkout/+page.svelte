@@ -7,6 +7,8 @@
 	import { goto } from '$app/navigation';
 
 	const restaurantId = derived(page, ($page) => $page.data.restaurant?.id);
+	const paystackKey = derived(page, ($page) => $page.data.restaurant?.paystackKey);
+	console.log('paystack key:', $paystackKey);
 	export const cart = writable<any[]>([]);
 	export const total = derived(cart, ($cart) =>
 		$cart.reduce((acc, item) => acc + (item.amount || 0), 0)
@@ -162,7 +164,7 @@
 		amount = deliveryOption === 'home' ? get(total) + 2000 : get(total);
 
 		let handler = PaystackPop.setup({
-			key: 'pk_test_9b2f9f60021d75c2ef1ebbddaf0c58d33065c683',
+			key: $paystackKey,
 			email: email,
 			amount: amount * 100,
 			currency: 'NGN',
