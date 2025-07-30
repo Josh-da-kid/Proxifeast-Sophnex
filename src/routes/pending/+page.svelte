@@ -191,6 +191,7 @@
 				<ul class="flex flex-col space-y-4 px-2 md:grid md:grid-cols-2 md:space-x-4 lg:grid-cols-3">
 					{#each orders as order}
 						<li class="space-y-2 rounded-xl border border-gray-300 p-4 shadow-md">
+							<h3 class="text-primary text-sm font-bold">👤 {order.name || 'Unnamed User'}</h3>
 							<div class="flex items-center justify-between">
 								<h3 class="text-lg font-semibold">Order Ref: {order.reference}</h3>
 								{#if order.status == 'Pending'}

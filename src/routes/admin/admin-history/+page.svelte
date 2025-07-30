@@ -208,7 +208,7 @@
 					{#each orders as order}
 						<li class="space-y-2 rounded-xl border border-gray-300 p-4 shadow-md">
 							<div>
-								<p class="text-sm font-medium text-blue-800">
+								<p class="text-sm font-bold text-blue-800">
 									👤 {order.name || 'Unnamed User'}
 								</p>
 							</div>
