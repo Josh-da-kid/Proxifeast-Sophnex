@@ -42,7 +42,7 @@
 	// Directly use the derived user store for reactivity
 	const user = derived(page, ($page) => $page.data.user);
 
-	const restaurantName = get(page).data.restaurant.name;
+	const restaurantName = get(page).data.restaurant?.name;
 </script>
 
 <nav

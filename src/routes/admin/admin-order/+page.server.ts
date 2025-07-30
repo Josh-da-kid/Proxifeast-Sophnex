@@ -3,7 +3,7 @@ import type { PageServerLoad } from "../$types";
 export const load: PageServerLoad = async ({ locals, request }) => {
 	const host = request.headers.get('host') || '';
 	const domain = host.split(':')[0];
-	console.log("domain:", domain)
+	// console.log("domain:", domain)
 
 	try {
 		// ✅ Look up the restaurant by domain

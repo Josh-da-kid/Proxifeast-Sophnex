@@ -58,6 +58,8 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		const restaurant = await locals.pb.collection('restaurants').getFirstListItem(`domain = "${domain}"`);
 
 		const restaurantId = restaurant.id;
+		// console.log(restaurant.domain)
+		// console.log(restaurant.name)
 
 		let filters: string[] = [`restaurantId = "${restaurantId}"`];
 
