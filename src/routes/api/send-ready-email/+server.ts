@@ -54,9 +54,9 @@ export const POST: RequestHandler = async ({ request }) => {
 	const body = await request.json();
 	const { email, name, reference, status, deliveryType, address, tableNumber } = body;
 
-	console.log('Incoming email payload:', body);
-	console.log(import.meta.env.VITE_BREVO_LOGIN)
-	console.log(import.meta.env.VITE_BREVO_SMTP_KEY)
+	// console.log('Incoming email payload:', body);
+	// console.log(import.meta.env.VITE_BREVO_LOGIN)
+	// console.log(import.meta.env.VITE_BREVO_SMTP_KEY)
 
 	if (!email || !status) {
 		return new Response('Email and status are required', { status: 400 });
@@ -88,24 +88,6 @@ export const POST: RequestHandler = async ({ request }) => {
 		let html = '';
 
 		switch (status) {
-	// case 'Ready':
-	// 	subject = `Order ${reference} is Ready for Pickup/Delivery`;
-
-	// 	if (deliveryType === 'restaurantPickup') {
-	// 		html = `<p>Hi ${name},</p>
-	// 			<p>Your order <strong>${reference}</strong> is now <strong>Ready</strong>.</p>
-	// 			<p>Please come pick it up at the restaurant.</p>
-	// 			<p>Thanks for ordering from us!</p>`;
-	// 	} else if (['home', 'tableService'].includes(deliveryType)) {
-	// 		html = `<p>Hi ${name},</p>
-	// 			<p>Your order <strong>${reference}</strong> is now <strong>Ready</strong>.</p>
-	// 			<p>Please wait while we deliver it to your table or home.</p>
-	// 			<p>Thanks for ordering from us!</p>`;
-	// 	} else {
-	// 		html = `<p>Hi ${name},</p>
-	// 			<p>Your order <strong>${reference}</strong> is now <strong>Ready</strong>.</p>`;
-	// 	}
-	// 	break;
 
     case 'Ready':
 	subject = `Order ${reference} is Ready for Pickup/Delivery`;
@@ -148,7 +130,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			default:
 				return new Response('Unsupported status', { status: 400 });
 		}
-		console.log(restaurant.name)
+		// console.log(restaurant.name)
 
 		await transporter.sendMail({
 			from: `${restaurant.name} <carmenjosh84@gmail.com>`,
