@@ -186,6 +186,7 @@
 					user: get(user).id,
 					dishes: orderedDishes,
 					name: get(user).name,
+					email: get(user).email,
 					quantity: $cart.length,
 					formattedPhone,
 					tableNumber,
@@ -425,6 +426,7 @@
 							{/if}
 
 							<form onsubmit={payWithPaystack} class="space-y-4">
+								<p class="hidden">{$user.email}</p>
 								<div class="space-y-2 space-x-4 text-start">
 									<p class="font-bold">Delivery Type:</p>
 

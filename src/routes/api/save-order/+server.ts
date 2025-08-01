@@ -22,6 +22,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			user: data.user,
 			name: data.name,
 			phone: data.formattedPhone,
+			email: data.email,
 			deliveryType: data.type,
 			status: "Pending",
 			// dishes: data.dishes,

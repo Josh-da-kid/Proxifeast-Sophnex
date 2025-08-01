@@ -292,18 +292,6 @@
 							<p class="text-xs text-gray-400">
 								Completed on: {new Date(order.updated).toLocaleString()}
 							</p>
-
-							<!-- <select
-							class="border-secondary focus:ring-secondary relative items-end justify-end rounded border px-2 py-1 focus:ring-2 focus:outline-none"
-							bind:value={order.status}
-							on:change={() => updateOrderStatus(order.id, order.status)}
-						>
-							{#each ['Pending', 'Preparing', 'Ready', 'Delivered', 'Cancelled'] as statusOption}
-								<option value={statusOption}>
-									{statusOption}
-								</option>
-							{/each}
-						</select> -->
 						</li>
 					{/each}
 				</ul>

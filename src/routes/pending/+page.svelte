@@ -33,7 +33,8 @@
 		if (!userId || !restaurantId) return;
 
 		// Build dynamic filter
-		let filter = `(restaurantId="${restaurantId}")`;
+		let filter = `(restaurantId="${restaurantId}" && user="${userId}")`;
+
 
 		if (category !== 'All') {
 			filter += ` && status="${category}"`;

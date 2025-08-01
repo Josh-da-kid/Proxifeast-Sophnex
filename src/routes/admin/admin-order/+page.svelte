@@ -72,10 +72,57 @@
 		loading = false;
 	});
 
+	// async function updateOrderStatus(orderId: any, newStatus: any, orderRef: any) {
+	// 	try {
+	// 		await pb.collection('orders').update(orderId, { status: newStatus });
+	// 		// ✅ Refetch orders immediately
+	// 		orders = await fetchPendingOrders();
+	// 	} catch (err) {
+	// 		console.error('Failed to update status:', err);
+	// 	}
+	// }
+
+	let successMessage = $state('');
+	let errorMessage = '';
+
 	async function updateOrderStatus(orderId: any, newStatus: any, orderRef: any) {
 		try {
-			await pb.collection('orders').update(orderId, { status: newStatus });
-			// ✅ Refetch orders immediately
+			// ✅ Update the status
+			const updatedOrder = await pb.collection('orders').update(orderId, { status: newStatus });
+
+			// ✅ If status is Ready, send email
+			// if (newStatus === ('Ready'|| 'Cancelled' || 'Delivered')) {
+			if (['Ready', 'Cancelled', 'Delivered'].includes(newStatus)) {
+				// 👇 Make a POST request to your custom endpoint to send email
+				const res = await fetch('/api/send-ready-email', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						email: updatedOrder.email, // assumes your order has email field
+						name: updatedOrder.name,
+						reference: updatedOrder.reference,
+						status: newStatus,
+						deliveryType: updatedOrder.deliveryType,
+						address: updatedOrder.homeAddress, // 👈 if available
+						tableNumber: updatedOrder.tableNumber // 👈 if available
+					})
+				});
+				if (res.ok) {
+					successMessage = await res.text(); // gets "Email sent"
+					setTimeout(() => {
+						successMessage = '';
+					}, 5000);
+				} else {
+					errorMessage = 'Failed to send email';
+					setTimeout(() => {
+						errorMessage = '';
+					}, 5000);
+				}
+			}
+
+			// ✅ Refresh orders
 			orders = await fetchPendingOrders();
 		} catch (err) {
 			console.error('Failed to update status:', err);
@@ -107,11 +154,47 @@
 	}
 </script>
 
+{#if successMessage.length > 1}
+	<div
+		role="alert"
+		class="alert alert-success fixed top-1/3 ml-2"
+		in:fly={{ x: 200, duration: 800 }}
+		out:fly={{ x: 200, duration: 800 }}
+	>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			class="h-6 w-6 shrink-0 stroke-current"
+			fill="none"
+			viewBox="0 0 24 24"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+			/>
+		</svg>
+		<span>{successMessage}</span>
+	</div>
+{/if}
+
 <main>
 	{#if $isLoggedIn}
 		<h1 class="mb-4 text-center text-2xl font-bold md:mt-8" in:fly={{ x: 200, duration: 800 }}>
 			All Pending Orders
 		</h1>
+
+		<h2 class="text-secondary text-center font-bold">Note</h2>
+		<div class="mx-auto flex items-center justify-center px-4 text-center sm:w-[500px]">
+			<p>
+				Emails are sent to individual users if order status is updated to either "<span
+					class="text-primary">Ready</span
+				>", "<span class="text-primary">Delivered</span>", or "<span class="text-primary"
+					>Cancelled</span
+				>" by any Admin. So please confirm carefully before updating order statuses to these values.
+			</p>
+		</div>
+		<span class="text-secondary"></span>
 
 		<form method="GET" onsubmit={handleSearchSubmit} class="gap-2 sm:flex">
 			<div class="mx-auto items-center justify-center gap-2 p-2 sm:flex">
