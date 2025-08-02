@@ -110,7 +110,7 @@ console.log("Geocoding response:", geoData);
 		const distanceKm = distanceMeters / 1000;
 
 		// Delivery fee logic (₦100/km)
-		const deliveryFee = Math.ceil(distanceKm * 100);
+		const deliveryFee = Math.ceil(distanceKm * 130);
 
 		return json({
 			fee: deliveryFee,

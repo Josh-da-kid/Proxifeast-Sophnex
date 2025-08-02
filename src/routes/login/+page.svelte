@@ -21,6 +21,15 @@
 		}
 	}
 
+	$: {
+		if ($page.url.searchParams.get('logout') === 'success') {
+			// Remove ?signup=success from the URL without reloading
+			const url = new URL(window.location.href);
+			url.searchParams.delete('logout');
+			history.replaceState(null, '', url.pathname + url.search);
+		}
+	}
+
 	let logoutSuccess = false;
 
 	// Reactively check the query param

@@ -38,7 +38,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				success: false,
 				message: loginError === 'invalid login credentials'
 					? 'Invalid email or password.'
-					: 'Login failed.',
+					: 'Login failed. No user found for this email/password.',
 				error: err?.response?.data
 			},
 			{ status: 400 }
