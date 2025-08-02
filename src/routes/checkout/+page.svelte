@@ -175,7 +175,9 @@
 			const data = await res.json();
 
 			if (!res.ok || data.error) {
-				addressAlert = data.error?.message || 'Unable to calculate delivery fee.';
+				addressAlert =
+					data.error?.message ||
+					'Unable to calculate delivery fee. Probably an invalid address was received.';
 				console.error('❌ Delivery fee error:', data.error || res.statusText);
 				deliveryFee = 0;
 				deliveryTotal = 0;
@@ -360,7 +362,7 @@
 {#if addressAlert}
 	<div
 		role="alert"
-		class="alert alert-error fixed top-1/2 z-20 mb-4 ml-2"
+		class="alert alert-error index-0 fixed top-1/2 z-99999 mb-4 ml-2 w-[300px] sm:w-[400px]"
 		in:fly={{ y: -20, duration: 300 }}
 		out:fly={{ y: -20, duration: 300 }}
 	>
@@ -971,7 +973,7 @@
 						<p class="text-xl font-bold">Total:</p>
 						<p class="text-xl font-bold">₦{$total.toLocaleString()}</p>
 					</div>
-					{#if deliveryOption == 'home'}
+					<!-- {#if deliveryOption == 'home'}
 						<div class="flex w-full justify-between">
 							<p class="text-start text-lg font-bold text-green-500">DELIVERY FEE:</p>
 							<p class="text-start text-lg font-bold text-green-500">₦2,000</p>
@@ -981,6 +983,56 @@
 							<p class="text-start text-xl font-bold">Order Total</p>
 							<p class="text-start text-lg font-bold">
 								₦{($total + 2000).toLocaleString()}
+							</p>
+						</div>
+					{/if} -->
+
+					{#if deliveryOption == 'home'}
+						<div class="flex w-full justify-between">
+							<p class="text-start text-lg font-bold text-green-500">DELIVERY FEE:</p>
+							<p class="text-start text-lg font-bold text-green-500">
+								<!-- svelte-ignore node_invalid_placement_ssr -->
+								{#if loadingDelivery}
+									<div class="text-secondary">
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											width="28"
+											height="28"
+											viewBox="0 0 24 24"
+											><path
+												fill="none"
+												stroke="currentColor"
+												stroke-dasharray="16"
+												stroke-dashoffset="16"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M12 3c4.97 0 9 4.03 9 9"
+												><animate
+													fill="freeze"
+													attributeName="stroke-dashoffset"
+													dur="0.2s"
+													values="16;0"
+												/><animateTransform
+													attributeName="transform"
+													dur="1.5s"
+													repeatCount="indefinite"
+													type="rotate"
+													values="0 12 12;360 12 12"
+												/></path
+											></svg
+										>
+									</div>
+								{:else}
+									{deliveryFee > 0 ? `₦${deliveryFee.toLocaleString()}` : '...'}
+								{/if}
+							</p>
+						</div>
+
+						<div class="text-secondary flex w-full justify-between">
+							<p class="text-start text-xl font-bold">Order Total</p>
+							<p class="text-start text-lg font-bold">
+								₦{deliveryTotal ? deliveryTotal.toLocaleString() : $total}
 							</p>
 						</div>
 					{/if}
@@ -1149,6 +1201,17 @@
 										want your order to be delivered to.</small
 									>
 								</label>
+
+								<button
+									onclick={() => {
+										getDeliveryFee(homeAddress);
+									}}
+									class="bg-secondary btn text-white">Calculate Delivery Fee</button
+								>
+
+								{#if deliveryFee}
+									<p>Delivery Fee: ₦{deliveryFee.toLocaleString()}</p>
+								{/if}
 							{/if}
 						</div>
 
