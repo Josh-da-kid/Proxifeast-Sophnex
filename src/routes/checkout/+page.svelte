@@ -5,6 +5,7 @@
 	import pb from '$lib/pb';
 	import { clearCartFrontend } from '$lib/stores/cart';
 	import { goto } from '$app/navigation';
+	import { fly } from 'svelte/transition';
 
 	const restaurantId = derived(page, ($page) => $page.data.restaurant?.id);
 	const paystackKey = derived(page, ($page) => $page.data.restaurant?.paystackKey);
@@ -75,6 +76,7 @@
 
 	// ✅ Lifecycle: fetch cart on mount
 	onMount(() => {
+		// if (deliveryOption === 'home') calculateFee('7.4898,9.0635');
 		const rid = get(restaurantId);
 		if (rid) fetchCart(rid);
 		document.body.classList.add('overflow-hidden');
@@ -119,6 +121,114 @@
 		}
 	}
 
+	let deliveryFee = $state(0);
+
+	let deliveryTotal: any = $state('');
+
+	// async function calculateFee(userCoords: string) {
+	// 	const restaurantCoords = '7.4986,9.0579'; // fixed coords
+	// 	const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjcyOGMxN2U1N2RlNDQ2ZGZiZDMwYzExODY2MTg0NjcwIiwiaCI6Im11cm11cjY0In0=&start=${restaurantCoords}&end=${userCoords}`;
+
+	// 	try {
+	// 		const res = await fetch(url);
+	// 		if (!res.ok) throw new Error('ORS request failed');
+	// 		const data = await res.json();
+
+	// 		const distanceMeters = data.features[0].properties.summary.distance;
+	// 		const distanceKm = distanceMeters / 1000;
+
+	// 		const feePerKm = 100; // Naira per KM
+	// 		// const deliveryFee = Math.ceil(distanceKm * feePerKm);
+	// 		deliveryFee = Math.ceil(distanceKm * feePerKm);
+
+	// 		console.log(`Distance: ${distanceKm.toFixed(2)} km`);
+	// 		console.log(`Delivery Fee Set: ₦${deliveryFee}`);
+
+	// 		console.log(`Distance: ${distanceKm} km`);
+	// 		console.log(`Delivery Fee: ₦${deliveryFee}`);
+	// 		deliveryTotal = $total + deliveryFee;
+	// 		console.log('Total:', get(total));
+
+	// 		console.log('Delivery Total:', deliveryTotal);
+	// 		// Update UI with delivery fee here
+	// 	} catch (err) {
+	// 		console.error('Could not fetch distance', err);
+	// 	}
+	// }
+
+	let distance = 0;
+	let matchedAddress = '';
+	let loadingDelivery = $state(false);
+	let addressAlert = $state('');
+
+	async function getDeliveryFee(address: string) {
+		loadingDelivery = true;
+		console.log('📦 Sending address to backend:', address);
+
+		try {
+			const res = await fetch('/api/delivery-fee', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ address })
+			});
+
+			const data = await res.json();
+
+			if (!res.ok || data.error) {
+				addressAlert = data.error?.message || 'Unable to calculate delivery fee.';
+				console.error('❌ Delivery fee error:', data.error || res.statusText);
+				deliveryFee = 0;
+				deliveryTotal = 0;
+				return;
+			}
+
+			// ✅ Update local/state values
+			deliveryFee = data.fee;
+			distance = data.distance;
+			matchedAddress = data.addressMatched;
+
+			// Add to current cart total
+			deliveryTotal = get(total) + deliveryFee;
+
+			// 🔍 Logs
+			console.log(`📍 Address matched: ${matchedAddress}`);
+			console.log(`🛣️ Distance: ${distance} km`);
+			console.log(`💸 Delivery Fee: ₦${deliveryFee}`);
+			console.log(`🧾 Total with Delivery: ₦${deliveryTotal}`);
+			loadingDelivery = false;
+
+			// 👉 Here you can:
+			// - Show in the UI
+			// - Save to checkout state
+			// - Trigger animation or update
+		} catch (err) {
+			console.error('🚨 Failed to get delivery fee:', err);
+			loadingDelivery = false;
+			addressAlert = 'Something went wrong while calculating delivery fee.';
+			setTimeout(() => {
+				addressAlert = '';
+			}, 5000);
+		} finally {
+			loadingDelivery = false; // ✅ always stop loading
+			if (addressAlert) {
+				setTimeout(() => {
+					addressAlert = '';
+				}, 5000);
+			}
+		}
+	}
+
+	let debounceTimeout: any;
+
+	$effect(() => {
+		if (deliveryOption === 'home' && homeAddress.length > 5) {
+			clearTimeout(debounceTimeout);
+			debounceTimeout = setTimeout(() => {
+				getDeliveryFee(homeAddress);
+			}, 1000); // wait 1 second
+		}
+	});
+
 	// ====================
 	// Order + Paystack
 	// ====================
@@ -155,12 +265,18 @@
 	function payWithPaystack(e: Event) {
 		e.preventDefault();
 
+		if (deliveryOption == 'home' && deliveryFee == 0) {
+			addressAlert = 'Please input a valid address so your delivery can be calculated properly.';
+			return;
+		}
+
 		if (!isValidPhone(prefix, phone)) {
 			alert('Please enter a valid Nigerian phone number.');
 			return;
 		}
 
-		amount = deliveryOption === 'home' ? get(total) + 2000 : get(total);
+		// amount = deliveryOption === 'home' ? get(total) + 2000 : get(total);
+		amount = deliveryOption === 'home' ? get(total) + deliveryFee : get(total);
 
 		let handler = PaystackPop.setup({
 			key: $paystackKey,
@@ -181,7 +297,8 @@
 
 				const orderData = {
 					reference: response.reference,
-					totalAmount: get(total),
+					deliveryFee,
+					totalAmount: deliveryTotal || get(total),
 					type: deliveryOption,
 					user: get(user).id,
 					dishes: orderedDishes,
@@ -199,7 +316,8 @@
 					orderData.tableNumber = tableNumber;
 				} else if (deliveryOption === 'home') {
 					orderData.homeAddress = homeAddress;
-					orderData.orderTotal = get(total) + 2000;
+					// orderData.orderTotal = get(total) + 2000;
+					orderData.orderTotal = get(total) + deliveryFee;
 				} else if (deliveryOption === 'restaurantPickup') {
 					orderData.pickupTime = pickupTime;
 				}
@@ -238,6 +356,30 @@
 		if (drawerToggle instanceof HTMLInputElement) drawerToggle.checked = true;
 	}
 </script>
+
+{#if addressAlert}
+	<div
+		role="alert"
+		class="alert alert-error fixed top-1/2 z-20 mb-4 ml-2"
+		in:fly={{ y: -20, duration: 300 }}
+		out:fly={{ y: -20, duration: 300 }}
+	>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			class="h-6 w-6 shrink-0 stroke-current"
+			fill="none"
+			viewBox="0 0 24 24"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M12 9v2m0 4h.01M12 5a7 7 0 100 14 7 7 0 000-14z"
+			/>
+		</svg>
+		{addressAlert}
+	</div>
+{/if}
 
 <main>
 	{#if $isLoggedIn}
@@ -411,7 +553,7 @@
 								<p class="text-xl font-bold">Total:</p>
 								<p class="text-xl font-bold">₦{$total.toLocaleString()}</p>
 							</div>
-							{#if deliveryOption == 'home'}
+							<!-- {#if deliveryOption == 'home'}
 								<div class="flex w-full justify-between">
 									<p class="text-start text-lg font-bold text-green-500">DELIVERY FEE:</p>
 									<p class="text-start text-lg font-bold text-green-500">₦2,000</p>
@@ -421,6 +563,56 @@
 									<p class="text-start text-xl font-bold">Order Total</p>
 									<p class="text-start text-lg font-bold">
 										₦{($total + 2000).toLocaleString()}
+									</p>
+								</div>
+							{/if} -->
+
+							{#if deliveryOption == 'home'}
+								<div class="flex w-full justify-between">
+									<p class="text-start text-lg font-bold text-green-500">DELIVERY FEE:</p>
+									<p class="text-start text-lg font-bold text-green-500">
+										<!-- svelte-ignore node_invalid_placement_ssr -->
+										{#if loadingDelivery}
+											<div class="text-secondary">
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													width="28"
+													height="28"
+													viewBox="0 0 24 24"
+													><path
+														fill="none"
+														stroke="currentColor"
+														stroke-dasharray="16"
+														stroke-dashoffset="16"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M12 3c4.97 0 9 4.03 9 9"
+														><animate
+															fill="freeze"
+															attributeName="stroke-dashoffset"
+															dur="0.2s"
+															values="16;0"
+														/><animateTransform
+															attributeName="transform"
+															dur="1.5s"
+															repeatCount="indefinite"
+															type="rotate"
+															values="0 12 12;360 12 12"
+														/></path
+													></svg
+												>
+											</div>
+										{:else}
+											{deliveryFee > 0 ? `₦${deliveryFee.toLocaleString()}` : '...'}
+										{/if}
+									</p>
+								</div>
+
+								<div class="text-secondary flex w-full justify-between">
+									<p class="text-start text-xl font-bold">Order Total</p>
+									<p class="text-start text-lg font-bold">
+										₦{deliveryTotal ? deliveryTotal.toLocaleString() : $total}
 									</p>
 								</div>
 							{/if}
@@ -592,6 +784,17 @@
 												you want your order to be delivered to.</small
 											>
 										</label>
+
+										<button
+											onclick={() => {
+												getDeliveryFee(homeAddress);
+											}}
+											class="bg-secondary btn text-white">Calculate Delivery Fee</button
+										>
+
+										{#if deliveryFee}
+											<p>Delivery Fee: ₦{deliveryFee.toLocaleString()}</p>
+										{/if}
 									{/if}
 								</div>
 
