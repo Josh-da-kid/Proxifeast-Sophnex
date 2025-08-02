@@ -552,7 +552,8 @@
 						<div class="space-y-3 text-right">
 							<h2 class="mt-4 mb-4 text-start text-2xl font-bold">Order Summary</h2>
 							<p class="mt-2 text-center text-gray-600">
-								Restaurant located at UNICAL Main Gate, Etta-agbor, Calabar, Cross River State
+								Our Restaurant is located at UNICAL Main Gate, Etta-agbor, Calabar, Cross River
+								State.
 							</p>
 							<div class="flex w-full justify-between">
 								<p class="text-xl font-bold">Total:</p>
@@ -973,7 +974,7 @@
 				<div class="space-y-3 text-right">
 					<h2 class="mt-4 mb-4 text-start text-2xl font-bold">Order Summary</h2>
 					<p class="mt-2 text-center text-gray-600">
-						Restaurant located at UNICAL Main Gate, Etta-agbor, Calabar, Cross River State
+						Our Restaurant is located at UNICAL Main Gate, Etta-agbor, Calabar, Cross River State.
 					</p>
 					<div class="flex w-full justify-between">
 						<p class="text-xl font-bold">Total:</p>
