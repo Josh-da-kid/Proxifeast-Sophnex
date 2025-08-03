@@ -261,10 +261,21 @@
 	let modalDefault: any | null = $state(null);
 	let modalPromo: any | null = $state(null);
 	let modalAvailability: string | null = $state(null);
-	// let modalDescription: string | null = $state(null);
+
 	const restaurantDescription = get(page).data.restaurant.description;
 	const restaurantMotto = get(page).data.restaurant.motto;
 	const restaurantImage = get(page).data.restaurant.logoUrl;
+
+	function closeModal() {
+		// console.log('Closing modal...');
+		modalImage = null;
+		modalDish = null;
+		modalPrice = null;
+		modalDescription = null;
+		modalDefault = null;
+		modalPromo = null;
+		modalAvailability = null;
+	}
 </script>
 
 <!-- Cart FAB Icon -->
@@ -471,8 +482,10 @@
 							>
 								<div class="w-fitt relative w-[400px] max-w-2xl rounded-xl bg-white p-4">
 									<button
-										class="btn btn-lg btn-circle bg-secondary absolute top-2 right-2 text-white"
-										onclick={() => (modalImage = null)}>✕</button
+										class="btn btn-lg btn-circle bg-secondary absolute top-2 right-2 text-2xl text-white"
+										onclick={() => {
+											closeModal();
+										}}>✕</button
 									>
 
 									<div class="flex flex-col items-center">
