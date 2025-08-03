@@ -255,6 +255,13 @@
 	}
 
 	let modalImage: string | null = $state(null);
+	let modalDish: string | null = $state(null);
+	let modalPrice: string | null = $state(null);
+	let modalDescription: string | null = $state(null);
+	let modalDefault: any | null = $state(null);
+	let modalPromo: any | null = $state(null);
+	let modalAvailability: string | null = $state(null);
+	// let modalDescription: string | null = $state(null);
 	const restaurantDescription = get(page).data.restaurant.description;
 	const restaurantMotto = get(page).data.restaurant.motto;
 	const restaurantImage = get(page).data.restaurant.logoUrl;
@@ -460,24 +467,68 @@
 						<!-- Modal -->
 						{#if modalImage}
 							<div
-								class="bg-opacity-60 fixed inset-0 z-50 flex items-center justify-center bg-black"
+								class="bg-opacity-60 fixed inset-0 z-50 flex items-center justify-center bg-black px-6 py-44"
 							>
-								<div class="relative w-full max-w-2xl rounded-xl bg-white p-4">
+								<div class="w-fitt relative w-[400px] max-w-2xl rounded-xl bg-white p-4">
 									<button
 										class="btn btn-lg btn-circle bg-secondary absolute top-2 right-2 text-white"
 										onclick={() => (modalImage = null)}>✕</button
 									>
-									<img
-										src={modalImage}
-										alt="Dish"
-										class="h-auto max-h-[80vh] w-full rounded-lg object-contain"
-									/>
+
+									<div class="flex flex-col items-center">
+										<img
+											src={modalImage}
+											alt="Dish"
+											class="h-auto max-h-[80vh] w-full rounded-lg object-contain"
+										/>
+
+										<div class="mt-4 w-full">
+											<h3 class="font-bold">{modalDish}</h3>
+
+											<div class="mt-2 flex items-baseline gap-2">
+												{#if modalPromo && modalPromo < modalDefault}
+													<div class="flex gap-2">
+														<p class="text-secondary font-bold">
+															₦{Number(modalPromo).toLocaleString()}
+														</p>
+														<p class="text-gray-400 line-through">
+															₦{Number(modalPromo).toLocaleString()}
+														</p>
+													</div>
+													<span
+														class="badge badge-accent mt-1"
+														class:bg-gray-100={modalAvailability !== 'Available'}
+														class:border-gray-200={modalAvailability !== 'Available'}
+													>
+														-{Math.round((1 - modalPromo / modalDefault) * 100)}% OFF
+													</span>
+												{:else}
+													<p class="text-secondary font-bold">
+														₦{Number(modalDefault).toLocaleString()}
+													</p>
+												{/if}
+											</div>
+
+											<p class="mt-2">{modalDescription}</p>
+										</div>
+									</div>
 								</div>
 							</div>
 						{/if}
 						<!-- Dish Figure -->
 						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-						<figure onclick={() => (modalImage = dish.image)} class="cursor-pointer">
+						<figure
+							onclick={() => (
+								(modalImage = dish.image),
+								(modalDish = dish.name),
+								(modalPrice = dish.amount),
+								(modalDescription = dish.description),
+								(modalPromo = dish.promoAmount),
+								(modalDefault = dish.defaultAmount),
+								(modalAvailability = dish.availability)
+							)}
+							class="cursor-pointer"
+						>
 							<img
 								src={dish.image}
 								alt={dish.name}
