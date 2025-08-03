@@ -327,9 +327,9 @@
 										0
 									).toLocaleString()}
 								</p>
-								{#if order.deliveryType === 'home'}
+								<!-- {#if order.deliveryType === 'home'}
 									<p><strong>Delivery Fee:</strong> ₦{order.deliveryFee}</p>
-								{/if}
+								{/if} -->
 								<p><strong>Quantity:</strong> {order.quantity}</p>
 								<!-- <p><strong>Delivery Type:</strong> {order.deliveryType}</p> -->
 								{#if order.deliveryType === 'restaurantPickup'}

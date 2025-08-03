@@ -223,9 +223,9 @@
 										0
 									).toLocaleString()}
 								</p>
-								{#if order.deliveryType === 'home'}
+								<!-- {#if order.deliveryType === 'home'}
 									<p><strong>Delivery Fee:</strong> ₦{order.deliveryFee}</p>
-								{/if}
+								{/if} -->
 								<p><strong>Quantity:</strong> {order.quantity}</p>
 								<!-- <p><strong>Delivery Type:</strong> {order.deliveryType}</p> -->
 								{#if order.deliveryType === 'tableService'}
@@ -267,6 +267,12 @@
 									{/each}
 								</ul>
 							</div>
+
+							{#if order.status != 'Ready'}
+								<p class="text-xs text-gray-400">
+									You will be contacted or receive an Email when your order is ready.
+								</p>
+							{/if}
 
 							<p class="text-xs text-gray-400">
 								Ordered on: {new Date(order.created).toLocaleString()}

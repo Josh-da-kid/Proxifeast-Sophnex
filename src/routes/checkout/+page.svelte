@@ -121,9 +121,9 @@
 		}
 	}
 
-	let deliveryFee = $state(0);
+	// let deliveryFee = $state(0);
 
-	let deliveryTotal: any = $state('');
+	// let deliveryTotal: any = $state('');
 
 	// async function calculateFee(userCoords: string) {
 	// 	const restaurantCoords = '7.4986,9.0579'; // fixed coords
@@ -158,78 +158,78 @@
 
 	let distance = 0;
 	let matchedAddress = '';
-	let loadingDelivery = $state(false);
+	// let loadingDelivery = $state(false);
 	let addressAlert = $state('');
 
-	async function getDeliveryFee(address: string) {
-		loadingDelivery = true;
-		console.log('📦 Sending address to backend:', address);
+	// async function getDeliveryFee(address: string) {
+	// 	loadingDelivery = true;
+	// 	console.log('📦 Sending address to backend:', address);
 
-		try {
-			const res = await fetch('/api/delivery-fee', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ address })
-			});
+	// 	try {
+	// 		const res = await fetch('/api/delivery-fee', {
+	// 			method: 'POST',
+	// 			headers: { 'Content-Type': 'application/json' },
+	// 			body: JSON.stringify({ address })
+	// 		});
 
-			const data = await res.json();
+	// 		const data = await res.json();
 
-			if (!res.ok || data.error) {
-				addressAlert =
-					data.error?.message ||
-					'Unable to calculate delivery fee. Probably an invalid address was received.';
-				console.error('❌ Delivery fee error:', data.error || res.statusText);
-				deliveryFee = 0;
-				deliveryTotal = 0;
-				return;
-			}
+	// 		if (!res.ok || data.error) {
+	// 			addressAlert =
+	// 				data.error?.message ||
+	// 				'Unable to calculate delivery fee. Probably an invalid address was received.';
+	// 			console.error('❌ Delivery fee error:', data.error || res.statusText);
+	// 			deliveryFee = 0;
+	// 			deliveryTotal = 0;
+	// 			return;
+	// 		}
 
-			// ✅ Update local/state values
-			deliveryFee = data.fee;
-			distance = data.distance;
-			matchedAddress = data.addressMatched;
+	// 		// ✅ Update local/state values
+	// 		deliveryFee = data.fee;
+	// 		distance = data.distance;
+	// 		matchedAddress = data.addressMatched;
 
-			// Add to current cart total
-			deliveryTotal = get(total) + deliveryFee;
+	// 		// Add to current cart total
+	// 		deliveryTotal = get(total) + deliveryFee;
 
-			// 🔍 Logs
-			console.log(`📍 Address matched: ${matchedAddress}`);
-			console.log(`🛣️ Distance: ${distance} km`);
-			console.log(`💸 Delivery Fee: ₦${deliveryFee}`);
-			console.log(`🧾 Total with Delivery: ₦${deliveryTotal}`);
-			loadingDelivery = false;
+	// 		// 🔍 Logs
+	// 		console.log(`📍 Address matched: ${matchedAddress}`);
+	// 		console.log(`🛣️ Distance: ${distance} km`);
+	// 		console.log(`💸 Delivery Fee: ₦${deliveryFee}`);
+	// 		console.log(`🧾 Total with Delivery: ₦${deliveryTotal}`);
+	// 		loadingDelivery = false;
 
-			// 👉 Here you can:
-			// - Show in the UI
-			// - Save to checkout state
-			// - Trigger animation or update
-		} catch (err) {
-			console.error('🚨 Failed to get delivery fee:', err);
-			loadingDelivery = false;
-			addressAlert = 'Something went wrong while calculating delivery fee.';
-			setTimeout(() => {
-				addressAlert = '';
-			}, 5000);
-		} finally {
-			loadingDelivery = false; // ✅ always stop loading
-			if (addressAlert) {
-				setTimeout(() => {
-					addressAlert = '';
-				}, 5000);
-			}
-		}
-	}
+	// 		// 👉 Here you can:
+	// 		// - Show in the UI
+	// 		// - Save to checkout state
+	// 		// - Trigger animation or update
+	// 	} catch (err) {
+	// 		console.error('🚨 Failed to get delivery fee:', err);
+	// 		loadingDelivery = false;
+	// 		addressAlert = 'Something went wrong while calculating delivery fee.';
+	// 		setTimeout(() => {
+	// 			addressAlert = '';
+	// 		}, 5000);
+	// 	} finally {
+	// 		loadingDelivery = false; // ✅ always stop loading
+	// 		if (addressAlert) {
+	// 			setTimeout(() => {
+	// 				addressAlert = '';
+	// 			}, 5000);
+	// 		}
+	// 	}
+	// }
 
 	let debounceTimeout: any;
 
-	$effect(() => {
-		if (deliveryOption === 'home' && homeAddress.length > 5) {
-			clearTimeout(debounceTimeout);
-			debounceTimeout = setTimeout(() => {
-				getDeliveryFee(homeAddress);
-			}, 1000); // wait 1 second
-		}
-	});
+	// $effect(() => {
+	// 	if (deliveryOption === 'home' && homeAddress.length > 5) {
+	// 		clearTimeout(debounceTimeout);
+	// 		debounceTimeout = setTimeout(() => {
+	// 			getDeliveryFee(homeAddress);
+	// 		}, 1000); // wait 1 second
+	// 	}
+	// });
 
 	// ====================
 	// Order + Paystack
@@ -267,18 +267,13 @@
 	function payWithPaystack(e: Event) {
 		e.preventDefault();
 
-		if (deliveryOption == 'home' && deliveryFee == 0) {
-			addressAlert = 'Please input a valid address so your delivery can be calculated properly.';
-			return;
-		}
-
 		if (!isValidPhone(prefix, phone)) {
 			alert('Please enter a valid Nigerian phone number.');
 			return;
 		}
 
 		// amount = deliveryOption === 'home' ? get(total) + 2000 : get(total);
-		amount = deliveryOption === 'home' ? get(total) + deliveryFee : get(total);
+		amount = get(total);
 
 		let handler = PaystackPop.setup({
 			key: $paystackKey,
@@ -299,8 +294,7 @@
 
 				const orderData = {
 					reference: response.reference,
-					deliveryFee,
-					totalAmount: deliveryTotal || get(total),
+					totalAmount: get(total),
 					type: deliveryOption,
 					user: get(user).id,
 					dishes: orderedDishes,
@@ -310,7 +304,7 @@
 					formattedPhone,
 					tableNumber,
 					homeAddress,
-					orderTotal,
+					// orderTotal,
 					pickupTime
 				};
 
@@ -319,7 +313,7 @@
 				} else if (deliveryOption === 'home') {
 					orderData.homeAddress = homeAddress;
 					// orderData.orderTotal = get(total) + 2000;
-					orderData.orderTotal = get(total) + deliveryFee;
+					// orderData.orderTotal = get(total) + deliveryFee;
 				} else if (deliveryOption === 'restaurantPickup') {
 					orderData.pickupTime = pickupTime;
 				}
@@ -551,77 +545,11 @@
 					>
 						<div class="space-y-3 text-right">
 							<h2 class="mt-4 mb-4 text-start text-2xl font-bold">Order Summary</h2>
-							<p class="mt-2 text-center text-gray-600">
-								Our Restaurant is located at UNICAL Main Gate, Etta-agbor, Calabar, Cross River
-								State.
-							</p>
+
 							<div class="flex w-full justify-between">
 								<p class="text-xl font-bold">Total:</p>
 								<p class="text-xl font-bold">₦{$total.toLocaleString()}</p>
 							</div>
-							<!-- {#if deliveryOption == 'home'}
-								<div class="flex w-full justify-between">
-									<p class="text-start text-lg font-bold text-green-500">DELIVERY FEE:</p>
-									<p class="text-start text-lg font-bold text-green-500">₦2,000</p>
-								</div>
-
-								<div class="text-secondary flex w-full justify-between">
-									<p class="text-start text-xl font-bold">Order Total</p>
-									<p class="text-start text-lg font-bold">
-										₦{($total + 2000).toLocaleString()}
-									</p>
-								</div>
-							{/if} -->
-
-							{#if deliveryOption == 'home'}
-								<div class="flex w-full justify-between">
-									<p class="text-start text-lg font-bold text-green-500">DELIVERY FEE:</p>
-									<p class="text-start text-lg font-bold text-green-500">
-										<!-- svelte-ignore node_invalid_placement_ssr -->
-										{#if loadingDelivery}
-											<div class="text-secondary">
-												<svg
-													xmlns="http://www.w3.org/2000/svg"
-													width="28"
-													height="28"
-													viewBox="0 0 24 24"
-													><path
-														fill="none"
-														stroke="currentColor"
-														stroke-dasharray="16"
-														stroke-dashoffset="16"
-														stroke-linecap="round"
-														stroke-linejoin="round"
-														stroke-width="2"
-														d="M12 3c4.97 0 9 4.03 9 9"
-														><animate
-															fill="freeze"
-															attributeName="stroke-dashoffset"
-															dur="0.2s"
-															values="16;0"
-														/><animateTransform
-															attributeName="transform"
-															dur="1.5s"
-															repeatCount="indefinite"
-															type="rotate"
-															values="0 12 12;360 12 12"
-														/></path
-													></svg
-												>
-											</div>
-										{:else}
-											{deliveryFee > 0 ? `₦${deliveryFee.toLocaleString()}` : '...'}
-										{/if}
-									</p>
-								</div>
-
-								<div class="text-secondary flex w-full justify-between">
-									<p class="text-start text-xl font-bold">Order Total</p>
-									<p class="text-start text-lg font-bold">
-										₦{deliveryTotal ? deliveryTotal.toLocaleString() : $total}
-									</p>
-								</div>
-							{/if}
 
 							<form onsubmit={payWithPaystack} class="space-y-4">
 								<p class="hidden">{$user.email}</p>
@@ -790,17 +718,6 @@
 												you want your order to be delivered to.</small
 											>
 										</label>
-
-										<button
-											onclick={() => {
-												getDeliveryFee(homeAddress);
-											}}
-											class="bg-secondary btn text-white">Calculate Delivery Fee</button
-										>
-
-										{#if deliveryFee}
-											<p>Delivery Fee: ₦{deliveryFee.toLocaleString()}</p>
-										{/if}
 									{/if}
 								</div>
 
@@ -968,81 +885,15 @@
 					><span class="text-secondary">&lt&lt</span> Back</button
 				>
 			</div>
-			<!-- <h2 class="mb-2 text-xl font-bold">Create New Dish</h2> -->
 
 			<div class=" ">
 				<div class="space-y-3 text-right">
 					<h2 class="mt-4 mb-4 text-start text-2xl font-bold">Order Summary</h2>
-					<p class="mt-2 text-center text-gray-600">
-						Our Restaurant is located at UNICAL Main Gate, Etta-agbor, Calabar, Cross River State.
-					</p>
+
 					<div class="flex w-full justify-between">
 						<p class="text-xl font-bold">Total:</p>
 						<p class="text-xl font-bold">₦{$total.toLocaleString()}</p>
 					</div>
-					<!-- {#if deliveryOption == 'home'}
-						<div class="flex w-full justify-between">
-							<p class="text-start text-lg font-bold text-green-500">DELIVERY FEE:</p>
-							<p class="text-start text-lg font-bold text-green-500">₦2,000</p>
-						</div>
-
-						<div class="text-secondary flex w-full justify-between">
-							<p class="text-start text-xl font-bold">Order Total</p>
-							<p class="text-start text-lg font-bold">
-								₦{($total + 2000).toLocaleString()}
-							</p>
-						</div>
-					{/if} -->
-
-					{#if deliveryOption == 'home'}
-						<div class="flex w-full justify-between">
-							<p class="text-start text-lg font-bold text-green-500">DELIVERY FEE:</p>
-							<p class="text-start text-lg font-bold text-green-500">
-								<!-- svelte-ignore node_invalid_placement_ssr -->
-								{#if loadingDelivery}
-									<div class="text-secondary">
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											width="28"
-											height="28"
-											viewBox="0 0 24 24"
-											><path
-												fill="none"
-												stroke="currentColor"
-												stroke-dasharray="16"
-												stroke-dashoffset="16"
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M12 3c4.97 0 9 4.03 9 9"
-												><animate
-													fill="freeze"
-													attributeName="stroke-dashoffset"
-													dur="0.2s"
-													values="16;0"
-												/><animateTransform
-													attributeName="transform"
-													dur="1.5s"
-													repeatCount="indefinite"
-													type="rotate"
-													values="0 12 12;360 12 12"
-												/></path
-											></svg
-										>
-									</div>
-								{:else}
-									{deliveryFee > 0 ? `₦${deliveryFee.toLocaleString()}` : '...'}
-								{/if}
-							</p>
-						</div>
-
-						<div class="text-secondary flex w-full justify-between">
-							<p class="text-start text-xl font-bold">Order Total</p>
-							<p class="text-start text-lg font-bold">
-								₦{deliveryTotal ? deliveryTotal.toLocaleString() : $total}
-							</p>
-						</div>
-					{/if}
 
 					<form onsubmit={payWithPaystack} class="space-y-4">
 						<div class="space-y-2 space-x-4 text-start">
@@ -1208,17 +1059,6 @@
 										want your order to be delivered to.</small
 									>
 								</label>
-
-								<button
-									onclick={() => {
-										getDeliveryFee(homeAddress);
-									}}
-									class="bg-secondary btn text-white">Calculate Delivery Fee</button
-								>
-
-								{#if deliveryFee}
-									<p>Delivery Fee: ₦{deliveryFee.toLocaleString()}</p>
-								{/if}
 							{/if}
 						</div>
 

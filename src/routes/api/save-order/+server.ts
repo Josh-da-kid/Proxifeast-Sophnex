@@ -34,12 +34,12 @@ export const POST: RequestHandler = async ({ request }) => {
 					quantity: dish.quantity
 							})),
 			totalAmount: data.totalAmount,
-			deliveryFee: data.deliveryFee,
+			// deliveryFee: data.deliveryFee,
 			reference: data.reference,
             tableNumber: data.tableNumber || '',
 			homeAddress: data.homeAddress || '',
 			pickupTime: data.pickupTime || '',
-            orderTotal: data.orderTotal || data.totalAmount,
+            // orderTotal: data.orderTotal || data.totalAmount,
 			restaurantId: restaurant.id
 		});
 
