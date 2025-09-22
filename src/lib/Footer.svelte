@@ -14,7 +14,7 @@
 			></path>
 		</svg>
 		<p>
-			&copy; 2025 Chef Zhanga Foods. All rights reserved.
+			&copy; 2025 Onyi's Kitchen. All rights reserved.
 			<br />
 			Providing reliable dishes since 1992
 		</p>
