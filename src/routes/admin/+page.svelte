@@ -118,7 +118,7 @@
 	{user?.name || ''}
 </h3>
 <div class="mt-8 grid gap-6 px-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-	<a
+	<!-- <a
 		href="/admin"
 		class="card bg-base-100 shadow-xl transition hover:-translate-y-1 hover:shadow-2xl"
 	>
@@ -126,7 +126,7 @@
 			<h2 class="card-title">Dashboard</h2>
 			<p>Overview of your restaurant activity</p>
 		</div>
-	</a>
+	</a> -->
 
 	<a
 		href="/admin/admin-menu"
