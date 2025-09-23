@@ -694,7 +694,7 @@
 					<h2 class="text-xl font-bold">Your Cart</h2>
 
 					<!-- cart total -->
-					<div class="z-100 mx-auto rounded-lg bg-lime-200 p-4">
+					<div class="z-100 mx-auto rounded-lg p-4">
 						<p class="text-lg font-semibold">Total: ₦{$total.toLocaleString()}</p>
 						<div class="mt-2 flex gap-2">
 							<button
