@@ -102,12 +102,12 @@
 					? 'bg-white font-bold text-blue-700'
 					: ''}">Order History</a
 			>
-			<!-- <a
+			<a
 				href="/admin/admin-reservation"
 				class="btn btn-ghost {$page.url.pathname === '/admin/admin-reservation'
 					? 'bg-white font-bold text-blue-700'
 					: ''}">Reservations</a
-			> -->
+			>
 
 			<div>
 				{#if $user}
@@ -173,13 +173,13 @@
 			{/each}
 		</div>
 
-		<!-- <div>
+		<div>
 			<a href="/reservation">
 				<button class="btn btn-ghost bg-secondary ml-2 hidden text-lg lg:flex">
 					Book Reservation
 				</button>
 			</a>
-		</div> -->
+		</div>
 
 		<div>
 			{#if $user}
