@@ -42,14 +42,16 @@
 	});
 
 	const restaurantName = $page.data.restaurant.name;
+	const restaurantLogo = $page.data.restaurant.logoUrl;
 </script>
 
 <svelte:head>
 	<title>{restaurantName} – Online Food Ordering System</title>
 	<meta
 		name="description"
-		content="Proxifeast is a restaurant online food ordering system. It is an online menu where users scan a QR code from the restaurant tables and this takes them directly to the online menu where they can order and checkout their orders easily without stress."
+		content="{restaurantName} is a restaurant online food ordering system. It is an online menu where users scan a QR code from the restaurant tables and order easily."
 	/>
+	<link rel="icon" href={restaurantLogo} type="image/png" />
 </svelte:head>
 
 {#if loading}
