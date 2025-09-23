@@ -42,7 +42,7 @@
 	});
 
 	const restaurantName = $page.data.restaurant.name;
-	const restaurantLogo = $page.data.restaurant.logoUrl;
+	const restaurantLogo = $page.data.restaurant.faviconUrl;
 </script>
 
 <svelte:head>
