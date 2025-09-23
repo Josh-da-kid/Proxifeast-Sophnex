@@ -77,7 +77,7 @@
 	<!-- Add Dish -->
 	<label for="my-drawer-5">
 		<div
-			class="tooltip indicator bg-secondary fixed top-48 right-4 z-10 cursor-pointer rounded-full p-4 text-white shadow-xl transition-transform duration-300 hover:scale-105"
+			class="tooltip indicator bg-secondary fixed right-4 bottom-22 z-10 cursor-pointer rounded-full p-4 text-white shadow-xl transition-transform duration-300 hover:scale-105"
 			data-tip="Add Dish"
 		>
 			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"

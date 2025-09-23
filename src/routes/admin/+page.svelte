@@ -117,23 +117,54 @@
 >
 	{user?.name || ''}
 </h3>
-<div class="mt-4 flex justify-center">
-	<!-- Sidebar -->
-	<!-- <aside class="w-64 p-4"> -->
-	<nav class="grid grid-cols-2 space-y-2 space-x-2 px-4 sm:grid-cols-3 md:flex">
-		<a href="/admin" class="btn hover:bg-primary hover:text-white hover:underline">Dashboard</a>
-		<a href="/admin/admin-menu" class="btn hover:bg-primary hover:text-white hover:underline"
-			>Menu</a
-		>
-		<a href="/admin/admin-order" class="btn hover:bg-primary hover:text-white hover:underline"
-			>Pending Orders</a
-		>
-		<a href="/admin/admin-history" class="btn hover:bg-primary hover:text-white hover:underline"
-			>Order History</a
-		>
-		<a href="/admin/admin-reservation" class="btn hover:bg-primary hover:text-white hover:underline"
-			>Reservations</a
-		>
-	</nav>
-	<!-- </aside> -->
+<div class="mt-8 grid gap-6 px-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+	<a
+		href="/admin"
+		class="card bg-base-100 shadow-xl transition hover:-translate-y-1 hover:shadow-2xl"
+	>
+		<div class="card-body items-center text-center">
+			<h2 class="card-title">Dashboard</h2>
+			<p>Overview of your restaurant activity</p>
+		</div>
+	</a>
+
+	<a
+		href="/admin/admin-menu"
+		class="card bg-base-100 shadow-xl transition hover:-translate-y-1 hover:shadow-2xl"
+	>
+		<div class="card-body items-center text-center">
+			<h2 class="card-title">Menu</h2>
+			<p>Manage your dishes and categories</p>
+		</div>
+	</a>
+
+	<a
+		href="/admin/admin-order"
+		class="card bg-base-100 shadow-xl transition hover:-translate-y-1 hover:shadow-2xl"
+	>
+		<div class="card-body items-center text-center">
+			<h2 class="card-title">Pending Orders</h2>
+			<p>View and process new orders</p>
+		</div>
+	</a>
+
+	<a
+		href="/admin/admin-history"
+		class="card bg-base-100 shadow-xl transition hover:-translate-y-1 hover:shadow-2xl"
+	>
+		<div class="card-body items-center text-center">
+			<h2 class="card-title">Order History</h2>
+			<p>Track completed orders</p>
+		</div>
+	</a>
+
+	<a
+		href="/admin/admin-reservation"
+		class="card bg-base-100 shadow-xl transition hover:-translate-y-1 hover:shadow-2xl"
+	>
+		<div class="card-body items-center text-center">
+			<h2 class="card-title">Reservations</h2>
+			<p>Manage customer reservations</p>
+		</div>
+	</a>
 </div>
