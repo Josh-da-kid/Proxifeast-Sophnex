@@ -281,7 +281,7 @@
 <!-- Cart FAB Icon -->
 <label for="my-drawer-5">
 	<div
-		class="tooltip indicator bg-secondary fixed top-48 right-4 z-10 cursor-pointer rounded-full p-4 text-white shadow-xl transition-transform duration-300 hover:scale-105"
+		class="tooltip indicator bg-secondary fixed right-4 bottom-22 z-10 cursor-pointer rounded-full p-4 text-white shadow-xl transition-transform duration-300 hover:scale-105"
 		data-tip="view cart"
 	>
 		<span class="indicator-item indicator-start badge badge-sm bg-white font-bold text-black">
@@ -631,14 +631,7 @@
 											width="28"
 											height="28"
 											viewBox="0 0 24 24"
-											><path
-												fill="none"
-												stroke="currentColor"
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M5 4h1.5L9 16m0 0h8m-8 0a2 2 0 1 0 0 4a2 2 0 0 0 0-4m8 0a2 2 0 1 0 0 4a2 2 0 0 0 0-4m-8.5-3h9.25L19 7H7.312"
-											/></svg
+											><path fill="currentColor" d="M19 12.998h-6v6h-2v-6H5v-2h6v-6h2v6h6z" /></svg
 										>
 									</div>
 								</div>
@@ -651,14 +644,14 @@
 	{/each}
 </div>
 
-<label for="my-drawer-5" class="drawer-button cursor-pointer">
+<!-- <label for="my-drawer-5" class="drawer-button cursor-pointer">
 	<div
 		class="bg-secondary text-primary-content fixed right-4 bottom-4 z-5 rounded-lg p-4 shadow-lg"
 	>
 		<p class="text-xl font-semibold">Cart Total: ₦{$total.toLocaleString('en-NG')}</p>
 		<p>Items in cart: {$cart.length}</p>
 	</div>
-</label>
+</label> -->
 
 {#if alert}
 	<div

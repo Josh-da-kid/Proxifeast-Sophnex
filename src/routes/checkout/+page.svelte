@@ -769,7 +769,7 @@
 										</div>
 
 										<small class="mt-1"
-											><span class="font-bold">Note:</span> you'll be contacted with this phone number
+											><span class="font-bold">Note:</span> you'll be contacted via this phone number
 											when your order is ready</small
 										>
 										{#if phone && !isValidPhone(prefix, phone)}

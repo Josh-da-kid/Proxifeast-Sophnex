@@ -14,7 +14,7 @@
 
 	<div class="text-base-content mx-auto max-w-3xl space-y-6 text-lg">
 		<p><strong>Phone:</strong> +234 123 456 7890</p>
-		<p><strong>Address:</strong> 123 Food Street, Calabar</p>
+		<p><strong>Address:</strong> 123 Food Street, Abuja</p>
 
 		<div
 			class="border-base-300 overflow-hidden rounded-lg border shadow-lg"
