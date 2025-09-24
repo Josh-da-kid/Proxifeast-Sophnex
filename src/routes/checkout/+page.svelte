@@ -411,7 +411,7 @@
 				class="max-h-screen w-full justify-between gap-8 overflow-y-auto p-6 px-8 md:mt-8 md:flex"
 			>
 				{#if $cart.length > 0}
-					<div class="scroll-hidden max-h-[80vh] overflow-y-auto pr-2 md:w-[800px]">
+					<div class="scroll-hidden max-h-[70vh] overflow-y-auto pr-2 md:max-h-[80vh] md:w-[800px]">
 						<ul class="space-y-4">
 							{#each $cart as item (item.id)}
 								<li class="items-center justify-between border-b border-gray-200 pb-4 md:flex">
@@ -861,10 +861,10 @@
 
 <!-- mobile -->
 {#if $isLoggedIn && $cart.length > 0}
-	<div class="fixed right-2 bottom-8 md:hidden">
+	<div class="mx-auto mb-3 items-center justify-center text-center md:hidden">
 		<button
 			onclick={openSideBar}
-			class="bg-primary btn animate-bounce rounded-lg p-2 font-bold text-white transition-transform duration-300 hover:scale-105"
+			class="bg-primary btn rounded-lg p-8 font-bold text-white transition-transform duration-300 hover:scale-105"
 		>
 			Checkout
 		</button>
