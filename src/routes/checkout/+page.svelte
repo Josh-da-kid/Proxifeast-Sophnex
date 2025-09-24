@@ -861,7 +861,7 @@
 
 <!-- mobile -->
 {#if $isLoggedIn && $cart.length > 0}
-	<div class="fixed top-1/3 right-2 md:hidden">
+	<div class="fixed right-2 bottom-22 md:hidden">
 		<button
 			onclick={openSideBar}
 			class="bg-primary btn animate-bounce rounded-lg p-2 font-bold text-white transition-transform duration-300 hover:scale-105"
