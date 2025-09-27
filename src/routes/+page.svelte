@@ -276,6 +276,16 @@
 		modalPromo = null;
 		modalAvailability = null;
 	}
+
+	function updateDishQuantity(dishId, change) {
+		// initialize if undefined
+		if (!dishQuantities[dishId]) {
+			dishQuantities[dishId] = 0;
+		}
+
+		// apply change (+1 or -1)
+		dishQuantities[dishId] = Math.max(0, dishQuantities[dishId] + change);
+	}
 </script>
 
 <!-- Cart FAB Icon -->
@@ -564,24 +574,52 @@
 										: 'Set quantity'}
 								>
 									<span class="font-semibold">Quantity </span>
-									<input
+									<!-- <input
 										type="number"
 										bind:value={dishQuantities[dish.id]}
 										class="border-secondary focus:ring-secondary w-[80px] border p-1 focus:ring-2 focus:outline-none disabled:cursor-not-allowed"
 										min="1"
 										disabled={dish.availability !== 'Available'}
-									/>
+									/> -->
+									<div class="mt-2 flex items-center justify-center gap-4">
+										<!-- svelte-ignore a11y_consider_explicit_label -->
+
+										<button
+											onclick={() => updateDishQuantity(dish.id, -1)}
+											disabled={(dishQuantities[dish.id] ?? 0) <= 1}
+											class="cursor-pointer rounded-full bg-blue-500 text-white disabled:cursor-not-allowed disabled:opacity-50"
+										>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="24"
+												height="24"
+												viewBox="0 0 12 12"
+											>
+												<path
+													fill="currentColor"
+													d="M2 6a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 2 6"
+												/>
+											</svg>
+										</button>
+										<span class="text-secondary">{dishQuantities[dish.id]}</span>
+										<!-- svelte-ignore a11y_consider_explicit_label -->
+										<button
+											onclick={() => updateDishQuantity(dish.id, +1)}
+											class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
+											><svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="24"
+												height="24"
+												viewBox="0 0 24 24"
+												><path
+													fill="currentColor"
+													d="M18 13h-5v5c0 .55-.45 1-1 1s-1-.45-1-1v-5H6c-.55 0-1-.45-1-1s.45-1 1-1h5V6c0-.55.45-1 1-1s1 .45 1 1v5h5c.55 0 1 .45 1 1s-.45 1-1 1"
+												/></svg
+											></button
+										>
+									</div>
 								</div>
 							</div>
-							<div>
-								{#if dish.availability === 'Available'}
-									<span class="badge badge-success">Available</span>
-								{:else if dish.availability === 'Unavailable'}
-									<span class="badge badge-error">Unavailable</span>
-								{/if}
-							</div>
-
-							<!-- <p class="text-xs text-gray-500">Debug: qty = {dishQuantities[dish.id]}</p> -->
 
 							<div class="mr-3 flex justify-between">
 								<div class="flexx items-baseline gap-2">
@@ -594,13 +632,24 @@
 												₦{Number(dish.defaultAmount).toLocaleString()}
 											</p>
 										</div>
-										<span
-											class="badge badge-accent mt-1"
-											class:bg-gray-100={dish.availability !== 'Available'}
-											class:border-gray-200={dish.availability !== 'Available'}
+
+										<div
+											class="absolute top-3 right-0 left-0 mx-auto mt-1 flex justify-between px-3"
 										>
-											-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
-										</span>
+											<span
+												class="badge badge-accent"
+												class:bg-gray-100={dish.availability !== 'Available'}
+												class:border-gray-200={dish.availability !== 'Available'}
+											>
+												-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
+											</span>
+
+											{#if dish.availability === 'Available'}
+												<span class="badge badge-success">Available</span>
+											{:else if dish.availability === 'Unavailable'}
+												<span class="badge badge-error">Unavailable</span>
+											{/if}
+										</div>
 									{:else}
 										<p class="text-secondary font-bold">
 											₦{Number(dish.defaultAmount).toLocaleString()}

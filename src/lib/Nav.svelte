@@ -57,7 +57,7 @@
 		<span class="hidden font-bold lg:flex">{$user?.email}</span>
 	</div>
 
-	<div class="flex justify-center lg:hidden">
+	<div class="flex justify-center">
 		<label for="my-drawer" class="btn btn-primary drawer-button flex items-center justify-center">
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
@@ -77,7 +77,7 @@
 	</div>
 
 	{#if $isAdminPage}
-		<nav class="hidden gap-2 lg:flex">
+		<!-- <nav class="hidden gap-2 lg:flex">
 			<a
 				href="/admin"
 				class="btn btn-ghost {$page.url.pathname === '/admin'
@@ -129,7 +129,7 @@
 									<button class="btn btn-primary">Cancel</button>
 								</form>
 								<form action="/admin/admin-logout" method="POST">
-									<!-- if there is a button in form, it will close the modal -->
+									if there is a button in form, it will close the modal
 									<button class="btn btn-secondary">Logout</button>
 								</form>
 							</div>
@@ -143,9 +143,9 @@
 					</a>
 				{/if}
 			</div>
-		</nav>
+		</nav> -->
 	{:else}
-		<div
+		<!-- <div
 			class={`bg-primary flex-none flex-col gap-2 p-6 lg:flex lg:flex-row lg:bg-transparent lg:p-0 ${
 				isMenuOpen ? 'flex' : 'hidden'
 			} lg:flex`}
@@ -201,7 +201,7 @@
 								<button class="btn btn-primary">Cancel</button>
 							</form>
 							<form action="/logout" method="POST">
-								<!-- if there is a button in form, it will close the modal -->
+								if there is a button in form, it will close the modal
 								<button class="btn btn-secondary">Logout</button>
 							</form>
 						</div>
@@ -214,14 +214,14 @@
 					</button>
 				</a>
 			{/if}
-		</div>
+		</div> -->
 	{/if}
 </nav>
 
 {#if $isAdminPage}
-	<div class="relative inset-0 z-100 mx-auto overflow-hidden">
+	<div class="drawer-end drawer relative inset-0 z-100 mx-auto overflow-hidden">
 		<input id="my-drawer" type="checkbox" class="drawer-toggle" />
-		<div class="drawer-side lg:hidden">
+		<div class="drawer-side">
 			<label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 			<ul class="menu min-h-full w-80 bg-blue-800 p-4 text-lg text-white">
 				<li>
@@ -261,7 +261,7 @@
 					>
 				</li>
 
-				<!-- <li>
+				<li>
 					<a
 						onclick={closeSideBar}
 						href="/admin/admin-reservation"
@@ -269,7 +269,7 @@
 							? 'bg-white font-bold text-blue-700'
 							: ''}"><button class="rounded-lg p-2">Reservations</button></a
 					>
-				</li> -->
+				</li>
 				<li>
 					{#if $user}
 						<button
@@ -312,9 +312,9 @@
 		</div>
 	</div>
 {:else}
-	<div class="relative inset-0 z-100 mx-auto overflow-hidden">
+	<div class="drawer drawer-end relative inset-0 z-100 mx-auto overflow-hidden">
 		<input id="my-drawer" type="checkbox" class="drawer-toggle" />
-		<div class="drawer-side lg:hidden">
+		<div class="drawer-side">
 			<label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 			<ul class="menu min-h-full w-80 bg-blue-800 p-4 text-lg text-white">
 				<li>
@@ -372,7 +372,7 @@
 					>
 				</li>
 
-				<!-- <li>
+				<li>
 					<a
 						onclick={closeSideBar}
 						href="/reservation"
@@ -380,7 +380,7 @@
 							? 'bg-white font-bold text-blue-700'
 							: ''}"><button class="rounded-lg p-2">Book Reservation</button></a
 					>
-				</li> -->
+				</li>
 				<li>
 					{#if $user}
 						<button

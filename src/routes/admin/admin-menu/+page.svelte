@@ -359,13 +359,13 @@
 
 						<p class="text-base-content">{dish.description}</p>
 
-						<div class="">
+						<!-- <div class="">
 							{#if dish.availability === 'Available'}
 								<span class="badge badge-success">Available</span>
 							{:else if dish.availability === 'Unavailable'}
 								<span class="badge badge-error">Unavailable</span>
 							{/if}
-						</div>
+						</div> -->
 
 						<div class="mr-3 flex justify-between">
 							<div class="flexx items-baseline gap-2">
@@ -378,9 +378,25 @@
 											₦{Number(dish.defaultAmount).toLocaleString()}
 										</p>
 									</div>
-									<span class="badge badge-accent mt-1">
+									<!-- <span class="badge badge-accent mt-1">
 										-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
-									</span>
+									</span> -->
+
+									<div class="absolute top-3 right-0 left-0 mx-auto mt-1 flex justify-between px-3">
+										<span
+											class="badge badge-accent"
+											class:bg-gray-100={dish.availability !== 'Available'}
+											class:border-gray-200={dish.availability !== 'Available'}
+										>
+											-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
+										</span>
+
+										{#if dish.availability === 'Available'}
+											<span class="badge badge-success">Available</span>
+										{:else if dish.availability === 'Unavailable'}
+											<span class="badge badge-error">Unavailable</span>
+										{/if}
+									</div>
 								{:else}
 									<p class="text-secondary font-bold">
 										₦{Number(dish.defaultAmount).toLocaleString()}
