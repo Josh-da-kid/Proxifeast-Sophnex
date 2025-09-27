@@ -7,8 +7,17 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 	const token = cookies.get('auth_token');
 
 	// 🧠 Get domain from request
+	// const fullHost = request.headers.get('host') || '';
+	// const domainOnly = fullHost.split(':')[0]; // Removes :5173 if present
+
 	const fullHost = request.headers.get('host') || '';
-	const domainOnly = fullHost.split(':')[0]; // Removes :5173 if present
+let domainOnly = fullHost;
+
+if (domainOnly.startsWith('localhost')) {
+	// remove the port only on localhost
+	domainOnly = domainOnly.split(':')[0];
+}
+
 
 	// 🔎 Find the restaurant by domain
 	const restaurants = await pb.collection('restaurants').getFullList({
