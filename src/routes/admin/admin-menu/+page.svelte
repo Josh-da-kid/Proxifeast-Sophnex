@@ -390,7 +390,6 @@
 										>
 											-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
 										</span>
-
 										{#if dish.availability === 'Available'}
 											<span class="badge badge-success">Available</span>
 										{:else if dish.availability === 'Unavailable'}

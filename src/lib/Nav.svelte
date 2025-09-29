@@ -236,6 +236,15 @@
 				<li>
 					<a
 						onclick={closeSideBar}
+						href="/admin/analytics"
+						class="btn-ghost {$page.url.pathname === '/admin/analytics'
+							? 'bg-white font-bold text-blue-700'
+							: ''}"><button class="rounded-lg p-2">Analytics</button></a
+					>
+				</li>
+				<li>
+					<a
+						onclick={closeSideBar}
 						href="/admin/admin-menu"
 						class="btn-ghost {$page.url.pathname === '/admin/admin-menu'
 							? 'bg-white font-bold text-blue-700'
