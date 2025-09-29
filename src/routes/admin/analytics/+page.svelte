@@ -7,8 +7,15 @@
 		customers: 120,
 		orders: 340,
 		revenue: 850000,
-		recurringRate: '35%'
+		recurringRate: '35%',
+		prevRevenue: 700000 // used to calculate growth %
 	};
+
+	// Derived stat → Average Order Value
+	let avgOrderValue = Math.round(stats.revenue / stats.orders);
+
+	// Derived stat → Revenue Growth (Month over Month)
+	let revenueGrowth = (((stats.revenue - stats.prevRevenue) / stats.prevRevenue) * 100).toFixed(1);
 
 	let ordersOverTime = {
 		labels: ['Sept 1', 'Sept 2', 'Sept 3', 'Sept 4'],
@@ -35,11 +42,28 @@
 		]
 	};
 
+	let newVsReturning = {
+		labels: ['New Customers', 'Returning Customers'],
+		datasets: [
+			{
+				data: [78, 42], // mock split
+				backgroundColor: ['#60A5FA', '#F472B6']
+			}
+		]
+	};
+
 	let recurringCustomers = [
 		{ name: 'John Doe', orders: 12, avatar: 'https://i.pravatar.cc/50?img=1' },
 		{ name: 'Mary Jane', orders: 9, avatar: 'https://i.pravatar.cc/50?img=2' },
 		{ name: 'Femi Andrew', orders: 7, avatar: 'https://i.pravatar.cc/50?img=3' },
 		{ name: 'Blessing Okoro', orders: 5, avatar: 'https://i.pravatar.cc/50?img=4' }
+	];
+
+	let topDishes = [
+		{ dish: 'Jollof Rice', sales: 55 },
+		{ dish: 'Grilled Chicken', sales: 42 },
+		{ dish: 'Pounded Yam & Egusi', sales: 33 },
+		{ dish: 'Fried Rice', sales: 28 }
 	];
 
 	let activityFeed = [
@@ -53,10 +77,12 @@
 
 	let lineChart;
 	let pieChart;
+	let newReturningChart;
 
 	onMount(() => {
 		const lineCtx = document.getElementById('ordersChart').getContext('2d');
 		const pieCtx = document.getElementById('breakdownChart').getContext('2d');
+		const newReturningCtx = document.getElementById('newReturningChart').getContext('2d');
 
 		lineChart = new Chart(lineCtx, {
 			type: 'line',
@@ -69,39 +95,61 @@
 			data: orderBreakdown,
 			options: { responsive: true }
 		});
+
+		newReturningChart = new Chart(newReturningCtx, {
+			type: 'doughnut',
+			data: newVsReturning,
+			options: { responsive: true }
+		});
 	});
 </script>
 
 <div class="space-y-8 p-6">
 	<!-- KPI Cards -->
-	<div class="grid grid-cols-1 gap-6 md:grid-cols-4">
-		<div class="card bg-gradient-to-r from-yellow-400 to-yellow-500 text-white shadow-xl">
+	<div class="grid grid-cols-1 gap-6 md:grid-cols-5">
+		<div
+			class="card bg-gradient-to-r from-yellow-400 to-yellow-500 text-white shadow-xl md:col-span-1"
+		>
 			<div class="card-body">
 				<h2 class="card-title">Customers</h2>
 				<p class="text-3xl font-bold">{stats.customers}</p>
 			</div>
 		</div>
-		<div class="card bg-gradient-to-r from-blue-400 to-blue-500 text-white shadow-xl">
+		<div class="card bg-gradient-to-r from-blue-400 to-blue-500 text-white shadow-xl md:col-span-1">
 			<div class="card-body">
 				<h2 class="card-title">Orders</h2>
 				<p class="text-3xl font-bold">{stats.orders}</p>
 			</div>
 		</div>
-		<div class="card bg-gradient-to-r from-green-400 to-green-500 text-white shadow-xl">
+		<div
+			class="card bg-gradient-to-r from-green-400 to-green-500 text-white shadow-xl md:col-span-1"
+		>
 			<div class="card-body">
 				<h2 class="card-title">Revenue</h2>
 				<p class="text-3xl font-bold">₦{stats.revenue.toLocaleString()}</p>
+				<p class="text-sm opacity-80">
+					{revenueGrowth > 0 ? '📈' : '📉'}
+					{revenueGrowth}% vs last month
+				</p>
 			</div>
 		</div>
-		<div class="card bg-gradient-to-r from-pink-400 to-pink-500 text-white shadow-xl">
+		<div class="card bg-gradient-to-r from-pink-400 to-pink-500 text-white shadow-xl md:col-span-1">
 			<div class="card-body">
 				<h2 class="card-title">Returning</h2>
 				<p class="text-3xl font-bold">{stats.recurringRate}</p>
 			</div>
 		</div>
+		<div
+			class="card bg-gradient-to-r from-indigo-400 to-indigo-500 text-white shadow-xl md:col-span-1"
+		>
+			<div class="card-body">
+				<h2 class="card-title">Avg Order</h2>
+				<p class="text-3xl font-bold">₦{avgOrderValue.toLocaleString()}</p>
+			</div>
+		</div>
 	</div>
 
-	<!-- Orders Over Time (Chart) -->
+	<!-- Orders Over Time -->
 	<div class="card bg-base-100 shadow-xl">
 		<div class="card-body">
 			<h2 class="card-title">📈 Orders Over Time</h2>
@@ -109,13 +157,47 @@
 		</div>
 	</div>
 
-	<!-- Order Breakdown (Pie) -->
+	<!-- New vs Returning -->
+	<div class="card bg-base-100 shadow-xl">
+		<div class="card-body">
+			<h2 class="card-title">🆕 vs 🔁 Customers</h2>
+			<div class="mx-auto w-64 md:w-[350px]">
+				<canvas id="newReturningChart"></canvas>
+			</div>
+		</div>
+	</div>
+
+	<!-- Order Breakdown -->
 	<div class="card bg-base-100 shadow-xl">
 		<div class="card-body">
 			<h2 class="card-title">💳 Order Breakdown</h2>
-			<!-- <canvas id="breakdownChart" height="12"></canvas> -->
-			<div class="mx-auto w-64 md:w-[450px]">
+			<div class="mx-auto w-64 md:w-[350px]">
 				<canvas id="breakdownChart"></canvas>
+			</div>
+		</div>
+	</div>
+
+	<!-- Top Selling Dishes -->
+	<div class="card bg-base-100 shadow-xl">
+		<div class="card-body">
+			<h2 class="card-title">🍲 Top Selling Dishes</h2>
+			<div class="overflow-x-auto">
+				<table class="table-zebra table">
+					<thead>
+						<tr>
+							<th>Dish</th>
+							<th>Sales</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each topDishes as d}
+							<tr>
+								<td>{d.dish}</td>
+								<td><span class="badge badge-secondary">{d.sales}</span></td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
 			</div>
 		</div>
 	</div>
@@ -143,9 +225,7 @@
 									</div>
 									<span>{customer.name}</span>
 								</td>
-								<td>
-									<span class="badge badge-accent">{customer.orders}</span>
-								</td>
+								<td><span class="badge badge-accent">{customer.orders}</span></td>
 							</tr>
 						{/each}
 					</tbody>
