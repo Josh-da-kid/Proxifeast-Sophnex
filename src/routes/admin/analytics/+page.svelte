@@ -113,12 +113,20 @@
 			<div class="card-body">
 				<h2 class="card-title">Customers</h2>
 				<p class="text-3xl font-bold">{stats.customers}</p>
+				<p class="text-sm opacity-80">
+					{revenueGrowth > 0 ? '📈' : '📉'}
+					{revenueGrowth}% vs last month
+				</p>
 			</div>
 		</div>
 		<div class="card bg-gradient-to-r from-blue-400 to-blue-500 text-white shadow-xl md:col-span-1">
 			<div class="card-body">
 				<h2 class="card-title">Orders</h2>
 				<p class="text-3xl font-bold">{stats.orders}</p>
+				<p class="text-sm opacity-80">
+					{revenueGrowth > 0 ? '📈' : '📉'}
+					{revenueGrowth}% vs last month
+				</p>
 			</div>
 		</div>
 		<div
@@ -137,6 +145,10 @@
 			<div class="card-body">
 				<h2 class="card-title">Returning</h2>
 				<p class="text-3xl font-bold">{stats.recurringRate}</p>
+				<p class="text-sm opacity-80">
+					{revenueGrowth > 0 ? '📈' : '📉'}
+					{revenueGrowth}% vs last month
+				</p>
 			</div>
 		</div>
 		<div
@@ -145,6 +157,10 @@
 			<div class="card-body">
 				<h2 class="card-title">Avg Order</h2>
 				<p class="text-3xl font-bold">₦{avgOrderValue.toLocaleString()}</p>
+				<p class="text-sm opacity-80">
+					{revenueGrowth > 0 ? '📈' : '📉'}
+					{revenueGrowth}% vs last month
+				</p>
 			</div>
 		</div>
 	</div>
