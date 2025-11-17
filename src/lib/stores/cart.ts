@@ -16,9 +16,14 @@ type CartItem = {
 export const cart = writable<any[]>([]);
 
 export const total = derived(cart, ($cart) =>
-
-$cart.reduce((acc, item) => acc + (item.expand?.dish?.price || 0), 0)
-
+	$cart.reduce((acc, item) => {
+		// Only add to total if the dish is available
+		if (item.expand?.dish?.availability === 'Available') {
+			const price = item.expand?.dish?.promoAmount ?? item.expand?.dish?.defaultAmount ?? 0;
+			return acc + price * item.quantity;
+		}
+		return acc;
+	}, 0)
 );
 
 export async function fetchCart() {

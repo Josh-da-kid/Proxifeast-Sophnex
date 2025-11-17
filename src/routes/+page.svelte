@@ -6,14 +6,14 @@
 	import { derived, get, writable } from 'svelte/store';
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
-	import { afterNavigate, goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+	import { afterNavigate, goto, invalidateAll } from '$app/navigation';
+	import { onMount, onDestroy } from 'svelte';
 	import pb from '$lib/pb';
 	import { addToCartPB } from '$lib/addToCart';
 
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 	// src/routes/admin/+page.svelte
-	const dishes = $page.form?.dishes ?? $page.data.dishes;
+	const dishes = $derived($page.form?.dishes ?? $page.data.dishes);
 
 	const categories = $page.data.categories ?? [];
 
@@ -35,17 +35,19 @@
 		errorAlert = true;
 	}
 
-	const groupedDishes: Record<string, typeof dishes> = {};
-
-	for (const dish of dishes) {
-		dish.quantity = 1;
-		if (dish.category) {
-			if (!groupedDishes[dish.category]) {
-				groupedDishes[dish.category] = [];
+	const groupedDishes = $derived.by(() => {
+		const groups: Record<string, typeof dishes> = {};
+		for (const dish of dishes) {
+			dish.quantity = 1;
+			if (dish.category) {
+				if (!groups[dish.category]) {
+					groups[dish.category] = [];
+				}
+				groups[dish.category].push(dish);
 			}
-			groupedDishes[dish.category].push(dish);
 		}
-	}
+		return groups;
+	});
 
 	let addToCartAlert = $state(false);
 
@@ -108,8 +110,39 @@
 	let clearModal: HTMLDialogElement;
 	let dishToDelete: any = $state(null);
 
+	let unsubscribeDish: () => void;
+	let unsubscribeCart: () => void;
+
+	async function setupSubscriptions(restaurantId: string) {
+		if (!$user?.id) return;
+
+		// --- Subscribe to dish changes ---
+		unsubscribeDish = await pb.collection('dishes').subscribe('*', async ({ action, record }) => {
+			if (action === 'update') {
+				// Invalidate all page data to refetch dishes and cart
+				// This will ensure both the menu and cart are up-to-date
+				await invalidateAll();
+				await fetchCart(restaurantId); // Also refetch cart for good measure
+			}
+		});
+
+		// --- Subscribe to cart changes for the current user ---
+		unsubscribeCart = await pb.collection('cart').subscribe('*', async ({ action, record }) => {
+			// Refetch on any change to the user's cart
+			if (record.user === $user.id) {
+				await fetchCart(restaurantId);
+			}
+		});
+	}
+
+	function cleanupSubscriptions() {
+		unsubscribeDish?.();
+		unsubscribeCart?.();
+	}
+
 	onMount(() => {
 		fetchCart(restaurantId); // make sure restaurantId is in scope
+		setupSubscriptions(restaurantId);
 
 		const url = get(page).url;
 		if (window.location.hash === '#menu') {
@@ -136,6 +169,10 @@
 				errorAlert = false;
 			}, 2000);
 		}
+	});
+
+	onDestroy(() => {
+		cleanupSubscriptions();
 	});
 
 	let alert = $state(false);
@@ -169,7 +206,14 @@
 	export const cart = writable<any[]>([]);
 
 	export const total = derived(cart, ($cart) =>
-		$cart.reduce((acc, item) => acc + (item.amount || 0), 0)
+		$cart.reduce((acc, item) => {
+			// Only add to total if the dish is available
+			if (item.expand?.dish?.availability === 'Available') {
+				const price = item.expand?.dish?.promoAmount ?? item.expand?.dish?.defaultAmount ?? 0;
+				return acc + price * item.quantity;
+			}
+			return acc;
+		}, 0)
 	);
 
 	export async function fetchCart(restaurantId: string) {
@@ -738,7 +782,8 @@
 					<button
 						onclick={back}
 						class="hover:text-secondary items-start justify-start hover:underline"
-						><span class="text-secondary">&lt&lt</span> Back</button
+					>
+						<span class="text-secondary">&lt&lt</span> Back</button
 					>
 					<h2 class="text-xl font-bold">Your Cart</h2>
 
@@ -785,13 +830,21 @@
 				{#if $cart.length > 0}
 					<ul class="scroll-hidden max-h-[80vh] justify-center space-y-4 overflow-y-auto pr-2">
 						{#each $cart as item (item.id)}
-							<li class="flex items-center justify-between border-b border-gray-400 pb-2 text-lg">
-								<div class="mx-auto flex flex-col gap-1 text-center">
-									<img
-										src={item.expand.dish.image}
-										alt={item.expand.dish.name}
-										class="h-25 w-25 rounded-full"
-									/>
+							<li
+								class="flex items-center justify-between border-b border-gray-400 pb-2 text-lg"
+								class:opacity-50={item.expand.dish.availability !== 'Available'}
+							>
+								<div class="relative mx-auto flex flex-col gap-1 text-center">
+									<div class="relative">
+										<img
+											src={item.expand.dish.image}
+											alt={item.expand.dish.name}
+											class="h-25 w-25 rounded-full"
+										/>
+										{#if item.expand.dish.availability !== 'Available'}
+											<span class="badge absolute top-1 right-1 bg-gray-300">Unavailable</span>
+										{/if}
+									</div>
 									<p class="font-semibold">{item.expand.dish.name}</p>
 									<div class="flex gap-3 text-start">
 										{#if item.expand.dish.promoAmount && item.expand.dish.promoAmount < item.expand.dish.defaultAmount}
@@ -836,23 +889,28 @@
 													userId: $user.id,
 													newQty: item.quantity - 1,
 													promoAmount: item.expand.dish.promoAmount,
-													defaultAmount: item.expand.dish.amount,
+													defaultAmount: item.expand.dish.defaultAmount,
 													restaurantId: item.expand.dish.restaurantId
 												});
 											}
 										}}
 										class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
-										><svg
+										disabled={item.expand.dish.availability !== 'Available'}
+										class:opacity-50={item.expand.dish.availability !== 'Available'}
+										class:cursor-not-allowed={item.expand.dish.availability !== 'Available'}
+									>
+										<svg
 											xmlns="http://www.w3.org/2000/svg"
 											width="24"
 											height="24"
 											viewBox="0 0 12 12"
-											><path
+										>
+											<path
 												fill="currentColor"
 												d="M2 6a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 2 6"
-											/></svg
-										></button
-									>
+											/>
+										</svg>
+									</button>
 									<span class="text-secondary">{item.quantity}</span>
 									<!-- svelte-ignore a11y_consider_explicit_label -->
 									<button
@@ -863,22 +921,27 @@
 												userId: $user.id,
 												newQty: item.quantity + 1,
 												promoAmount: item.expand.dish.promoAmount,
-												defaultAmount: item.expand.dish.amount,
+												defaultAmount: item.expand.dish.defaultAmount,
 												restaurantId: item.expand.dish.restaurantId
 											});
 										}}
 										class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
-										><svg
+										disabled={item.expand.dish.availability !== 'Available'}
+										class:opacity-50={item.expand.dish.availability !== 'Available'}
+										class:cursor-not-allowed={item.expand.dish.availability !== 'Available'}
+									>
+										<svg
 											xmlns="http://www.w3.org/2000/svg"
 											width="24"
 											height="24"
 											viewBox="0 0 24 24"
-											><path
+										>
+											<path
 												fill="currentColor"
 												d="M18 13h-5v5c0 .55-.45 1-1 1s-1-.45-1-1v-5H6c-.55 0-1-.45-1-1s.45-1 1-1h5V6c0-.55.45-1 1-1s1 .45 1 1v5h5c.55 0 1 .45 1 1s-.45 1-1 1"
-											/></svg
-										></button
-									>
+											/>
+										</svg>
+									</button>
 
 									<!-- svelte-ignore a11y_consider_explicit_label -->
 									<button
@@ -893,11 +956,12 @@
 											width="24"
 											height="24"
 											viewBox="0 0 24 24"
-											><path
+										>
+											<path
 												fill="currentColor"
 												d="M7.616 20q-.672 0-1.144-.472T6 18.385V6H5V5h4v-.77h6V5h4v1h-1v12.385q0 .69-.462 1.153T16.384 20zM17 6H7v12.385q0 .269.173.442t.443.173h8.769q.23 0 .423-.192t.192-.424zM9.808 17h1V8h-1zm3.384 0h1V8h-1zM7 6v13z"
-											/></svg
-										>
+											/>
+										</svg>
 									</button>
 								</div>
 
@@ -978,7 +1042,8 @@
 					<button
 						onclick={back}
 						class="hover:text-secondary cursor-pointer items-start justify-start hover:underline"
-						><span class="text-secondary">&lt&lt</span> Back</button
+					>
+						<span class="text-secondary">&lt&lt</span> Back</button
 					>
 				</div>
 				<h2 class="mb-2 text-xl font-bold">Your Cart</h2>

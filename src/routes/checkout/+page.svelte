@@ -11,7 +11,14 @@
 	const paystackKey = derived(page, ($page) => $page.data.restaurant?.paystackKey);
 	export const cart = writable<any[]>([]);
 	export const total = derived(cart, ($cart) =>
-		$cart.reduce((acc, item) => acc + (item.amount || 0), 0)
+		$cart.reduce((acc, item) => {
+			// Only add to total if the dish is available
+			if (item.expand?.dish?.availability === 'Available') {
+				const price = item.expand?.dish?.promoAmount ?? item.expand?.dish?.defaultAmount ?? 0;
+				return acc + price * item.quantity;
+			}
+			return acc;
+		}, 0)
 	);
 	export const user = derived(page, ($page) => $page.data.user);
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
@@ -20,6 +27,34 @@
 	let clearModal: HTMLDialogElement;
 	let dishToDelete: any = $state(null);
 	let loading = $state(true);
+	let unsubscribeDish: () => void;
+	let unsubscribeCart: () => void;
+
+	async function setupSubscriptions(restaurantId?: string) {
+		if (!get(user)?.id || !restaurantId) return;
+
+		// --- Subscribe to dish changes ---
+		unsubscribeDish = await pb.collection('dishes').subscribe('*', async ({ action, record }) => {
+			if (action === 'update') {
+				const isDishInCart = get(cart).some((item) => item.dish === record.id);
+				if (isDishInCart) {
+					await fetchCart(restaurantId);
+				}
+			}
+		});
+
+		// --- Subscribe to cart changes for the current user ---
+		unsubscribeCart = await pb.collection('cart').subscribe('*', async ({ action, record }) => {
+			if (record.user === get(user).id) {
+				await fetchCart(restaurantId);
+			}
+		});
+	}
+
+	function cleanupSubscriptions() {
+		unsubscribeDish?.();
+		unsubscribeCart?.();
+	}
 
 	// ✅ Fetch cart
 	export async function fetchCart(restaurantId?: string) {
@@ -78,12 +113,16 @@
 	onMount(() => {
 		// if (deliveryOption === 'home') calculateFee('7.4898,9.0635');
 		const rid = get(restaurantId);
-		if (rid) fetchCart(rid);
+		if (rid) {
+			fetchCart(rid);
+			setupSubscriptions(rid);
+		}
 		document.body.classList.add('overflow-hidden');
 	});
 
 	onDestroy(() => {
 		document.body.classList.remove('overflow-hidden');
+		cleanupSubscriptions();
 	});
 
 	// ✅ Quantity update
@@ -411,10 +450,15 @@
 				class="max-h-screen w-full justify-between gap-8 overflow-y-auto p-6 px-8 md:mt-8 md:flex"
 			>
 				{#if $cart.length > 0}
+					<!-- Main cart display -->
+
 					<div class="scroll-hidden max-h-[80vh] overflow-y-auto pr-2 md:w-[800px]">
 						<ul class="space-y-4">
 							{#each $cart as item (item.id)}
-								<li class="items-center justify-between border-b border-gray-200 pb-4 md:flex">
+								<li
+									class="items-center justify-between border-b border-gray-200 pb-4 md:flex"
+									class:opacity-50={item.expand.dish.availability !== 'Available'}
+								>
 									<div class="flex gap-2 space-y-2 text-center">
 										<div class="h-24 w-24">
 											<img
@@ -454,6 +498,9 @@
 														₦{Number(item.expand.dish.defaultAmount).toLocaleString()}
 													</p>
 												{/if}
+												{#if item.expand.dish.availability !== 'Available'}
+													<span class="badge badge-error">Unavailable</span>
+												{/if}
 											</div>
 										</div>
 									</div>
@@ -462,6 +509,8 @@
 										<!-- svelte-ignore a11y_consider_explicit_label -->
 										<button
 											onclick={() => {
+												if (item.expand.dish.availability !== 'Available') return;
+
 												if (item.quantity <= 1) {
 													dishToDelete = item;
 													deleteModal.showModal();
@@ -469,14 +518,17 @@
 													updateQuantity({
 														itemId: item.id,
 														dishId: item.dish,
-														userId: $user.id,
+														userId: get(user).id,
 														newQty: item.quantity - 1,
 														promoAmount: item.expand.dish.promoAmount,
-														defaultAmount: item.expand.dish.amount
+														defaultAmount: item.expand.dish.defaultAmount // Use defaultAmount from dish
 													});
 												}
 											}}
 											class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
+											disabled={item.expand.dish.availability !== 'Available'}
+											class:opacity-50={item.expand.dish.availability !== 'Available'}
+											class:cursor-not-allowed={item.expand.dish.availability !== 'Available'}
 											><svg
 												xmlns="http://www.w3.org/2000/svg"
 												width="24"
@@ -485,23 +537,28 @@
 												><path
 													fill="currentColor"
 													d="M2 6a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 2 6"
-												/></svg
-											></button
-										>
+												/>
+											</svg>
+										</button>
 										<span class="text-secondary">{item.quantity}</span>
 										<!-- svelte-ignore a11y_consider_explicit_label -->
 										<button
 											onclick={() => {
+												if (item.expand.dish.availability !== 'Available') return;
+
 												updateQuantity({
 													itemId: item.id,
 													dishId: item.dish,
-													userId: $user.id,
+													userId: get(user).id,
 													newQty: item.quantity + 1,
 													promoAmount: item.expand.dish.promoAmount,
-													defaultAmount: item.expand.dish.amount
+													defaultAmount: item.expand.dish.defaultAmount
 												});
 											}}
 											class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
+											disabled={item.expand.dish.availability !== 'Available'}
+											class:opacity-50={item.expand.dish.availability !== 'Available'}
+											class:cursor-not-allowed={item.expand.dish.availability !== 'Available'}
 											><svg
 												xmlns="http://www.w3.org/2000/svg"
 												width="24"
@@ -510,9 +567,9 @@
 												><path
 													fill="currentColor"
 													d="M18 13h-5v5c0 .55-.45 1-1 1s-1-.45-1-1v-5H6c-.55 0-1-.45-1-1s.45-1 1-1h5V6c0-.55.45-1 1-1s1 .45 1 1v5h5c.55 0 1 .45 1 1s-.45 1-1 1"
-												/></svg
-											></button
-										>
+												/>
+											</svg>
+										</button>
 
 										<!-- svelte-ignore a11y_consider_explicit_label -->
 										<button
