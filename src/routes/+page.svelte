@@ -14,9 +14,18 @@
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 	// src/routes/admin/+page.svelte
 	const dishes = $derived($page.form?.dishes ?? $page.data.dishes);
+	// const featuredDishes = $derived(
+	// 	dishes.filter((d: any) => d.isFeatured && d.availability === 'Available')
+	// );
 	const featuredDishes = $derived(
-		dishes.filter((d: any) => d.isFeatured && d.availability === 'Available')
-	);
+	dishes.filter(
+		(d: any) =>
+			d.restaurantId === $user?.restaurantId &&
+			d.isFeatured &&
+			d.availability === 'Available'
+	)
+);
+
 
 	const categories = $page.data.categories ?? [];
 
