@@ -356,6 +356,17 @@
 							: ''}"><button class="rounded-lg p-2">Contact</button></a
 					>
 				</li>
+					<li>
+					<a
+						onclick={closeSideBar}
+						href="/restaurants"
+						class="btn-ghost {$page.url.pathname === '/restaurants'
+							? 'bg-white font-bold text-blue-700'
+							: ''}"><button class="rounded-lg p-2">Featured Restaurants</button></a
+					>
+				</li>
+
+
 				<li>
 					<a
 						onclick={closeSideBar}

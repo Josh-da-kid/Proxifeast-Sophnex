@@ -14,6 +14,9 @@
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 	// src/routes/admin/+page.svelte
 	const dishes = $derived($page.form?.dishes ?? $page.data.dishes);
+	const featuredDishes = $derived(
+		dishes.filter((d: any) => d.isFeatured && d.availability === 'Available')
+	);
 
 	const categories = $page.data.categories ?? [];
 
@@ -305,6 +308,8 @@
 	let modalDefault: any | null = $state(null);
 	let modalPromo: any | null = $state(null);
 	let modalAvailability: string | null = $state(null);
+	let modalId: string | null = $state(null);
+	let modalRestaurantId: string | null = $state(null);
 
 	const restaurantDescription = get(page).data.restaurant.description;
 	const restaurantMotto = get(page).data.restaurant.motto;
@@ -319,16 +324,18 @@
 		modalDefault = null;
 		modalPromo = null;
 		modalAvailability = null;
+		modalId = null;
+		modalRestaurantId = null;
 	}
 
 	function updateDishQuantity(dishId, change) {
 		// initialize if undefined
-		if (!dishQuantities[dishId]) {
-			dishQuantities[dishId] = 0;
+		if (dishQuantities[dishId] === undefined) {
+			dishQuantities[dishId] = 1;
 		}
 
 		// apply change (+1 or -1)
-		dishQuantities[dishId] = Math.max(0, dishQuantities[dishId] + change);
+		dishQuantities[dishId] = Math.max(1, dishQuantities[dishId] + change);
 	}
 </script>
 
@@ -438,6 +445,84 @@
 		/>
 	</section>
 
+
+	<!-- today's dishes -->
+	<section>
+		<h2
+			class="font-playfair text-primary mt-8 mb-8 text-center text-5xl font-semibold sm:mt-15"
+			in:fly={{ x: -200, duration: 800 }}
+		>
+			Today's Delicacy
+		</h2>
+
+		{#if featuredDishes.length > 0}
+			<section class="overflow-hidden py-6">
+				<div class="animate-marquee flex w-fit whitespace-nowrap hover:pause">
+					{#each Array(4) as _}
+						<div class="flex items-center gap-6 px-4">
+							{#each featuredDishes as dish}
+								<div class="group relative w-72 flex-shrink-0">
+									<!-- svelte-ignore a11y_click_events_have_key_events -->
+									<!-- svelte-ignore a11y_no_static_element_interactions -->
+									<div
+										class="card bg-base-100 cursor-pointer shadow-xl transition-transform duration-300 group-hover:scale-105"
+										onclick={() => (
+											(modalImage = dish.image),
+											(modalDish = dish.name),
+											(modalId = dish.id),
+											(modalRestaurantId = dish.restaurantId),
+											(modalPrice = dish.amount),
+											(modalDescription = dish.description),
+											(modalPromo = dish.promoAmount),
+											(modalDefault = dish.defaultAmount),
+											(modalAvailability = dish.availability)
+										)}
+									>
+										<figure class="h-40 overflow-hidden">
+											<img src={dish.image} alt={dish.name} class="h-full w-full object-cover" />
+										</figure>
+										<div class="card-body p-4">
+											<h3 class="card-title font-playfair text-lg whitespace-normal">
+												{dish.name}
+											</h3>
+											<div class="flex items-baseline gap-2">
+												{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
+													<p class="text-secondary font-bold">
+														₦{Number(dish.promoAmount).toLocaleString()}
+													</p>
+													<p class="text-xs text-gray-400 line-through">
+														₦{Number(dish.defaultAmount).toLocaleString()}
+													</p>
+												{:else}
+													<p class="text-secondary font-bold">
+														₦{Number(dish.defaultAmount).toLocaleString()}
+													</p>
+												{/if}
+											</div>
+										</div>
+									</div>
+									<!-- Add to Cart Button Overlay -->
+									<div
+										class="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-black/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-within:opacity-100"
+									>
+										<button
+											class="btn btn-primary"
+											onclick={(e) => {
+												e.stopPropagation();
+												handleAddToCart(dish);
+											}}
+											disabled={dish.availability !== 'Available'}>Add to Cart</button
+										>
+									</div>
+								</div>
+							{/each}
+						</div>
+					{/each}
+				</div>
+			</section>
+		{/if}
+	</section>
+
 	<!-- Search Input -->
 	<section id="menu" class="mt-15 items-center justify-center gap-2">
 		<h2
@@ -515,6 +600,78 @@
 		</p>
 	{/if}
 
+	<!-- Modal -->
+	{#if modalImage}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="bg-opacity-60 fixed inset-0 z-50 flex items-center justify-center bg-black px-6 py-44"
+			onclick={closeModal}
+		>
+			<div
+				class="w-fitt relative w-[400px] max-w-2xl rounded-xl bg-white p-4"
+				onclick={(e) => e.stopPropagation()}
+			>
+				<button
+					class="btn btn-lg btn-circle bg-secondary absolute top-2 right-2 text-2xl text-white"
+					onclick={closeModal}>✕</button
+				>
+
+				<div class="flex flex-col items-center">
+					<img
+						src={modalImage}
+						alt="Dish"
+						class="h-auto max-h-[80vh] w-full rounded-lg object-contain"
+					/>
+
+					<div class="mt-4 w-full">
+						<h3 class="font-bold">{modalDish}</h3>
+
+						<div class="mt-2 flex items-baseline gap-2">
+							{#if modalPromo && modalPromo < modalDefault}
+								<div class="flex gap-2">
+									<p class="text-secondary font-bold">
+										₦{Number(modalPromo).toLocaleString()}
+									</p>
+									<p class="text-gray-400 line-through">
+										₦{Number(modalDefault).toLocaleString()}
+									</p>
+								</div>
+								<span
+									class="badge badge-accent mt-1"
+									class:bg-gray-100={modalAvailability !== 'Available'}
+									class:border-gray-200={modalAvailability !== 'Available'}
+								>
+									-{Math.round((1 - modalPromo / modalDefault) * 100)}% OFF
+								</span>
+							{:else}
+								<p class="text-secondary font-bold">
+									₦{Number(modalDefault).toLocaleString()}
+								</p>
+							{/if}
+						</div>
+
+						<p class="mt-2">{modalDescription}</p>
+
+						<div class="mt-6 flex justify-center">
+							<button
+								class="btn btn-primary w-full"
+								onclick={() => handleAddToCart({
+									id: modalId,
+									restaurantId: modalRestaurantId,
+									availability: modalAvailability,
+									defaultAmount: modalDefault,
+									promoAmount: modalPromo
+								})}
+								disabled={modalAvailability !== 'Available'}>Add to Cart</button
+							>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	{/if}
+
 	{#each Object.entries(groupedDishes).sort( (a, b) => a[0].localeCompare(b[0]) ) as [category, dishesInCategory]}
 		<section class="mb-10 p-6">
 			<div class="text-secondary mb-6 ml-4 w-fit text-3xl">
@@ -524,213 +681,144 @@
 
 			<div class="grid grid-cols-1 gap-6 px-4 sm:grid-cols-2 lg:grid-cols-3">
 				{#each dishesInCategory as dish}
-					<!-- svelte-ignore a11y_click_events_have_key_events -->
-					<article
-						class="card card-compact bg-base-200 transform overflow-hidden rounded-xl shadow-lg transition-transform duration-300 hover:scale-105"
-						in:fly={{ y: 50, duration: 600 }}
-					>
-						<!-- Modal -->
-						{#if modalImage}
-							<div
-								class="bg-opacity-60 fixed inset-0 z-50 flex items-center justify-center bg-black px-6 py-44"
-							>
-								<div class="w-fitt relative w-[400px] max-w-2xl rounded-xl bg-white p-4">
-									<button
-										class="btn btn-lg btn-circle bg-secondary absolute top-2 right-2 text-2xl text-white"
-										onclick={() => {
-											closeModal();
-										}}>✕</button
-									>
-
-									<div class="flex flex-col items-center">
-										<img
-											src={modalImage}
-											alt="Dish"
-											class="h-auto max-h-[80vh] w-full rounded-lg object-contain"
-										/>
-
-										<div class="mt-4 w-full">
-											<h3 class="font-bold">{modalDish}</h3>
-
-											<div class="mt-2 flex items-baseline gap-2">
-												{#if modalPromo && modalPromo < modalDefault}
-													<div class="flex gap-2">
-														<p class="text-secondary font-bold">
-															₦{Number(modalPromo).toLocaleString()}
-														</p>
-														<p class="text-gray-400 line-through">
-															₦{Number(modalPromo).toLocaleString()}
-														</p>
-													</div>
-													<span
-														class="badge badge-accent mt-1"
-														class:bg-gray-100={modalAvailability !== 'Available'}
-														class:border-gray-200={modalAvailability !== 'Available'}
-													>
-														-{Math.round((1 - modalPromo / modalDefault) * 100)}% OFF
-													</span>
-												{:else}
-													<p class="text-secondary font-bold">
-														₦{Number(modalDefault).toLocaleString()}
-													</p>
-												{/if}
-											</div>
-
-											<p class="mt-2">{modalDescription}</p>
-										</div>
-									</div>
-								</div>
-							</div>
-						{/if}
-						<!-- Dish Figure -->
-						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-						<figure
+					<div class="group relative" in:fly={{ y: 50, duration: 600 }}>
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<article
+							class="card card-compact bg-base-200 transform cursor-pointer overflow-hidden rounded-xl shadow-lg transition-transform duration-300 hover:scale-105"
 							onclick={() => (
 								(modalImage = dish.image),
 								(modalDish = dish.name),
+								(modalId = dish.id),
+								(modalRestaurantId = dish.restaurantId),
 								(modalPrice = dish.amount),
 								(modalDescription = dish.description),
 								(modalPromo = dish.promoAmount),
 								(modalDefault = dish.defaultAmount),
 								(modalAvailability = dish.availability)
 							)}
-							class="cursor-pointer"
 						>
-							<img
-								src={dish.image}
-								alt={dish.name}
-								class="h-48 w-full rounded-lg object-cover transition-transform duration-200 hover:scale-105"
-							/>
-						</figure>
+							<!-- Dish Figure -->
+							<figure>
+								<img
+									src={dish.image}
+									alt={dish.name}
+									class="h-48 w-full rounded-lg object-cover transition-transform duration-200 hover:scale-105"
+								/>
+							</figure>
 
-						<div class="card-body">
-							<h4 class="card-title text-primary font-playfair">{dish.name}</h4>
+							<div class="card-body">
+								<h4 class="card-title text-primary font-playfair">{dish.name}</h4>
 
-							<p class="text-base-content">{dish.description}</p>
+								<p class="text-base-content">{dish.description}</p>
 
-							<!-- <p>Availability: {dish.availability}</p> -->
-
-							<div class="mt-1 mb-1 flex justify-between">
-								<div
-									class="tooltip"
-									data-tip={dish.availability !== 'Available'
-										? 'Dish is unavailable'
-										: 'Set quantity'}
-								>
-									<span class="font-semibold">Quantity </span>
-									<!-- <input
-										type="number"
-										bind:value={dishQuantities[dish.id]}
-										class="border-secondary focus:ring-secondary w-[80px] border p-1 focus:ring-2 focus:outline-none disabled:cursor-not-allowed"
-										min="1"
-										disabled={dish.availability !== 'Available'}
-									/> -->
-									<div class="mt-2 flex items-center justify-center gap-4">
-										<!-- svelte-ignore a11y_consider_explicit_label -->
-
-										<button
-											onclick={() => updateDishQuantity(dish.id, -1)}
-											disabled={(dishQuantities[dish.id] ?? 0) <= 1}
-											class="cursor-pointer rounded-full bg-blue-500 text-white disabled:cursor-not-allowed disabled:opacity-50"
-										>
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												width="24"
-												height="24"
-												viewBox="0 0 12 12"
-											>
-												<path
-													fill="currentColor"
-													d="M2 6a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 2 6"
-												/>
-											</svg>
-										</button>
-										<span class="text-secondary">{dishQuantities[dish.id]}</span>
-										<!-- svelte-ignore a11y_consider_explicit_label -->
-										<button
-											onclick={() => updateDishQuantity(dish.id, +1)}
-											class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
-											><svg
-												xmlns="http://www.w3.org/2000/svg"
-												width="24"
-												height="24"
-												viewBox="0 0 24 24"
-												><path
-													fill="currentColor"
-													d="M18 13h-5v5c0 .55-.45 1-1 1s-1-.45-1-1v-5H6c-.55 0-1-.45-1-1s.45-1 1-1h5V6c0-.55.45-1 1-1s1 .45 1 1v5h5c.55 0 1 .45 1 1s-.45 1-1 1"
-												/></svg
-											></button
-										>
-									</div>
-								</div>
-							</div>
-
-							<div class="mr-3 flex justify-between">
-								<div class="flexx items-baseline gap-2">
-									{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
-										<div class="flex gap-2">
-											<p class="text-secondary font-bold">
-												₦{Number(dish.promoAmount).toLocaleString()}
-											</p>
-											<p class="text-gray-400 line-through">
-												₦{Number(dish.defaultAmount).toLocaleString()}
-											</p>
-										</div>
-
-										<div
-											class="absolute top-3 right-0 left-0 mx-auto mt-1 flex justify-between px-3"
-										>
-											<span
-												class="badge badge-accent"
-												class:bg-gray-100={dish.availability !== 'Available'}
-												class:border-gray-200={dish.availability !== 'Available'}
-											>
-												-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
-											</span>
-
-											{#if dish.availability === 'Available'}
-												<span class="badge badge-success">Available</span>
-											{:else if dish.availability === 'Unavailable'}
-												<span class="badge badge-error">Unavailable</span>
-											{/if}
-										</div>
-									{:else}
-										<p class="text-secondary font-bold">
-											₦{Number(dish.defaultAmount).toLocaleString()}
-										</p>
-									{/if}
-								</div>
-
-								<!-- Icons or actions -->
-								<div class="flex gap-3">
-									<!-- View, Edit, etc. -->
-
+								<div class="mt-1 mb-1 flex justify-between">
 									<div
-										class="tooltip tooltip-left z-5"
+										class="tooltip"
 										data-tip={dish.availability !== 'Available'
 											? 'Dish is unavailable'
-											: 'Add to cart'}
+											: 'Set quantity'}
 									>
-										<!-- svelte-ignore a11y_click_events_have_key_events -->
-										<!-- svelte-ignore a11y_no_static_element_interactions -->
-										<svg
-											onclick={() => handleAddToCart(dish)}
-											class="text-secondary"
-											class:text-gray-300={dish.availability !== 'Available'}
-											class:cursor-not-allowed={dish.availability !== 'Available'}
-											class:text-secondary={dish.availability === 'Available'}
-											class:cursor-pointer={dish.availability === 'Available'}
-											xmlns="http://www.w3.org/2000/svg"
-											width="28"
-											height="28"
-											viewBox="0 0 24 24"
-											><path fill="currentColor" d="M19 12.998h-6v6h-2v-6H5v-2h6v-6h2v6h6z" /></svg
-										>
+										<span class="font-semibold">Quantity </span>
+										<div class="mt-2 flex items-center justify-center gap-4">
+											<button
+												onclick={(e) => {
+													e.stopPropagation();
+													updateDishQuantity(dish.id, -1);
+												}}
+												disabled={(dishQuantities[dish.id] ?? 1) <= 1}
+												class="cursor-pointer rounded-full bg-blue-500 text-white disabled:cursor-not-allowed disabled:opacity-50"
+											>
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													width="24"
+													height="24"
+													viewBox="0 0 12 12"
+												>
+													<path
+														fill="currentColor"
+														d="M2 6a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 2 6"
+													/>
+												</svg>
+											</button>
+											<span class="text-secondary">{dishQuantities[dish.id] || 1}</span>
+											<button
+												onclick={(e) => {
+													e.stopPropagation();
+													updateDishQuantity(dish.id, 1);
+												}}
+												class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
+											>
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													width="24"
+													height="24"
+													viewBox="0 0 24 24"
+												>
+													<path
+														fill="currentColor"
+														d="M18 13h-5v5c0 .55-.45 1-1 1s-1-.45-1-1v-5H6c-.55 0-1-.45-1-1s.45-1 1-1h5V6c0-.55.45-1 1-1s1 .45 1 1v5h5c.55 0 1 .45 1 1s-.45 1-1 1"
+													/>
+												</svg>
+											</button>
+										</div>
 									</div>
 								</div>
-							</div>
+
+								<div class="mr-3 flex justify-between">
+									<div class="flexx items-baseline gap-2">
+										{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
+											<div class="flex gap-2">
+												<p class="text-secondary font-bold">
+													₦{Number(dish.promoAmount).toLocaleString()}
+												</p>
+												<p class="text-gray-400 line-through">
+													₦{Number(dish.defaultAmount).toLocaleString()}
+												</p>
+											</div>
+											
+
+											<div
+												class="absolute top-3 right-0 left-0 mx-auto mt-1 flex justify-between px-3"
+											>
+												<span
+													class="badge badge-accent"
+													class:bg-gray-100={dish.availability !== 'Available'}
+													class:border-gray-200={dish.availability !== 'Available'}
+												>
+													-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
+												</span>
+
+												{#if dish.availability === 'Available'}
+													<span class="badge badge-success">Available</span>
+												{:else if dish.availability === 'Unavailable'}
+													<span class="badge badge-error">Unavailable</span>
+												{/if}
+											</div>
+										{:else}
+											<p class="text-secondary font-bold">
+												₦{Number(dish.defaultAmount).toLocaleString()}
+											</p>
+										{/if}
+									</div>
+									
+								</div>
+								<div
+							class="flex mt-2 items-center justify-center rounded-xl  transition-opacity duration-300 group-hover:opacity-100 group-focus-within:opacity-100"
+						>
+							<button
+								class="btn btn-primary"
+								onclick={(e) => {
+									e.stopPropagation();
+									handleAddToCart(dish);
+								}}
+								disabled={dish.availability !== 'Available'}>Add to Cart</button
+							>
 						</div>
-					</article>
+							</div>
+						</article>
+				
+						
+					</div>
 				{/each}
 			</div>
 		</section>

@@ -25,16 +25,18 @@
 		promoAmount: ''
 	});
 
-	const groupedDishes: Record<string, typeof dishes> = {};
-
-	for (const dish of dishes) {
-		if (dish.category) {
-			if (!groupedDishes[dish.category]) {
-				groupedDishes[dish.category] = [];
+	const groupedDishes = $derived.by(() => {
+		const groups: Record<string, typeof dishes> = {};
+		for (const dish of dishes) {
+			if (dish.category) {
+				if (!groups[dish.category]) {
+					groups[dish.category] = [];
+				}
+				groups[dish.category].push(dish);
 			}
-			groupedDishes[dish.category].push(dish);
 		}
-	}
+		return groups;
+	});
 
 	function openEditDrawer(dish: any) {
 		const isFileUpload = dish.image?.startsWith('https://playgzero.pb.itcass.net/api/files/');
@@ -367,8 +369,8 @@
 							{/if}
 						</div> -->
 
-						<div class="mr-3 flex justify-between">
-							<div class="flexx items-baseline gap-2">
+						<div class="flex items-center justify-between mt-2">
+							<div class="flex items-baseline gap-2">
 								{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
 									<div class="flex gap-2">
 										<p class="text-secondary font-bold">
@@ -378,9 +380,7 @@
 											₦{Number(dish.defaultAmount).toLocaleString()}
 										</p>
 									</div>
-									<!-- <span class="badge badge-accent mt-1">
-										-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
-									</span> -->
+									
 
 									<div class="absolute top-3 right-0 left-0 mx-auto mt-1 flex justify-between px-3">
 										<span
@@ -486,6 +486,24 @@
 									</dialog>
 								</div>
 							</div>
+						</div>
+						<div class="card-actions mt-4 justify-end">
+							<form
+								action="?/toggleFeatured"
+								method="POST"
+								use:enhance={() => {
+									// This will update the UI without a full page reload
+									return async ({ update }) => {
+										await update({ reset: false });
+									};
+								}}
+							>
+								<input type="hidden" name="dishId" value={dish.id} />
+								<input type="hidden" name="isFeatured" value={dish.isFeatured} />
+								<button class="btn btn-sm {dish.isFeatured ? 'btn-warning' : 'btn-accent'}">
+									{dish.isFeatured ? "Remove from Today's Menu" : "Add to Today's Menu"}
+								</button>
+							</form>
 						</div>
 					</div>
 				</article>

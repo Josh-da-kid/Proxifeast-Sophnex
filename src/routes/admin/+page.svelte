@@ -167,4 +167,14 @@
 			<p>Manage customer reservations</p>
 		</div>
 	</a>
+
+	<a
+		href="/admin/today-menu"
+		class="card bg-base-100 shadow-xl transition hover:-translate-y-1 hover:shadow-2xl"
+	>
+		<div class="card-body items-center text-center">
+			<h2 class="card-title">Today's Delicacy</h2>
+			<p>Manage dishes available for the day</p>
+		</div>
+	</a>
 </div>
