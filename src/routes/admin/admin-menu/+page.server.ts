@@ -45,6 +45,14 @@ export const actions: Actions = {
 		}
 
 		try {
+			// To ensure an admin can only feature dishes from their own restaurant,
+			// we first fetch the dish to verify ownership.
+			const dish = await locals.pb.collection('dishes').getOne(dishId);
+
+			if (dish.restaurantId !== locals.user.restaurantId) {
+				return fail(403, { error: 'Forbidden: You can only modify dishes from your restaurant.' });
+			}
+
 			await locals.pb.collection('dishes').update(dishId, {
 				isFeatured: !isFeatured
 			});

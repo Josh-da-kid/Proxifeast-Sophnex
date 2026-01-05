@@ -46,20 +46,27 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 	const search = url.searchParams.get('search')?.trim() ?? '';
 	const category = url.searchParams.get('category')?.trim() ?? 'All';
 
-	// ✅ Get host from the request headers
-	// const host = request.headers.get('host') || '';
-	// const domain = host.replace(/^www\./, '').toLowerCase(); // optional: strip www
-	const host = request.headers.get('host') || '';
-	const domain = host.split(':')[0];
-	// console.log("domain:", domain)
+	let restaurant;
+	let restaurantId;
 
 	try {
-		// ✅ Look up the restaurant by domain
-		const restaurant = await locals.pb.collection('restaurants').getFirstListItem(`domain = "${domain}"`);
+		// If an admin is logged in, prioritize their restaurant to ensure they see their own data,
+		// especially in development environments where domains might be shared (e.g., localhost).
+		if (locals.user?.isAdmin && locals.user.restaurantId) {
+			restaurantId = locals.user.restaurantId;
+			restaurant = await locals.pb.collection('restaurants').getOne(restaurantId);
+		} else {
+			// For public users, determine the restaurant by the domain.
+			const host = request.headers.get('host') || '';
+			const domain = host.split(':')[0];
+			restaurant = await locals.pb.collection('restaurants').getFirstListItem(`domain = "${domain}"`);
+			restaurantId = restaurant.id;
+		}
 
-		const restaurantId = restaurant.id;
-		// console.log(restaurant.domain)
-		// console.log(restaurant.name)
+		if (!restaurant) {
+			// This should ideally not happen if domains are set up correctly or an admin's restaurant exists.
+			throw new Error('Restaurant could not be determined.');
+		}
 
 		let filters: string[] = [`restaurantId = "${restaurantId}"`];
 
@@ -101,4 +108,3 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		};
 	}
 };
-

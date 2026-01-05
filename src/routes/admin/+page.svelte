@@ -168,7 +168,7 @@
 		</div>
 	</a>
 
-	<a
+	<!-- <a
 		href="/admin/today-menu"
 		class="card bg-base-100 shadow-xl transition hover:-translate-y-1 hover:shadow-2xl"
 	>
@@ -176,5 +176,5 @@
 			<h2 class="card-title">Today's Delicacy</h2>
 			<p>Manage dishes available for the day</p>
 		</div>
-	</a>
+	</a> -->
 </div>

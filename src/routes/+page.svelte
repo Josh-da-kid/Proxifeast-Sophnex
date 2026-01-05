@@ -452,7 +452,7 @@
 			class="font-playfair text-primary mt-8 mb-8 text-center text-5xl font-semibold sm:mt-15"
 			in:fly={{ x: -200, duration: 800 }}
 		>
-			Today's Delicacy
+			Today's Special
 		</h2>
 
 		{#if featuredDishes.length > 0}
