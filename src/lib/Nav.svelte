@@ -43,6 +43,9 @@
 	const user = derived(page, ($page) => $page.data.user);
 
 	const restaurantName = get(page).data.restaurant?.name;
+
+	let logoutModalAdmin: HTMLDialogElement;
+	let logoutModalUser: HTMLDialogElement;
 </script>
 
 <nav
@@ -282,7 +285,7 @@
 				<li>
 					{#if $user}
 						<button
-							onclick={my_modal_1.showModal()}
+							onclick={() => logoutModalAdmin.showModal()}
 							class="btn btn-ghost bg-secondary mt-2 ml-2 text-lg md:flex"
 						>
 							Logout
@@ -290,7 +293,7 @@
 
 						<p class="text-lg font-bold">{$user.email}</p>
 
-						<dialog id="my_modal_1" class="modal">
+						<dialog bind:this={logoutModalAdmin} id="logout_modal_admin" class="modal">
 							<div class="modal-box text-black">
 								<h3 class="text-lg font-bold">
 									Hey <span class="text-secondary">{$user?.name}!</span>
@@ -393,7 +396,7 @@
 				<li>
 					{#if $user}
 						<button
-							onclick={my_modal_2.showModal()}
+							onclick={() => logoutModalUser.showModal()}
 							class="btn btn-ghost bg-secondary mt-2 ml-2 text-lg md:flex"
 						>
 							Logout
@@ -401,7 +404,7 @@
 
 						<p class="text-lg font-bold">{$user.email}</p>
 
-						<dialog id="my_modal_2" class="modal">
+						<dialog bind:this={logoutModalUser} id="logout_modal_user" class="modal">
 							<div class="modal-box text-black">
 								<h3 class="text-lg font-bold">
 									Hey <span class="text-secondary">{$user?.name}!</span>
