@@ -33,6 +33,8 @@
   animation: marquee 80s linear infinite;
 }
 
-.animate-marquee:hover {
+.animate-marquee:hover,
+.animate-marquee:active,
+.animate-marquee:focus-within {
 	animation-play-state: paused;
 }

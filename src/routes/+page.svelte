@@ -14,17 +14,9 @@
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 	// src/routes/admin/+page.svelte
 	const dishes = $derived($page.form?.dishes ?? $page.data.dishes);
-	// const featuredDishes = $derived(
-	// 	dishes.filter((d: any) => d.isFeatured && d.availability === 'Available')
-	// );
 	const featuredDishes = $derived(
-	dishes.filter(
-		(d: any) =>
-			d.restaurantId === $user?.restaurantId &&
-			d.isFeatured &&
-			d.availability === 'Available'
-	)
-);
+		dishes.filter((d: any) => d.isFeatured && d.availability === 'Available')
+	);
 
 
 	const categories = $page.data.categories ?? [];
@@ -458,7 +450,7 @@
 	<!-- today's dishes -->
 	<section>
 		<h2
-			class="font-playfair text-primary mt-8 mb-8 text-center text-5xl font-semibold sm:mt-15"
+			class="font-playfair text-primary mt-8 mb-8 text-center text-3xl font-semibold sm:text-5xl sm:mt-15"
 			in:fly={{ x: -200, duration: 800 }}
 		>
 			Today's Special
@@ -466,11 +458,11 @@
 
 		{#if featuredDishes.length > 0}
 			<section class="overflow-hidden py-6">
-				<div class="animate-marquee flex w-fit whitespace-nowrap hover:pause">
+				<div class="animate-marquee flex w-fit whitespace-nowrap">
 					{#each Array(4) as _}
 						<div class="flex items-center gap-6 px-4">
 							{#each featuredDishes as dish}
-								<div class="group relative w-72 flex-shrink-0">
+								<div class="group relative w-72 flex-shrink-0 outline-none" tabindex="0">
 									<!-- svelte-ignore a11y_click_events_have_key_events -->
 									<!-- svelte-ignore a11y_no_static_element_interactions -->
 									<div
