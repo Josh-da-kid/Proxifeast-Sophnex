@@ -338,6 +338,7 @@
 		// apply change (+1 or -1)
 		dishQuantities[dishId] = Math.max(1, dishQuantities[dishId] + change);
 	}
+
 </script>
 
 <!-- Cart FAB Icon -->
@@ -448,7 +449,7 @@
 
 
 	<!-- today's dishes -->
-	<section>
+	<section class="relative">
 		<h2
 			class="font-playfair text-primary mt-8 mb-8 text-center text-3xl font-semibold sm:text-5xl sm:mt-15"
 			in:fly={{ x: -200, duration: 800 }}
@@ -458,66 +459,66 @@
 
 		{#if featuredDishes.length > 0}
 			<section class="overflow-hidden py-6">
-				<div class="animate-marquee flex w-fit whitespace-nowrap">
+				<div
+					class="animate-marquee flex w-fit items-center gap-6 overflow-x-auto scroll-smooth whitespace-nowrap px-4"
+				>
 					{#each Array(4) as _}
-						<div class="flex items-center gap-6 px-4">
-							{#each featuredDishes as dish}
-								<div class="group relative w-72 flex-shrink-0 outline-none" tabindex="0">
-									<!-- svelte-ignore a11y_click_events_have_key_events -->
-									<!-- svelte-ignore a11y_no_static_element_interactions -->
-									<div
-										class="card bg-base-100 cursor-pointer shadow-xl transition-transform duration-300 group-hover:scale-105"
-										onclick={() => (
-											(modalImage = dish.image),
-											(modalDish = dish.name),
-											(modalId = dish.id),
-											(modalRestaurantId = dish.restaurantId),
-											(modalPrice = dish.amount),
-											(modalDescription = dish.description),
-											(modalPromo = dish.promoAmount),
-											(modalDefault = dish.defaultAmount),
-											(modalAvailability = dish.availability)
-										)}
-									>
-										<figure class="h-40 overflow-hidden">
-											<img src={dish.image} alt={dish.name} class="h-full w-full object-cover" />
-										</figure>
-										<div class="card-body p-4">
-											<h3 class="card-title font-playfair text-lg whitespace-normal">
-												{dish.name}
-											</h3>
-											<div class="flex items-baseline gap-2">
-												{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
-													<p class="text-secondary font-bold">
-														₦{Number(dish.promoAmount).toLocaleString()}
-													</p>
-													<p class="text-xs text-gray-400 line-through">
-														₦{Number(dish.defaultAmount).toLocaleString()}
-													</p>
-												{:else}
-													<p class="text-secondary font-bold">
-														₦{Number(dish.defaultAmount).toLocaleString()}
-													</p>
-												{/if}
-											</div>
+						{#each featuredDishes as dish}
+							<div class="group relative w-72 flex-shrink-0 snap-center outline-none" tabindex="0">
+								<!-- svelte-ignore a11y_click_events_have_key_events -->
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
+								<div
+									class="card bg-base-100 cursor-pointer shadow-xl transition-transform duration-300 group-hover:scale-105"
+									onclick={() => (
+										(modalImage = dish.image),
+										(modalDish = dish.name),
+										(modalId = dish.id),
+										(modalRestaurantId = dish.restaurantId),
+										(modalPrice = dish.amount),
+										(modalDescription = dish.description),
+										(modalPromo = dish.promoAmount),
+										(modalDefault = dish.defaultAmount),
+										(modalAvailability = dish.availability)
+									)}
+								>
+									<figure class="h-40 overflow-hidden">
+										<img src={dish.image} alt={dish.name} class="h-full w-full object-cover" />
+									</figure>
+									<div class="card-body p-4">
+										<h3 class="card-title font-playfair text-lg whitespace-normal">
+											{dish.name}
+										</h3>
+										<div class="flex items-baseline gap-2">
+											{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
+												<p class="text-secondary font-bold">
+													₦{Number(dish.promoAmount).toLocaleString()}
+												</p>
+												<p class="text-xs text-gray-400 line-through">
+													₦{Number(dish.defaultAmount).toLocaleString()}
+												</p>
+											{:else}
+												<p class="text-secondary font-bold">
+													₦{Number(dish.defaultAmount).toLocaleString()}
+												</p>
+											{/if}
 										</div>
 									</div>
-									<!-- Add to Cart Button Overlay -->
-									<div
-										class="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-black/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-within:opacity-100"
-									>
-										<button
-											class="btn btn-primary"
-											onclick={(e) => {
-												e.stopPropagation();
-												handleAddToCart(dish);
-											}}
-											disabled={dish.availability !== 'Available'}>Add to Cart</button
-										>
-									</div>
 								</div>
-							{/each}
-						</div>
+								<!-- Add to Cart Button Overlay -->
+								<div
+									class="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-black/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-within:opacity-100"
+								>
+									<button
+										class="btn btn-primary"
+										onclick={(e) => {
+											e.stopPropagation();
+											handleAddToCart(dish);
+										}}
+										disabled={dish.availability !== 'Available'}>Add to Cart</button
+									>
+								</div>
+							</div>
+						{/each}
 					{/each}
 				</div>
 			</section>
