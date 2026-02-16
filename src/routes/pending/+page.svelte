@@ -5,13 +5,12 @@
 	import type { RecordModel } from 'pocketbase';
 	import { onMount } from 'svelte';
 	import { derived, get } from 'svelte/store';
-	import { fly } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
 
 	export const user = derived(page, ($page) => $page.data.user);
 
 	let orders: RecordModel[] = $state([]);
 	let loading = $state(true);
-
 	let searchInput = $state('');
 	let selectedCategoryInput = $state('All');
 	const restaurantName = get(page).data.restaurant?.name;
@@ -22,17 +21,15 @@
 		return ($page.url.searchParams.get('search')?.trim() ?? '') !== '';
 	});
 
-	// Fetch cart data
 	export async function fetchPendingOrders() {
 		const userId = get(user)?.id;
-		const restaurantId = get(page).data.restaurant?.id; // ✅ Get restaurantId
+		const restaurantId = get(page).data.restaurant?.id;
 		const searchParams = get(page).url.searchParams;
 		const search = searchParams.get('search')?.trim() ?? '';
 		const category = searchParams.get('category')?.trim() ?? 'All';
 
 		if (!userId || !restaurantId) return;
 
-		// Build dynamic filter
 		let filter = `(restaurantId="${restaurantId}" && user="${userId}")`;
 
 		if (category !== 'All') {
@@ -67,7 +64,6 @@
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 
 	async function clearSearch() {
-		// searchInput = '';
 		window.location.href = '/pending';
 	}
 
@@ -75,7 +71,6 @@
 		e.preventDefault();
 
 		if (!searchInput.trim() && selectedCategoryInput === 'All') {
-			// Do nothing if no filters
 			return;
 		}
 
@@ -85,209 +80,261 @@
 			query.set('category', selectedCategoryInput);
 
 		const target = `/pending/?${query.toString()}`;
+		await goto(target);
+		window.location.reload();
+	}
 
-		await goto(target); // navigate
-		window.location.reload(); // force full page reload
+	function getStatusColor(status: string) {
+		switch (status) {
+			case 'Pending':
+				return 'bg-amber-100 text-amber-800 border-amber-200';
+			case 'Preparing':
+				return 'bg-orange-100 text-orange-800 border-orange-200';
+			case 'Ready':
+				return 'bg-green-100 text-green-800 border-green-200';
+			case 'Delivered':
+				return 'bg-blue-100 text-blue-800 border-blue-200';
+			case 'Cancelled':
+				return 'bg-red-100 text-red-800 border-red-200';
+			default:
+				return 'bg-gray-100 text-gray-800 border-gray-200';
+		}
 	}
 </script>
 
-<main>
-	{#if $isLoggedIn}
-		<h1 class="mb-4 text-center text-2xl font-bold md:mt-8" in:fly={{ x: 200, duration: 800 }}>
-			Unsettled Orders
-		</h1>
+<svelte:head>
+	<title>Pending Orders - Proxifeast</title>
+</svelte:head>
 
-		<form method="GET" onsubmit={handleSearchSubmit} class="gap-2 sm:flex">
-			<div class="mx-auto items-center justify-center gap-2 p-2 sm:flex">
-				<div class="flex gap-2 px-2">
-					<input
-						type="text"
-						name="search"
-						placeholder="Search order..."
-						bind:value={searchInput}
-						class="input input-bordered border-secondary focus:ring-secondary w-full max-w-xs border focus:ring-2 focus:outline-none md:w-[400px]"
-					/>
+<div class="min-h-screen bg-stone-50">
+	<!-- Header -->
+	<section
+		class="bg-gradient-to-b from-amber-900 via-amber-800 to-amber-700 py-12 text-center text-white"
+	>
+		<div class="container mx-auto px-4">
+			<h1 class="font-playfair mb-2 text-3xl font-bold md:text-4xl">Pending Orders</h1>
+			<p class="text-white/80">Track your active orders in real-time</p>
+		</div>
+	</section>
 
-					{#if searchInput.trim() && $searchSubmitted}
-						<!-- svelte-ignore a11y_consider_explicit_label -->
-
-						<button type="button" onclick={clearSearch} class="btn btn-secondary">
-							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-								<path
-									fill="none"
-									stroke="currentColor"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="1.5"
-									d="M6.758 17.243L12.001 12m5.243-5.243L12 12m0 0L6.758 6.757M12.001 12l5.243 5.243"
-								/>
-							</svg>
-						</button>
-					{/if}
-					{#if searchInput.length > 0 && !$searchSubmitted}
-						<button type="submit" class="btn btn-secondary">Search</button>
-					{/if}
-				</div>
-
-				<div class="mt-2 ml-4 px-2 sm:mt-0 sm:ml-0 sm:p-3">
-					<select
-						name="category"
-						bind:value={selectedCategoryInput}
-						class="select select-bordered border-secondary focus:ring-secondary w-fit"
-						onchange={(e) => {
-							const selected = e.currentTarget.value;
-							if (selected === 'All') {
-								clearSearch();
-							} else {
-								// auto submit when other categories change
-								e.currentTarget.form?.requestSubmit();
-							}
-						}}
+	<!-- Search & Filter -->
+	<section class="container mx-auto -mt-6 px-4">
+		<form
+			onsubmit={handleSearchSubmit}
+			class="flex flex-col gap-4 md:flex-row md:items-center md:justify-center"
+		>
+			<div
+				class="flex items-center gap-3 rounded-xl bg-white px-4 py-2 shadow-lg shadow-amber-900/10"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-5 w-5 text-gray-400"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+				>
+					<circle cx="11" cy="11" r="8" />
+					<path d="m21 21-4.3-4.3" />
+				</svg>
+				<input
+					type="text"
+					bind:value={searchInput}
+					placeholder="Search by reference, name, phone..."
+					class="bg-transparent py-2 text-gray-700 placeholder-gray-400 focus:outline-none"
+				/>
+				{#if searchInput}
+					<button
+						type="button"
+						onclick={clearSearch}
+						class="text-sm text-gray-500 hover:text-gray-700"
 					>
-						<option value="All">All Statuses</option>
-						<option value="Pending">Pending</option>
-						<option value="Preparing">Preparing</option>
-						<option value="Ready">Ready</option>
-						<option value="Completed">Delivered</option>
-						<option value="Cancelled">Cancelled</option>
-					</select>
-				</div>
+						Clear
+					</button>
+				{/if}
 			</div>
+
+			<select
+				bind:value={selectedCategoryInput}
+				class="rounded-xl border-0 bg-white px-4 py-3 shadow-lg shadow-amber-900/10 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+				onchange={(e) => {
+					const selected = e.currentTarget.value;
+					if (selected === 'All') {
+						clearSearch();
+					} else {
+						e.currentTarget.form?.requestSubmit();
+					}
+				}}
+			>
+				<option value="All">All Statuses</option>
+				<option value="Pending">Pending</option>
+				<option value="Preparing">Preparing</option>
+				<option value="Ready">Ready</option>
+				<option value="Completed">Delivered</option>
+				<option value="Cancelled">Cancelled</option>
+			</select>
 		</form>
+	</section>
 
-		<section class="p-4">
-			<!-- <h2 class="text-2xl font-bold mb-4">Pending Orders</h2> -->
-
+	<!-- Orders -->
+	<main class="container mx-auto px-4 py-8">
+		{#if $isLoggedIn}
 			{#if loading}
-				<div class="text-secondary flex items-center justify-center text-center">
-					<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24"
-						><path
-							fill="none"
-							stroke="currentColor"
-							stroke-dasharray="16"
-							stroke-dashoffset="16"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 3c4.97 0 9 4.03 9 9"
-							><animate
-								fill="freeze"
-								attributeName="stroke-dashoffset"
-								dur="0.2s"
-								values="16;0"
-							/><animateTransform
-								attributeName="transform"
-								dur="1.5s"
-								repeatCount="indefinite"
-								type="rotate"
-								values="0 12 12;360 12 12"
-							/></path
-						></svg
-					>
+				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+					{#each Array(3) as _}
+						<div class="animate-pulse rounded-2xl bg-white p-6 shadow-md">
+							<div class="mb-4 h-6 w-3/4 rounded bg-gray-200"></div>
+							<div class="mb-2 h-4 w-1/2 rounded bg-gray-200"></div>
+							<div class="h-20 w-full rounded bg-gray-200"></div>
+						</div>
+					{/each}
 				</div>
 			{:else if orders.length === 0}
-				<p class="text-center text-gray-600">You have no pending orders.</p>
+				<div class="py-16 text-center">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="mx-auto h-16 w-16 text-gray-300"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.5"
+					>
+						<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+						<rect x="9" y="3" width="6" height="4" rx="1" />
+						<path d="M9 12h6" />
+						<path d="M9 16h6" />
+					</svg>
+					<h3 class="mt-4 text-lg font-medium text-gray-700">No Pending Orders</h3>
+					<p class="mt-1 text-gray-500">You don't have any active orders at the moment.</p>
+				</div>
 			{:else}
-				<ul class="flex flex-col space-y-4 px-2 md:grid md:grid-cols-2 md:space-x-4 lg:grid-cols-3">
-					{#each orders as order}
-						<li class="space-y-2 rounded-xl border border-gray-300 p-4 shadow-md">
-							<h3 class="text-primary text-sm font-bold">👤 {order.name || 'Unnamed User'}</h3>
-							<div class="flex items-center justify-between">
-								<h3 class="text-lg font-semibold">Order Ref: {order.reference}</h3>
-								{#if order.status == 'Pending'}
-									<span
-										class="rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800"
-									>
-										{order.status}
-									</span>
-								{:else if order.status == 'Preparing'}
-									<span
-										class="rounded-full bg-orange-200 px-2.5 py-1 text-xs font-semibold text-orange-800"
-									>
-										{order.status}
-									</span>
-								{:else if order.status == 'Ready'}
-									<span
-										class="rounded-full bg-green-200 px-2.5 py-1 text-xs font-semibold text-green-800"
-									>
-										{order.status}
-									</span>
-								{/if}
-							</div>
-
-							<div class="text-sm text-gray-600">
-								<p>
-									<strong>Total:</strong> ₦{(
-										order.orderTotal ??
-										order.totalAmount ??
-										0
-									).toLocaleString()}
-								</p>
-								<!-- {#if order.deliveryType === 'home'}
-									<p><strong>Delivery Fee:</strong> ₦{order.deliveryFee}</p>
-								{/if} -->
-								<p><strong>Quantity:</strong> {order.quantity}</p>
-								<!-- <p><strong>Delivery Type:</strong> {order.deliveryType}</p> -->
-								{#if order.deliveryType === 'tableService'}
-									<p><strong>Delivery Type:</strong> Table Service</p>
-								{:else if order.deliveryType === 'home'}
-									<p><strong>Delivery Type:</strong> Home Delivery</p>
-								{:else if order.deliveryType === 'restaurantPickup'}
-									<p><strong>Delivery Type:</strong> Pickup</p>
-								{/if}
-								{#if order.deliveryType === 'restaurantPickup'}
-									<p><strong>Pickup Time:</strong> {order.pickupTime}</p>
-								{:else if order.deliveryType === 'home'}
-									<p><strong>Address:</strong> {order.homeAddress}</p>
-								{:else if order.deliveryType === 'tableService'}
-									<p><strong>Table Number:</strong> {order.tableNumber}</p>
-								{/if}
-								<p><strong>Phone:</strong> {order.phone}</p>
-								<p><strong>Restaurant:</strong> {restaurantName}</p>
-							</div>
-							<div class="dropdown dropdown-hover">
-								<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-								<!-- svelte-ignore a11y_label_has_associated_control -->
-								<label tabindex="0" class="btn btn-sm btn-outline mb-1">View Dishes</label>
-								<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-								<ul
-									tabindex="0"
-									class="dropdown-content menu bg-base-100 rounded-box z-[1] mx-auto flex max-h-64 w-64 overflow-y-auto p-2 shadow"
+				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+					{#each orders as order, i}
+						<article
+							class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:shadow-lg"
+							in:fly={{ y: 20, duration: 300, delay: i * 50 }}
+						>
+							<!-- Header -->
+							<div class="mb-4 flex items-start justify-between">
+								<div>
+									<p class="text-sm text-gray-500">Order Reference</p>
+									<h3 class="font-playfair text-lg font-semibold text-gray-900">
+										{order.reference}
+									</h3>
+								</div>
+								<span
+									class="rounded-full border px-3 py-1 text-xs font-medium {getStatusColor(
+										order.status
+									)}"
 								>
-									{#each order.dishes as item, i}
-										<li class="text-start">
-											<div>
-												🍽️ <strong class="text-primary">{item.name}</strong>
-
-												<span class="text-gray-500"
-													>Qty: {item.quantity} × ₦{item.amount.toLocaleString()}</span
-												>
-											</div>
-										</li>
-									{/each}
-								</ul>
+									{order.status}
+								</span>
 							</div>
 
-							{#if order.status != 'Ready'}
-								<p class="text-xs text-gray-400">
-									You will be contacted or receive an Email when your order is ready.
+							<!-- Details -->
+							<div class="mb-4 space-y-2 text-sm">
+								<div class="flex justify-between">
+									<span class="text-gray-500">Customer</span>
+									<span class="font-medium text-gray-900">{order.name || 'Guest'}</span>
+								</div>
+								<div class="flex justify-between">
+									<span class="text-gray-500">Total</span>
+									<span class="font-semibold text-amber-700"
+										>₦{(order.orderTotal ?? order.totalAmount ?? 0).toLocaleString()}</span
+									>
+								</div>
+								<div class="flex justify-between">
+									<span class="text-gray-500">Items</span>
+									<span class="font-medium text-gray-900">{order.quantity}</span>
+								</div>
+								<div class="flex justify-between">
+									<span class="text-gray-500">Type</span>
+									<span class="text-gray-900">
+										{#if order.deliveryType === 'tableService'}Table Service
+										{:else if order.deliveryType === 'home'}Home Delivery
+										{:else if order.deliveryType === 'restaurantPickup'}Pickup
+										{:else}{order.deliveryType}{/if}
+									</span>
+								</div>
+							</div>
+
+							<!-- Additional Info -->
+							{#if order.deliveryType === 'restaurantPickup' && order.pickupTime}
+								<p class="mb-3 text-sm text-gray-600">
+									<strong>Pickup:</strong>
+									{order.pickupTime}
+								</p>
+							{:else if order.deliveryType === 'home' && order.homeAddress}
+								<p class="mb-3 text-sm text-gray-600">
+									<strong>Address:</strong>
+									{order.homeAddress}
+								</p>
+							{:else if order.deliveryType === 'tableService' && order.tableNumber}
+								<p class="mb-3 text-sm text-gray-600">
+									<strong>Table:</strong>
+									{order.tableNumber}
 								</p>
 							{/if}
 
-							<p class="text-xs text-gray-400">
-								Ordered on: {new Date(order.created).toLocaleString()}
-							</p>
-						</li>
+							<!-- Dishes -->
+							<div class="mb-4 border-t border-gray-100 pt-4">
+								<button
+									class="flex w-full items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+									onclick={(e) => {
+										const details = e.currentTarget.nextElementSibling;
+										if (details) details.classList.toggle('hidden');
+									}}
+								>
+									<span>View Dishes</span>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										class="h-4 w-4"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+									>
+										<path d="m6 9 6 6 6-6" />
+									</svg>
+								</button>
+								<div class="mt-2 hidden space-y-2">
+									{#each order.dishes as item}
+										<div class="flex justify-between rounded-lg bg-amber-50 px-3 py-2 text-sm">
+											<span class="text-gray-800">{item.name}</span>
+											<span class="text-gray-500">×{item.quantity}</span>
+										</div>
+									{/each}
+								</div>
+							</div>
+
+							<!-- Footer -->
+							<div class="border-t border-gray-100 pt-3 text-xs text-gray-400">
+								Ordered: {new Date(order.created).toLocaleDateString()} at {new Date(
+									order.created
+								).toLocaleTimeString()}
+							</div>
+						</article>
 					{/each}
-				</ul>
+				</div>
 			{/if}
-		</section>
-	{:else}
-		<p class="mt-8 text-center text-gray-500 italic">
-			You must be logged in inorder to view pending orders.
-		</p>
-		<a href="/login" class="btn btn-primary mx-auto mt-4 flex w-fit items-center justify-center"
-			>Signup/login</a
-		>
-	{/if}
-</main>
+		{:else}
+			<div class="py-16 text-center">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="mx-auto h-16 w-16 text-gray-300"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.5"
+				>
+					<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+					<polyline points="10 17 15 12 10 7" />
+					<line x1="15" x2="3" y1="12" y2="12" />
+				</svg>
+				<h3 class="mt-4 text-lg font-medium text-gray-700">Login Required</h3>
+				<p class="mt-1 text-gray-500">Please login to view your pending orders.</p>
+				<a href="/login" class="btn btn-primary mt-4">Sign In</a>
+			</div>
+		{/if}
+	</main>
+</div>
