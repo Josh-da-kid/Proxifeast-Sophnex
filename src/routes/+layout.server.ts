@@ -1,4 +1,3 @@
-
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 import pb from '$lib/pb';
@@ -25,9 +24,15 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 	// ✅ Set restaurant in locals
 	locals.restaurant = restaurant;
 
+	// Fetch all restaurants for restaurant lookup across the app
+	const allRestaurants = await pb.collection('restaurants').getFullList({
+		sort: 'name',
+		filter: 'name != "ProxifeastLocal"'
+	});
+
 	return {
 		user: locals.user ?? null,
-		restaurant
+		restaurant,
+		allRestaurants
 	};
 };
-

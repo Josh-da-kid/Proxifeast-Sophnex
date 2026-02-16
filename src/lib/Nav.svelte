@@ -3,11 +3,10 @@
 	import { menuItems, toggleMenu, getHref, isAdminPage } from './menuItems.svelte';
 	import { page } from '$app/stores';
 	import { onMount, onDestroy } from 'svelte';
-	import { get } from 'svelte/store'; // You might not need get() if you use derived directly
+	import { get } from 'svelte/store';
 
 	let isAdmin = false;
 
-	// Keep it reactive using subscription
 	const unsubscribe = isAdminPage.subscribe((val) => {
 		isAdmin = val;
 	});
@@ -19,17 +18,16 @@
 	let previousScrollY = 0;
 	let showHeader = $state(true);
 
-	// Scroll-based header toggle
 	function handleScroll() {
 		const currentScrollY = window.scrollY;
-		showHeader = currentScrollY < previousScrollY;
+		showHeader = currentScrollY < previousScrollY || currentScrollY < 50;
 		previousScrollY = currentScrollY;
 	}
 
 	function closeSideBar() {
 		const drawerToggle = document.getElementById('my-drawer');
-		// @ts-ignore
 		if (drawerToggle) {
+			// @ts-ignore
 			drawerToggle.checked = false;
 		}
 	}
@@ -39,7 +37,6 @@
 		return () => window.removeEventListener('scroll', handleScroll);
 	});
 
-	// Directly use the derived user store for reactivity
 	const user = derived(page, ($page) => $page.data.user);
 
 	const restaurantName = get(page).data.restaurant?.name;
@@ -49,400 +46,511 @@
 </script>
 
 <nav
-	class="navbar bg-primary text-primary-content sticky top-0 z-50 flex items-center justify-center rounded-b-3xl px-5 shadow-lg transition-transform duration-300 ease-in-out"
+	class="navbar bg-primary text-primary-content sticky top-0 z-[60] flex h-16 items-center justify-between px-4 shadow-lg transition-transform duration-300 ease-in-out md:px-6"
 	class:translate-y-[-100%]={!showHeader}
 	class:translate-y-0={showHeader}
 >
-	<div class="flex-1 flex-col px-1">
-		<a href="/" class="font-playfair text-2xl font-bold normal-case md:text-3xl">
-			{restaurantName}</a
-		>
-		<span class="hidden font-bold lg:flex">{$user?.email}</span>
+	<!-- Logo Section -->
+	<div class="flex items-center gap-3">
+		<a href="/" class="flex flex-col">
+			<span class="font-playfair text-xl leading-tight font-bold md:text-2xl">
+				{restaurantName}
+			</span>
+		</a>
 	</div>
 
-	<div class="flex justify-center">
-		<label for="my-drawer" class="btn btn-primary drawer-button flex items-center justify-center">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				class="h-10 w-10"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-			>
-				<path
+	<!-- Desktop Navigation -->
+	<div class="hidden items-center gap-1 lg:flex">
+		{#if $user}
+			<a href="/checkout" class="btn btn-ghost btn-sm gap-2">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="18"
+					height="18"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
 					stroke-linecap="round"
 					stroke-linejoin="round"
-					stroke-width="2"
-					d={isMenuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
-				/>
-			</svg>
-		</label>
+					><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path
+						d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+					/></svg
+				>
+				Cart
+			</a>
+		{/if}
 	</div>
 
-	{#if $isAdminPage}
-		<!-- <nav class="hidden gap-2 lg:flex">
-			<a
-				href="/admin"
-				class="btn btn-ghost {$page.url.pathname === '/admin'
-					? 'bg-white font-bold text-blue-700'
-					: ''}">Dashboard</a
-			>
-			<a
-				href="/admin/admin-menu"
-				class="btn btn-ghost {$page.url.pathname === '/admin/admin-menu'
-					? 'bg-white font-bold text-blue-700'
-					: ''}">Menu</a
-			>
-			<a
-				href="/admin/admin-order"
-				class="btn btn-ghost {$page.url.pathname === '/admin/admin-order'
-					? 'bg-white font-bold text-blue-700'
-					: ''}">Pending Orders</a
-			>
-			<a
-				href="/admin/admin-history"
-				class="btn btn-ghost {$page.url.pathname === '/admin/admin-history'
-					? 'bg-white font-bold text-blue-700'
-					: ''}">Order History</a
-			>
-			<a
-				href="/admin/admin-reservation"
-				class="btn btn-ghost {$page.url.pathname === '/admin/admin-reservation'
-					? 'bg-white font-bold text-blue-700'
-					: ''}">Reservations</a
-			>
-
-			<div>
-				{#if $user}
-					<button
-						onclick={my_modal_2.showModal()}
-						class="btn btn-ghost bg-secondary ml-2 hidden text-lg md:flex"
-					>
-						Logout
-					</button>
-
-					<dialog id="my_modal_2" class="modal">
-						<div class="modal-box text-black">
-							<h3 class="text-lg font-bold">
-								Hey <span class="text-secondary">{$user?.name}!</span>
-							</h3>
-							<p class="py-4">Are you sure you want to logout?</p>
-							<div class="modal-action">
-								<form method="dialog">
-									<button class="btn btn-primary">Cancel</button>
-								</form>
-								<form action="/admin/admin-logout" method="POST">
-									if there is a button in form, it will close the modal
-									<button class="btn btn-secondary">Logout</button>
-								</form>
-							</div>
-						</div>
-					</dialog>
-				{:else}
-					<a href="/admin/admin-login">
-						<button class="btn btn-ghost ml-2 hidden bg-white text-lg text-blue-700 md:flex">
-							Login
-						</button>
-					</a>
-				{/if}
-			</div>
-		</nav> -->
-	{:else}
-		<!-- <div
-			class={`bg-primary flex-none flex-col gap-2 p-6 lg:flex lg:flex-row lg:bg-transparent lg:p-0 ${
-				isMenuOpen ? 'flex' : 'hidden'
-			} lg:flex`}
-		>
-			<div>
-				<a href="/#menu">
-					<button
-						class="btn btn-ghost text-lg {$page.url.pathname === '/' && $page.url.hash === '#menu'
-							? 'bg-white font-bold text-blue-700'
-							: ''}"
-						onclick={() => (isMenuOpen = false)}>Menu</button
-					>
-				</a>
-			</div>
-
-			{#each menuItems as item}
-				<a
-					href={getHref(item.id)}
-					class="btn btn-ghost nav-link text-lg font-semibold normal-case {$page.url.pathname ===
-					getHref(item.id)
-						? 'bg-white font-bold text-blue-700'
-						: ''}"
-					onclick={() => (isMenuOpen = false)}>{item.label}</a
-				>
-			{/each}
-		</div>
-
-		<div>
-			<a href="/reservation">
-				<button class="btn btn-ghost bg-secondary ml-2 hidden text-lg lg:flex">
-					Book Reservation
-				</button>
-			</a>
-		</div>
-
-		<div>
-			{#if $user}
-				<button
-					onclick={my_modal_1.showModal()}
-					class="btn btn-ghost bg-secondary ml-2 hidden text-lg lg:flex"
-				>
-					Logout
-				</button>
-
-				<dialog id="my_modal_1" class="modal">
-					<div class="modal-box text-black">
-						<h3 class="text-lg font-bold">
-							Hey <span class="text-secondary">{$user?.name}!</span>
-						</h3>
-						<p class="py-4">Are you sure you want to logout?</p>
-						<div class="modal-action">
-							<form method="dialog">
-								<button class="btn btn-primary">Cancel</button>
-							</form>
-							<form action="/logout" method="POST">
-								if there is a button in form, it will close the modal
-								<button class="btn btn-secondary">Logout</button>
-							</form>
-						</div>
-					</div>
-				</dialog>
-			{:else}
-				<a href="/login">
-					<button class="btn btn-ghost bg-secondary ml-2 hidden text-lg lg:flex">
-						Signup/Login
-					</button>
-				</a>
-			{/if}
-		</div> -->
-	{/if}
+	<!-- Mobile Menu Button -->
+	<div class="flex items-center gap-2">
+		<label for="my-drawer" class="btn btn-ghost btn-circle drawer-button">
+		<svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5" d="M4 7h3m13 0h-9m9 10h-3M4 17h9m-9-5h16"/></svg>
+		</label>
+	</div>
 </nav>
 
 {#if $isAdminPage}
-	<div class="drawer-end drawer relative inset-0 z-100 mx-auto overflow-hidden">
+	<div class="drawer drawer-end relative z-[70]">
 		<input id="my-drawer" type="checkbox" class="drawer-toggle" />
-		<div class="drawer-side">
+		<div class="drawer-side z-[80]">
 			<label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
-			<ul class="menu min-h-full w-80 bg-blue-800 p-4 text-lg text-white">
-				<li>
-					<a
-						onclick={closeSideBar}
-						href="/admin"
-						class="btn-ghost {$page.url.pathname === '/admin'
-							? 'bg-white font-bold text-blue-700'
-							: ''}"><button class="rounded-lg p-2">Dashboard</button></a
-					>
-				</li>
-				<li>
-					<a
-						onclick={closeSideBar}
-						href="/admin/analytics"
-						class="btn-ghost {$page.url.pathname === '/admin/analytics'
-							? 'bg-white font-bold text-blue-700'
-							: ''}"><button class="rounded-lg p-2">Analytics</button></a
-					>
-				</li>
-				<li>
-					<a
-						onclick={closeSideBar}
-						href="/admin/admin-menu"
-						class="btn-ghost {$page.url.pathname === '/admin/admin-menu'
-							? 'bg-white font-bold text-blue-700'
-							: ''}"><button class="rounded-lg p-2">Menu</button></a
-					>
-				</li>
-				<li>
-					<a
-						onclick={closeSideBar}
-						href="/admin/admin-order"
-						class="btn-ghost {$page.url.pathname === '/admin/admin-order'
-							? 'bg-white font-bold text-blue-700'
-							: ''}"><button class="rounded-lg p-2">Pending Orders</button></a
-					>
-				</li>
-				<li>
-					<a
-						onclick={closeSideBar}
-						href="/admin/admin-history"
-						class="btn-ghost {$page.url.pathname === '/admin/admin-history'
-							? 'bg-white font-bold text-blue-700'
-							: ''}"><button class="rounded-lg p-2">Order History</button></a
-					>
-				</li>
+			<div class="bg-base-100 flex h-full w-80 flex-col">
+				<!-- Drawer Header -->
+				<div class="bg-primary text-primary-content p-6">
+					<h2 class="font-playfair text-xl font-bold">{restaurantName}</h2>
+					<p class="text-primary-content/80 text-sm">Admin Panel</p>
+				</div>
 
-				<li>
-					<a
-						onclick={closeSideBar}
-						href="/admin/admin-reservation"
-						class="btn-ghost {$page.url.pathname === '/admin/admin-reservation'
-							? 'bg-white font-bold text-blue-700'
-							: ''}"><button class="rounded-lg p-2">Reservations</button></a
-					>
-				</li>
-				<li>
+				<!-- Navigation Links -->
+				<ul class="menu flex-1 gap-1 p-4">
+					<li>
+						<a
+							onclick={closeSideBar}
+							href="/admin"
+							class={$page.url.pathname === '/admin' ? 'active' : ''}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><rect width="7" height="9" x="3" y="3" rx="1" /><rect
+									width="7"
+									height="5"
+									x="14"
+									y="3"
+									rx="1"
+								/><rect width="7" height="9" x="14" y="12" rx="1" /><rect
+									width="7"
+									height="5"
+									x="3"
+									y="16"
+									rx="1"
+								/></svg
+							>
+							Dashboard
+						</a>
+					</li>
+					<li>
+						<a
+							onclick={closeSideBar}
+							href="/admin/analytics"
+							class={$page.url.pathname === '/admin/analytics' ? 'active' : ''}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><line x1="18" y1="20" x2="18" y2="10" /><line
+									x1="12"
+									y1="20"
+									x2="12"
+									y2="4"
+								/><line x1="6" y1="20" x2="6" y2="14" /></svg
+							>
+							Analytics
+						</a>
+					</li>
+					<li>
+						<a
+							onclick={closeSideBar}
+							href="/admin/admin-menu"
+							class={$page.url.pathname === '/admin/admin-menu' ? 'active' : ''}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><path d="M3 7v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7" /><path d="M3 7h18" /><path
+									d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+								/></svg
+							>
+							Menu
+						</a>
+					</li>
+					<li>
+						<a
+							onclick={closeSideBar}
+							href="/admin/admin-order"
+							class={$page.url.pathname === '/admin/admin-order' ? 'active' : ''}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg
+							>
+							Pending Orders
+						</a>
+					</li>
+					<li>
+						<a
+							onclick={closeSideBar}
+							href="/admin/admin-history"
+							class={$page.url.pathname === '/admin/admin-history' ? 'active' : ''}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><path d="M3 3v18h18" /><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" /></svg
+							>
+							Order History
+						</a>
+					</li>
+					<li>
+						<a
+							onclick={closeSideBar}
+							href="/admin/admin-reservation"
+							class={$page.url.pathname === '/admin/admin-reservation' ? 'active' : ''}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><path d="M8 2v4" /><path d="M16 2v4" /><rect
+									width="18"
+									height="18"
+									x="3"
+									y="4"
+									rx="2"
+								/><path d="M3 10h18" /></svg
+							>
+							Reservations
+						</a>
+					</li>
+				</ul>
+
+				<!-- Drawer Footer -->
+				<div class="border-base-300 border-t p-4">
 					{#if $user}
+						<div class="mb-4">
+							<p class="text-sm font-medium">{$user.name}</p>
+							<p class="text-base-content/60 text-xs">{$user.email}</p>
+						</div>
 						<button
 							onclick={() => logoutModalAdmin.showModal()}
-							class="btn btn-ghost bg-secondary mt-2 ml-2 text-lg md:flex"
+							class="btn btn-error btn-outline w-full"
 						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline
+									points="16 17 21 12 16 7"
+								/><line x1="21" y1="12" x2="9" y2="12" /></svg
+							>
 							Logout
 						</button>
 
-						<p class="text-lg font-bold">{$user.email}</p>
-
 						<dialog bind:this={logoutModalAdmin} id="logout_modal_admin" class="modal">
-							<div class="modal-box text-black">
-								<h3 class="text-lg font-bold">
-									Hey <span class="text-secondary">{$user?.name}!</span>
-								</h3>
+							<div class="modal-box">
+								<h3 class="text-lg font-bold">Confirm Logout</h3>
 								<p class="py-4">Are you sure you want to logout?</p>
 								<div class="modal-action">
 									<form method="dialog">
-										<button class="btn btn-primary">Cancel</button>
+										<button class="btn">Cancel</button>
 									</form>
 									<form action="/admin/admin-logout" method="POST">
-										<!-- if there is a button in form, it will close the modal -->
-										<button class="btn btn-secondary">Logout</button>
+										<button class="btn btn-error">Logout</button>
 									</form>
 								</div>
 							</div>
 						</dialog>
 					{:else}
-						<!-- svelte-ignore node_invalid_placement_ssr -->
-
-						<a
-							onclick={closeSideBar}
-							class="btn bg-secondary mt-2 rounded-lg p-2 text-white"
-							href="/admin/admin-login">Login</a
-						>
+						<a onclick={closeSideBar} href="/admin/admin-login" class="btn btn-primary w-full">
+							Login
+						</a>
 					{/if}
-				</li>
-			</ul>
+				</div>
+			</div>
 		</div>
 	</div>
 {:else}
-	<div class="drawer drawer-end relative inset-0 z-100 mx-auto overflow-hidden">
+	<div class="drawer drawer-end relative z-[70]">
 		<input id="my-drawer" type="checkbox" class="drawer-toggle" />
-		<div class="drawer-side">
+		<div class="drawer-side z-[80]">
 			<label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
-			<ul class="menu min-h-full w-80 bg-blue-800 p-4 text-lg text-white">
-				<li>
-					<a
-						onclick={closeSideBar}
-						href="/#menu"
-						class="btn-ghost text-lg {$page.url.pathname === '/' && $page.url.hash === '#menu'
-							? 'bg-white font-bold text-blue-700'
-							: ''}"><button class="rounded-lg p-2">Menu</button></a
-					>
-				</li>
-				<li>
-					<a
-						onclick={closeSideBar}
-						href="/about"
-						class="btn-ghost {$page.url.pathname === '/about'
-							? 'bg-white font-bold text-blue-700'
-							: ''}"><button class="rounded-lg p-2">About</button></a
-					>
-				</li>
-				<li>
-					<a
-						onclick={closeSideBar}
-						href="/contact"
-						class="btn-ghost {$page.url.pathname === '/contact'
-							? 'bg-white font-bold text-blue-700'
-							: ''}"><button class="rounded-lg p-2">Contact</button></a
-					>
-				</li>
+			<div class="bg-base-100 flex h-full w-80 flex-col">
+				<!-- Drawer Header -->
+				<div class="bg-primary text-primary-content p-6">
+					<h2 class="font-playfair text-xl font-bold">{restaurantName}</h2>
+					<p class="text-primary-content/80 text-sm">Menu</p>
+				</div>
+
+				<!-- Navigation Links -->
+				<ul class="menu flex-1 gap-1 p-4">
 					<li>
-					<a
-						onclick={closeSideBar}
-						href="/restaurants"
-						class="btn-ghost {$page.url.pathname === '/restaurants'
-							? 'bg-white font-bold text-blue-700'
-							: ''}"><button class="rounded-lg p-2">Featured Restaurants</button></a
-					>
-				</li>
+						<a onclick={closeSideBar} href="/" class={$page.url.pathname === '/' ? 'active' : ''}>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline
+									points="9 22 9 12 15 12 15 22"
+								/></svg
+							>
+							Home
+						</a>
+					</li>
+					<li>
+						<a
+							onclick={closeSideBar}
+							href="/restaurants"
+							class={$page.url.pathname === '/restaurants' ? 'active' : ''}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><path d="M2 7.5V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2.5" /><path
+									d="M2 17.5a.5.5 0 0 1 .5-.5h19a.5.5 0 0 1 .5.5v1a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 18.5Z"
+								/><path d="m4 7.5 1.6 6.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L20 7.5" /></svg
+							>
+							Restaurants
+						</a>
+					</li>
+					<li>
+						<a
+							onclick={closeSideBar}
+							href="/checkout"
+							class={$page.url.pathname === '/checkout' ? 'active' : ''}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path
+									d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+								/></svg
+							>
+							Cart
+						</a>
+					</li>
+					<li>
+						<a
+							onclick={closeSideBar}
+							href="/pending"
+							class={$page.url.pathname === '/pending' ? 'active' : ''}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg
+							>
+							Pending Orders
+						</a>
+					</li>
+					<li>
+						<a
+							onclick={closeSideBar}
+							href="/history"
+							class={$page.url.pathname === '/history' ? 'active' : ''}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><path d="M3 3v18h18" /><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" /></svg
+							>
+							Order History
+						</a>
+					</li>
+					<li>
+						<a
+							onclick={closeSideBar}
+							href="/reservation"
+							class={$page.url.pathname === '/reservation' ? 'active' : ''}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><path d="M8 2v4" /><path d="M16 2v4" /><rect
+									width="18"
+									height="18"
+									x="3"
+									y="4"
+									rx="2"
+								/><path d="M3 10h18" /></svg
+							>
+							Book Reservation
+						</a>
+					</li>
+					<li>
+						<a
+							onclick={closeSideBar}
+							href="/about"
+							class={$page.url.pathname === '/about' ? 'active' : ''}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg
+							>
+							About
+						</a>
+					</li>
+					<li>
+						<a
+							onclick={closeSideBar}
+							href="/contact"
+							class={$page.url.pathname === '/contact' ? 'active' : ''}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><path
+									d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+								/></svg
+							>
+							Contact
+						</a>
+					</li>
+				</ul>
 
-
-				<li>
-					<a
-						onclick={closeSideBar}
-						href="/checkout"
-						class="btn-ghost {$page.url.pathname === '/checkout'
-							? 'bg-white font-bold text-blue-700'
-							: ''}"><button class="rounded-lg p-2">Checkout</button></a
-					>
-				</li>
-				<li>
-					<a
-						onclick={closeSideBar}
-						href="/pending"
-						class="btn-ghost {$page.url.pathname === '/pending'
-							? 'bg-white font-bold text-blue-700'
-							: ''}"><button class="rounded-lg p-2">Pending Orders</button></a
-					>
-				</li>
-				<li>
-					<a
-						onclick={closeSideBar}
-						href="/history"
-						class="btn-ghost {$page.url.pathname === '/history'
-							? 'bg-white font-bold text-blue-700'
-							: ''}"><button class="rounded-lg p-2">Order History</button></a
-					>
-				</li>
-
-				<li>
-					<a
-						onclick={closeSideBar}
-						href="/reservation"
-						class="btn-ghost {$page.url.pathname === '/reservation'
-							? 'bg-white font-bold text-blue-700'
-							: ''}"><button class="rounded-lg p-2">Book Reservation</button></a
-					>
-				</li>
-				<li>
+				<!-- Drawer Footer -->
+				<div class="border-base-300 border-t p-4">
 					{#if $user}
+						<div class="mb-4">
+							<p class="text-sm font-medium">{$user.name}</p>
+							<p class="text-base-content/60 text-xs">{$user.email}</p>
+						</div>
 						<button
 							onclick={() => logoutModalUser.showModal()}
-							class="btn btn-ghost bg-secondary mt-2 ml-2 text-lg md:flex"
+							class="btn btn-error btn-outline w-full"
 						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline
+									points="16 17 21 12 16 7"
+								/><line x1="21" y1="12" x2="9" y2="12" /></svg
+							>
 							Logout
 						</button>
 
-						<p class="text-lg font-bold">{$user.email}</p>
-
 						<dialog bind:this={logoutModalUser} id="logout_modal_user" class="modal">
-							<div class="modal-box text-black">
-								<h3 class="text-lg font-bold">
-									Hey <span class="text-secondary">{$user?.name}!</span>
-								</h3>
+							<div class="modal-box">
+								<h3 class="text-lg font-bold">Confirm Logout</h3>
 								<p class="py-4">Are you sure you want to logout?</p>
 								<div class="modal-action">
 									<form method="dialog">
-										<button class="btn btn-primary">Cancel</button>
+										<button class="btn">Cancel</button>
 									</form>
 									<form action="/logout" method="POST">
-										<!-- if there is a button in form, it will close the modal -->
-										<button class="btn btn-secondary">Logout</button>
+										<button class="btn btn-error">Logout</button>
 									</form>
 								</div>
 							</div>
 						</dialog>
 					{:else}
-						<!-- svelte-ignore node_invalid_placement_ssr -->
-
-						<a
-							onclick={closeSideBar}
-							href="/login"
-							class="bg-secondary btn mt-2 rounded-lg p-2 text-lg text-white">Signup/Login</a
-						>
+						<a onclick={closeSideBar} href="/login" class="btn btn-primary w-full">
+							Sign In / Register
+						</a>
 					{/if}
-				</li>
-			</ul>
+				</div>
+			</div>
 		</div>
 	</div>
 {/if}
