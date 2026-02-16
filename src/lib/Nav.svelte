@@ -61,6 +61,20 @@
 
 	<!-- Desktop Navigation -->
 	<div class="hidden items-center gap-1 lg:flex">
+		<a href="/install-guide" class="btn btn-ghost btn-sm gap-2 hover:bg-white">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="18"
+				height="18"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"><path d="M12 2v20M2 12h20" /></svg
+			>
+			Install App
+		</a>
 		{#if $user}
 			<a href="/checkout" class="btn btn-ghost btn-sm gap-2">
 				<svg
@@ -85,7 +99,15 @@
 	<!-- Mobile Menu Button -->
 	<div class="flex items-center gap-2">
 		<label for="my-drawer" class="btn btn-ghost btn-circle drawer-button">
-		<svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5" d="M4 7h3m13 0h-9m9 10h-3M4 17h9m-9-5h16"/></svg>
+			<svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24"
+				><path
+					fill="none"
+					stroke="currentColor"
+					stroke-linecap="round"
+					stroke-width="1.5"
+					d="M4 7h3m13 0h-9m9 10h-3M4 17h9m-9-5h16"
+				/></svg
+			>
 		</label>
 	</div>
 </nav>
@@ -339,6 +361,26 @@
 								/></svg
 							>
 							Home
+						</a>
+					</li>
+					<li>
+						<a
+							onclick={closeSideBar}
+							href="/install-guide"
+							class={$page.url.pathname === '/install-guide' ? 'active' : ''}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"><path d="M12 2v20M2 12h20" /></svg
+							>
+							Install App
 						</a>
 					</li>
 					<li>

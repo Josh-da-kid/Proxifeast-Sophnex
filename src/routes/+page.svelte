@@ -50,6 +50,12 @@
 	let unsubscribeDish: () => void;
 	let unsubscribeCart: () => void;
 
+	// PWA Install Banner State
+	let showInstallBanner = $state(false);
+	let isIOS = $state(false);
+	let deferredPrompt: any = null;
+	let installDismissed = $state(false);
+
 	// Initialize state from URL on mount
 	onMount(() => {
 		searchInput = searchQuery;
@@ -79,7 +85,68 @@
 				}
 			}, 100);
 		}
+
+		// Check if install banner was previously dismissed
+		const dismissed = localStorage.getItem('pwa-install-dismissed');
+		if (dismissed) {
+			installDismissed = true;
+		}
+
+		// Check if already installed
+		const isStandalone =
+			window.matchMedia('(display-mode: standalone)').matches ||
+			(window.navigator as any).standalone === true;
+
+		if (!isStandalone && !dismissed) {
+			// Check if iOS
+			isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+
+			if (isIOS) {
+				// Show iOS banner after 2 seconds
+				setTimeout(() => {
+					showInstallBanner = true;
+				}, 2000);
+			} else {
+				// Listen for beforeinstallprompt event for Android/Chrome
+				window.addEventListener('beforeinstallprompt', (e) => {
+					e.preventDefault();
+					deferredPrompt = e;
+					setTimeout(() => {
+						showInstallBanner = true;
+					}, 2000);
+				});
+			}
+		}
+
+		// Listen for app installed event
+		window.addEventListener('appinstalled', () => {
+			showInstallBanner = false;
+			deferredPrompt = null;
+			localStorage.setItem('pwa-install-dismissed', 'true');
+		});
 	});
+
+	function dismissInstallBanner() {
+		showInstallBanner = false;
+		localStorage.setItem('pwa-install-dismissed', 'true');
+	}
+
+	async function installPWA() {
+		if (isIOS) {
+			// iOS requires manual installation, scroll to show instructions
+			return;
+		}
+
+		if (deferredPrompt) {
+			deferredPrompt.prompt();
+			const { outcome } = await deferredPrompt.userChoice;
+			if (outcome === 'accepted') {
+				showInstallBanner = false;
+				localStorage.setItem('pwa-install-dismissed', 'true');
+			}
+			deferredPrompt = null;
+		}
+	}
 
 	onDestroy(() => {
 		cleanupSubscriptions();
@@ -421,6 +488,149 @@
 {/if}
 
 <div class="text-base-content flex min-h-screen flex-col">
+	<!-- PWA Install Banner -->
+	{#if showInstallBanner}
+		<div
+			class="fixed top-20 right-4 left-4 z-[45] md:right-4 md:left-auto md:w-[400px]"
+			transition:fly={{ y: -100, duration: 500 }}
+		>
+			<div class="bg-primary text-primary-content overflow-hidden rounded-2xl shadow-2xl">
+				<!-- Header -->
+				<div class="bg-primary/80 flex items-center justify-between p-4">
+					<div class="flex items-center gap-3">
+						<div class="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="20"
+								height="20"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"><path d="M12 2v20M2 12h20" /></svg
+							>
+						</div>
+						<div>
+							<h3 class="text-sm font-bold">Install Proxifeast App</h3>
+							<p class="text-primary-content/80 text-xs">Order faster with our app</p>
+						</div>
+					</div>
+					<button
+						onclick={dismissInstallBanner}
+						class="btn btn-ghost btn-circle btn-sm hover:bg-white/20"
+						aria-label="Dismiss"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="18"
+							height="18"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg
+						>
+					</button>
+				</div>
+
+				<!-- Instructions -->
+				<div class="bg-base-100 text-base-content p-4">
+					{#if isIOS}
+						<!-- iOS Instructions -->
+						<div class="space-y-3">
+							<p class="text-sm font-medium">Install on iPhone/iPad:</p>
+							<ol class="text-base-content/80 space-y-2 text-xs">
+								<li class="flex items-start gap-2">
+									<span
+										class="bg-primary/10 text-primary flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
+										>1</span
+									>
+									<span>Tap the <strong>Share</strong> button at the bottom</span>
+								</li>
+								<li class="flex items-start gap-2">
+									<span
+										class="bg-primary/10 text-primary flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
+										>2</span
+									>
+									<span>Scroll down and tap <strong>Add to Home Screen</strong></span>
+								</li>
+								<li class="flex items-start gap-2">
+									<span
+										class="bg-primary/10 text-primary flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
+										>3</span
+									>
+									<span>Tap <strong>Add</strong> in the top right</span>
+								</li>
+							</ol>
+						</div>
+					{:else}
+						<!-- Android Instructions -->
+						<div class="space-y-3">
+							<p class="text-sm font-medium">Install on Android:</p>
+							<ol class="text-base-content/80 space-y-2 text-xs">
+								<li class="flex items-start gap-2">
+									<span
+										class="bg-primary/10 text-primary flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
+										>1</span
+									>
+									<span>Tap the menu (⋮) in the top right</span>
+								</li>
+								<li class="flex items-start gap-2">
+									<span
+										class="bg-primary/10 text-primary flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
+										>2</span
+									>
+									<span>Select <strong>Add to Home screen</strong></span>
+								</li>
+								<li class="flex items-start gap-2">
+									<span
+										class="bg-primary/10 text-primary flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
+										>3</span
+									>
+									<span>Tap <strong>Install</strong> or <strong>Add</strong></span>
+								</li>
+							</ol>
+							{#if deferredPrompt}
+								<button onclick={installPWA} class="btn btn-primary mt-3 w-full">
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="18"
+										height="18"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										class="mr-2"
+										><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline
+											points="7 10 12 15 17 10"
+										/><line x1="12" y1="15" x2="12" y2="3" /></svg
+									>
+									Install Now
+								</button>
+							{/if}
+						</div>
+					{/if}
+
+					<!-- Dismissed message -->
+					<p class="text-base-content/60 border-base-200 mt-3 border-t pt-3 text-xs">
+						Changed your mind?
+						<a
+							href="/install-guide"
+							class="text-primary font-medium hover:underline"
+							onclick={dismissInstallBanner}
+						>
+							View installation guide
+						</a>
+					</p>
+				</div>
+			</div>
+		</div>
+	{/if}
+
 	<!-- Hero Section -->
 	<section
 		id="home"

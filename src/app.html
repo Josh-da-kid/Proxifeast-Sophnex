@@ -3,13 +3,57 @@
 	<head>
 		<script src="https://js.paystack.co/v1/inline.js"></script>
 		<meta charset="utf-8" />
-		<!-- <meta
-			name="description"
-			content="Proxifeast is a restaurant online food ordering system. It is an online menu where users scan a QR code from the restuarant tables and this takes them directly to the online menu where they can order and checkout their orders easily without stress."
-		/> -->
-		<link rel="icon" href="/onyikitchen.jpeg" />
-		<!-- <title>Onyi's Kitchen</title> -->
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+		<!-- PWA Meta Tags -->
+		<meta name="theme-color" content="#f59e0b" />
+		<meta name="background-color" content="#ffffff" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+		<meta name="apple-mobile-web-app-title" content="Proxifeast" />
+		<meta name="application-name" content="Proxifeast" />
+		<meta name="msapplication-TileColor" content="#f59e0b" />
+		<meta name="msapplication-tap-highlight" content="no" />
+		<meta name="format-detection" content="telephone=no" />
+
+		<!-- PWA Manifest -->
+		<link rel="manifest" href="/manifest.json" />
+
+		<!-- Icons -->
+		<link rel="icon" type="image/png" href="/favicon.png" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+		<link rel="mask-icon" href="/icons/icon.svg" color="#f59e0b" />
+
+		<!-- Splash screens for iOS -->
+		<link
+			rel="apple-touch-startup-image"
+			href="/icons/icon-192x192.png"
+			media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+		/>
+		<link
+			rel="apple-touch-startup-image"
+			href="/icons/icon-192x192.png"
+			media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+		/>
+		<link
+			rel="apple-touch-startup-image"
+			href="/icons/icon-192x192.png"
+			media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+		/>
+		<link
+			rel="apple-touch-startup-image"
+			href="/icons/icon-192x192.png"
+			media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+		/>
+		<link
+			rel="apple-touch-startup-image"
+			href="/icons/icon-192x192.png"
+			media="(min-device-width: 768px) and (max-device-width: 1024px) and (-webkit-min-device-pixel-ratio: 2) and (orientation: portrait)"
+		/>
+
+		<!-- Preconnect to external resources -->
+		<link rel="preconnect" href="https://js.paystack.co" />
+
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
