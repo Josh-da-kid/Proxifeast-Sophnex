@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 
-	let { restaurant = $page.data.restaurant } = $props();
+	let { restaurant } = $props();
+
+	const restaurantData = $derived(restaurant ?? $page.data.restaurant);
 </script>
 
 <footer class="bg-base-200 text-base-content">
@@ -10,10 +12,10 @@
 			<!-- Brand Section -->
 			<div class="space-y-4">
 				<div class="flex items-center gap-3">
-					{#if restaurant?.faviconUrl}
+					{#if restaurantData?.faviconUrl}
 						<img
-							src={restaurant.faviconUrl}
-							alt={restaurant.name}
+							src={restaurantData.faviconUrl}
+							alt={restaurantData.name}
 							class="h-10 w-10 rounded-lg object-contain"
 						/>
 					{:else}
@@ -35,12 +37,13 @@
 							</svg>
 						</div>
 					{/if}
-					<span class="font-playfair text-xl font-bold">{restaurant?.name || 'Restaurant'}</span>
+					<span class="font-playfair text-xl font-bold">{restaurantData?.name || 'Restaurant'}</span
+					>
 				</div>
 				<p class="text-base-content/70 text-sm">
-					{restaurant?.description || 'Delicious food delivered fast to your doorstep.'}
+					{restaurantData?.description || 'Delicious food delivered fast to your doorstep.'}
 				</p>
-				{#if restaurant?.restaurantAddress}
+				{#if restaurantData?.restaurantAddress}
 					<p class="text-base-content/60 flex items-start gap-2 text-sm">
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
@@ -55,7 +58,7 @@
 							<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
 							<circle cx="12" cy="10" r="3" />
 						</svg>
-						{restaurant.restaurantAddress}
+						{restaurantData.restaurantAddress}
 					</p>
 				{/if}
 			</div>
@@ -219,7 +222,7 @@
 		>
 			<p class="text-base-content/60 text-sm">
 				&copy; {new Date().getFullYear()}
-				{restaurant?.name || 'Restaurant'}. All rights reserved.
+				{restaurantData?.name || 'Restaurant'}. All rights reserved.
 			</p>
 			<div class="flex gap-4 text-sm">
 				<a href="/about" class="text-base-content/60 hover:text-primary">Privacy Policy</a>

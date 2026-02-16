@@ -90,12 +90,16 @@
 	}
 
 	export async function fetchCart() {
-		const userId = get(user)?.id;
-		if (!userId) {
-			loading = false;
-			return;
-		}
 		try {
+			const currentUser = get(user);
+			const userId = currentUser?.id;
+
+			if (!userId) {
+				console.log('No user logged in');
+				loading = false;
+				return;
+			}
+
 			const records = await pb.collection('cart').getFullList({
 				filter: `user="${userId}"`,
 				expand: 'dish'
@@ -157,6 +161,16 @@
 	onMount(() => {
 		fetchCart();
 		setupSubscriptions();
+
+		// Safety timeout - ensure loading is false after 5 seconds
+		const timeout = setTimeout(() => {
+			if (loading) {
+				console.log('Safety timeout - setting loading to false');
+				loading = false;
+			}
+		}, 5000);
+
+		return () => clearTimeout(timeout);
 	});
 	onDestroy(() => {
 		cleanupSubscriptions();
@@ -302,529 +316,513 @@
 {/if}
 
 <main class="bg-base-200/50 min-h-screen pb-24">
-	{#if $isLoggedIn}
-		{#if loading}
-			<div class="mx-auto max-w-7xl px-4 py-8">
-				<div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
-					<div class="space-y-4">
-						<div class="bg-base-300 h-8 w-1/3 animate-pulse rounded"></div>
-						{#each Array(3) as _}<div
-								class="bg-base-300 h-24 animate-pulse rounded-xl"
-							></div>{/each}
-					</div>
-					<div class="space-y-4"><div class="bg-base-300 h-64 animate-pulse rounded-xl"></div></div>
-				</div>
+	{#if !$isLoggedIn}
+		<div class="mx-auto max-w-7xl px-4 py-8 text-center">
+			<div class="bg-base-100 rounded-2xl p-8 shadow-sm">
+				{@html iconLock}
+				<h2 class="mt-4 text-xl font-bold">Please Log In</h2>
+				<p class="text-base-content/70 mt-2">You need to be logged in to view your checkout.</p>
+				<a href="/login" class="btn btn-primary mt-4">Log In</a>
 			</div>
-		{:else}
-			<div class="mx-auto max-w-7xl px-4 py-6 sm:py-8">
-				<div class="grid grid-cols-1 gap-6 lg:grid-cols-5 lg:gap-8">
-					<div class="space-y-6 lg:col-span-2" in:fade={{ duration: 300, delay: 100 }}>
-						<div class="bg-base-100 rounded-2xl p-6 shadow-sm">
-							<div class="mb-6 flex items-center gap-3">
-								<div class="bg-primary/10 flex h-12 w-12 items-center justify-center rounded-xl">
+		</div>
+	{:else if loading}
+		<div class="mx-auto max-w-7xl px-4 py-8">
+			<div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
+				<div class="space-y-4">
+					<div class="bg-base-300 h-8 w-1/3 animate-pulse rounded"></div>
+					{#each Array(3) as _}<div class="bg-base-300 h-24 animate-pulse rounded-xl"></div>{/each}
+				</div>
+				<div class="space-y-4"><div class="bg-base-300 h-64 animate-pulse rounded-xl"></div></div>
+			</div>
+		</div>
+	{:else}
+		<div class="mx-auto max-w-7xl px-4 py-6 sm:py-8">
+			<div class="grid grid-cols-1 gap-6 lg:grid-cols-5 lg:gap-8">
+				<div class="space-y-6 lg:col-span-2" in:fade={{ duration: 300, delay: 100 }}>
+					<div class="bg-base-100 rounded-2xl p-6 shadow-sm">
+						<div class="mb-6 flex items-center gap-3">
+							<div class="bg-primary/10 flex h-12 w-12 items-center justify-center rounded-xl">
+								{@html iconShoppingBag}
+							</div>
+							<div>
+								<h2 class="text-xl font-bold">Your Order</h2>
+								<p class="text-base-content/60 text-sm">
+									{$cart.length} item{$cart.length !== 1 ? 's' : ''}
+								</p>
+							</div>
+						</div>
+						{#if $cart.length === 0}
+							<div class="py-12 text-center">
+								<div
+									class="bg-base-200 mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full"
+								>
 									{@html iconShoppingBag}
 								</div>
-								<div>
-									<h2 class="text-xl font-bold">Your Order</h2>
-									<p class="text-base-content/60 text-sm">
-										{$cart.length} item{$cart.length !== 1 ? 's' : ''}
-									</p>
-								</div>
+								<p class="text-base-content/60 mb-4">Your cart is empty</p>
+								<button onclick={() => goto('/#menu')} class="btn btn-primary">Browse Menu</button>
 							</div>
-							{#if $cart.length === 0}
-								<div class="py-12 text-center">
-									<div
-										class="bg-base-200 mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full"
-									>
-										{@html iconShoppingBag}
-									</div>
-									<p class="text-base-content/60 mb-4">Your cart is empty</p>
-									<button onclick={() => goto('/#menu')} class="btn btn-primary">Browse Menu</button
-									>
-								</div>
-							{:else}
-								{@const groupedItems = groupCartByRestaurant($cart)}
-								<div class="space-y-6">
-									{#each Array.from(groupedItems.entries()) as [restId, items], groupIndex}
-										<div in:slide={{ duration: 300, delay: groupIndex * 100 }}>
-											<div class="border-base-200 mb-4 flex items-center gap-3 border-b pb-3">
-												<div
-													class="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-full"
-												>
-													{@html iconStore}
-												</div>
-												<div class="flex-1">
-													<p class="text-primary font-semibold">
-														{getRestaurantName(restId, item.restaurantName)}
-													</p>
-													<p class="text-base-content/60 text-xs">
-														{items.length} item{items.length !== 1 ? 's' : ''}
-													</p>
-												</div>
+						{:else}
+							{@const groupedItems = groupCartByRestaurant($cart)}
+							<div class="space-y-6">
+								{#each Array.from(groupedItems.entries()) as [restId, items], groupIndex}
+									<div in:slide={{ duration: 300, delay: groupIndex * 100 }}>
+										<div class="border-base-200 mb-4 flex items-center gap-3 border-b pb-3">
+											<div
+												class="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-full"
+											>
+												{@html iconStore}
 											</div>
-											<div class="space-y-3">
-												{#each items as item, itemIndex}
+											<div class="flex-1">
+												<p class="text-primary font-semibold">
+													{getRestaurantName(restId, items.restaurantName)}
+												</p>
+												<p class="text-base-content/60 text-xs">
+													{items.length} item{items.length !== 1 ? 's' : ''}
+												</p>
+											</div>
+										</div>
+										<div class="space-y-3">
+											{#each items as item, itemIndex}
+												<div
+													class="bg-base-200/50 hover:bg-base-200 flex gap-4 rounded-xl p-4 transition-all duration-200"
+													class:opacity-50={item.expand.dish.availability !== 'Available'}
+													in:fade={{ duration: 200, delay: itemIndex * 50 }}
+												>
 													<div
-														class="bg-base-200/50 hover:bg-base-200 flex gap-4 rounded-xl p-4 transition-all duration-200"
-														class:opacity-50={item.expand.dish.availability !== 'Available'}
-														in:fade={{ duration: 200, delay: itemIndex * 50 }}
+														class="bg-base-300 h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg sm:h-24 sm:w-24"
 													>
-														<div
-															class="bg-base-300 h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg sm:h-24 sm:w-24"
-														>
-															<img
-																src={item.expand.dish.image}
-																alt={item.expand.dish.name}
-																class="h-full w-full object-cover"
-															/>
+														<img
+															src={item.expand.dish.image}
+															alt={item.expand.dish.name}
+															class="h-full w-full object-cover"
+														/>
+													</div>
+													<div class="min-w-0 flex-1">
+														<div class="flex items-start justify-between gap-2">
+															<h3 class="truncate font-semibold">{item.expand.dish.name}</h3>
+															<button
+																onclick={() => {
+																	dishToDelete = item;
+																	deleteModal.showModal();
+																}}
+																class="text-error/60 hover:text-error p-1 transition-colors"
+																aria-label="Remove item"
+															>
+																{@html iconTrash2}
+															</button>
 														</div>
-														<div class="min-w-0 flex-1">
-															<div class="flex items-start justify-between gap-2">
-																<h3 class="truncate font-semibold">{item.expand.dish.name}</h3>
-																<button
-																	onclick={() => {
+														<p class="text-base-content/60 mt-1 line-clamp-2 text-sm">
+															{item.expand.dish.description}
+														</p>
+														<div class="mt-2 flex items-center gap-2">
+															{#if item.expand.dish.promoAmount && item.expand.dish.promoAmount < item.expand.dish.defaultAmount}
+																<span class="text-primary font-bold"
+																	>₦{item.expand.dish.promoAmount.toLocaleString()}</span
+																>
+																<span class="text-base-content/40 text-sm line-through"
+																	>₦{item.expand.dish.defaultAmount.toLocaleString()}</span
+																>
+																<span class="badge badge-accent badge-sm"
+																	>-{Math.round(
+																		(1 -
+																			item.expand.dish.promoAmount /
+																				item.expand.dish.defaultAmount) *
+																			100
+																	)}%</span
+																>
+															{:else}
+																<span class="text-primary font-bold"
+																	>₦{item.expand.dish.defaultAmount.toLocaleString()}</span
+																>
+															{/if}
+															{#if item.expand.dish.availability !== 'Available'}<span
+																	class="badge badge-error badge-sm">Unavailable</span
+																>{/if}
+														</div>
+														<div class="mt-3 flex items-center gap-1">
+															<button
+																onclick={() => {
+																	if (item.expand.dish.availability !== 'Available') return;
+																	if (item.quantity <= 1) {
 																		dishToDelete = item;
 																		deleteModal.showModal();
-																	}}
-																	class="text-error/60 hover:text-error p-1 transition-colors"
-																	aria-label="Remove item"
-																>
-																	{@html iconTrash2}
-																</button>
-															</div>
-															<p class="text-base-content/60 mt-1 line-clamp-2 text-sm">
-																{item.expand.dish.description}
-															</p>
-															<div class="mt-2 flex items-center gap-2">
-																{#if item.expand.dish.promoAmount && item.expand.dish.promoAmount < item.expand.dish.defaultAmount}
-																	<span class="text-primary font-bold"
-																		>₦{item.expand.dish.promoAmount.toLocaleString()}</span
-																	>
-																	<span class="text-base-content/40 text-sm line-through"
-																		>₦{item.expand.dish.defaultAmount.toLocaleString()}</span
-																	>
-																	<span class="badge badge-accent badge-sm"
-																		>-{Math.round(
-																			(1 -
-																				item.expand.dish.promoAmount /
-																					item.expand.dish.defaultAmount) *
-																				100
-																		)}%</span
-																	>
-																{:else}
-																	<span class="text-primary font-bold"
-																		>₦{item.expand.dish.defaultAmount.toLocaleString()}</span
-																	>
-																{/if}
-																{#if item.expand.dish.availability !== 'Available'}<span
-																		class="badge badge-error badge-sm">Unavailable</span
-																	>{/if}
-															</div>
-															<div class="mt-3 flex items-center gap-1">
-																<button
-																	onclick={() => {
-																		if (item.expand.dish.availability !== 'Available') return;
-																		if (item.quantity <= 1) {
-																			dishToDelete = item;
-																			deleteModal.showModal();
-																		} else {
-																			updateQuantity({
-																				itemId: item.id,
-																				newQty: item.quantity - 1,
-																				promoAmount: item.expand.dish.promoAmount,
-																				defaultAmount: item.expand.dish.defaultAmount
-																			});
-																		}
-																	}}
-																	class="bg-base-100 hover:bg-base-300 text-primary flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-50"
-																	disabled={item.expand.dish.availability !== 'Available'}
-																>
-																	{@html iconMinus}
-																</button>
-																<span class="w-10 text-center font-semibold">{item.quantity}</span>
-																<button
-																	onclick={() => {
-																		if (item.expand.dish.availability !== 'Available') return;
+																	} else {
 																		updateQuantity({
 																			itemId: item.id,
-																			newQty: item.quantity + 1,
+																			newQty: item.quantity - 1,
 																			promoAmount: item.expand.dish.promoAmount,
 																			defaultAmount: item.expand.dish.defaultAmount
 																		});
-																	}}
-																	class="bg-base-100 hover:bg-base-300 text-primary flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-50"
-																	disabled={item.expand.dish.availability !== 'Available'}
-																>
-																	{@html iconPlus}
-																</button>
-															</div>
+																	}
+																}}
+																class="bg-base-100 hover:bg-base-300 text-primary flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-50"
+																disabled={item.expand.dish.availability !== 'Available'}
+															>
+																{@html iconMinus}
+															</button>
+															<span class="w-10 text-center font-semibold">{item.quantity}</span>
+															<button
+																onclick={() => {
+																	if (item.expand.dish.availability !== 'Available') return;
+																	updateQuantity({
+																		itemId: item.id,
+																		newQty: item.quantity + 1,
+																		promoAmount: item.expand.dish.promoAmount,
+																		defaultAmount: item.expand.dish.defaultAmount
+																	});
+																}}
+																class="bg-base-100 hover:bg-base-300 text-primary flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-50"
+																disabled={item.expand.dish.availability !== 'Available'}
+															>
+																{@html iconPlus}
+															</button>
 														</div>
 													</div>
-												{/each}
-											</div>
+												</div>
+											{/each}
 										</div>
-									{/each}
-								</div>
-								<div class="border-base-200 mt-6 border-t pt-6">
-									<button
-										onclick={() => clearModal.showModal()}
-										class="text-error/70 hover:text-error flex items-center gap-2 text-sm transition-colors"
-									>
-										{@html iconTrash2} Clear all items
-									</button>
-								</div>
-							{/if}
-						</div>
+									</div>
+								{/each}
+							</div>
+							<div class="border-base-200 mt-6 border-t pt-6">
+								<button
+									onclick={() => clearModal.showModal()}
+									class="text-error/70 hover:text-error flex items-center gap-2 text-sm transition-colors"
+								>
+									{@html iconTrash2} Clear all items
+								</button>
+							</div>
+						{/if}
 					</div>
-					<div class="lg:col-span-3" in:fade={{ duration: 300, delay: 200 }}>
-						<div class="sticky top-28 space-y-6">
-							<div class="bg-base-100 border-base-200 rounded-2xl border p-6 shadow-lg">
-								<div class="border-base-200 mb-6 flex items-center gap-3 border-b pb-4">
-									<div class="bg-primary/10 flex h-12 w-12 items-center justify-center rounded-xl">
-										{@html iconReceipt}
-									</div>
-									<div>
-										<h2 class="text-xl font-bold">Order Summary</h2>
-										<p class="text-base-content/60 text-sm">Review your order details</p>
-									</div>
+				</div>
+				<div class="lg:col-span-3" in:fade={{ duration: 300, delay: 200 }}>
+					<div class="sticky top-28 space-y-6">
+						<div class="bg-base-100 border-base-200 rounded-2xl border p-6 shadow-lg">
+							<div class="border-base-200 mb-6 flex items-center gap-3 border-b pb-4">
+								<div class="bg-primary/10 flex h-12 w-12 items-center justify-center rounded-xl">
+									{@html iconReceipt}
 								</div>
-								{#if $cart.length > 0}
-									<div class="mb-6 space-y-3">
-										<div class="flex items-center justify-between">
-											<span class="text-base-content/70">Items ({$cart.length})</span>
-											<button
-												onclick={() => (showDetails = !showDetails)}
-												class="text-primary flex items-center gap-1 text-sm hover:underline"
+								<div>
+									<h2 class="text-xl font-bold">Order Summary</h2>
+									<p class="text-base-content/60 text-sm">Review your order details</p>
+								</div>
+							</div>
+							{#if $cart.length > 0}
+								<div class="mb-6 space-y-3">
+									<div class="flex items-center justify-between">
+										<span class="text-base-content/70">Items ({$cart.length})</span>
+										<button
+											onclick={() => (showDetails = !showDetails)}
+											class="text-primary flex items-center gap-1 text-sm hover:underline"
+										>
+											{showDetails ? 'Hide' : 'View'} Details
+											<span class="transition-transform {showDetails ? 'rotate-180' : ''}"
+												>{@html iconChevronDown}</span
 											>
-												{showDetails ? 'Hide' : 'View'} Details
-												<span class="transition-transform {showDetails ? 'rotate-180' : ''}"
-													>{@html iconChevronDown}</span
-												>
-											</button>
+										</button>
+									</div>
+									{#if showDetails}
+										<div
+											class="bg-base-200/50 space-y-2 rounded-lg p-3"
+											transition:slide={{ duration: 300 }}
+										>
+											{#each $cart as item}
+												<div class="flex justify-between text-sm">
+													<span class="text-base-content/70 mr-2 flex-1 truncate"
+														>{item.quantity}x {item.expand.dish.name}</span
+													>
+													<span class="font-medium"
+														>₦{(
+															(item.expand.dish.promoAmount || item.expand.dish.defaultAmount) *
+															item.quantity
+														).toLocaleString()}</span
+													>
+												</div>
+											{/each}
 										</div>
-										{#if showDetails}
-											<div
-												class="bg-base-200/50 space-y-2 rounded-lg p-3"
-												transition:slide={{ duration: 300 }}
-											>
-												{#each $cart as item}
-													<div class="flex justify-between text-sm">
-														<span class="text-base-content/70 mr-2 flex-1 truncate"
-															>{item.quantity}x {item.expand.dish.name}</span
-														>
-														<span class="font-medium"
-															>₦{(
-																(item.expand.dish.promoAmount || item.expand.dish.defaultAmount) *
-																item.quantity
-															).toLocaleString()}</span
-														>
-													</div>
-												{/each}
+									{/if}
+									<div class="flex justify-between text-sm">
+										<span class="text-base-content/70">Subtotal</span><span class="font-medium"
+											>₦{$total.toLocaleString()}</span
+										>
+									</div>
+									<div class="flex justify-between text-sm">
+										<span class="text-base-content/70">Delivery Fee</span><span
+											class="text-success font-medium">Calculated next</span
+										>
+									</div>
+									<div class="border-base-300 mt-4 border-t-2 pt-4">
+										<div class="flex items-end justify-between">
+											<div>
+												<p class="text-sm font-semibold">Total Amount</p>
+												<p class="text-base-content/60 text-xs">Including all taxes</p>
+											</div>
+											<p class="text-primary text-3xl font-bold">₦{$total.toLocaleString()}</p>
+										</div>
+									</div>
+									{#if $cart.length > 0}
+										{@const uniqueRestaurants = new Set(
+											$cart.map((item) => item.expand?.dish?.restaurantId || item.restaurantId)
+										)}
+										{#if uniqueRestaurants.size > 1}
+											<div class="bg-warning/10 border-warning/20 mt-4 rounded-lg border p-3">
+												<p class="text-warning text-sm">
+													<strong>⚠️ Important Notice:</strong> You're ordering from {uniqueRestaurants.size}
+													different restaurants. Each restaurant will charge a separate delivery fee,
+													which will make your order significantly more expensive. Consider ordering
+													from a single restaurant to save on delivery costs.
+												</p>
 											</div>
 										{/if}
-										<div class="flex justify-between text-sm">
-											<span class="text-base-content/70">Subtotal</span><span class="font-medium"
-												>₦{$total.toLocaleString()}</span
+									{/if}
+								</div>
+								<form onsubmit={payWithPaystack} class="space-y-6">
+									<div class="space-y-3">
+										<p class="flex items-center gap-2 text-sm font-semibold">
+											{@html iconPackage} Select Delivery Method
+										</p>
+										<label class="block cursor-pointer">
+											<input
+												type="radio"
+												bind:group={deliveryOption}
+												value="tableService"
+												class="peer sr-only"
+												required
+											/>
+											<div
+												class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
 											>
-										</div>
-										<div class="flex justify-between text-sm">
-											<span class="text-base-content/70">Delivery Fee</span><span
-												class="text-success font-medium">Calculated next</span
-											>
-										</div>
-										<div class="border-base-300 mt-4 border-t-2 pt-4">
-											<div class="flex items-end justify-between">
-												<div>
-													<p class="text-sm font-semibold">Total Amount</p>
-													<p class="text-base-content/60 text-xs">Including all taxes</p>
+												<div
+													class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
+												>
+													{@html iconUtensilsCrossed}
 												</div>
-												<p class="text-primary text-3xl font-bold">₦{$total.toLocaleString()}</p>
-											</div>
-										</div>
-										{#if $cart.length > 0}
-											{@const uniqueRestaurants = new Set(
-												$cart.map((item) => item.expand?.dish?.restaurantId || item.restaurantId)
-											)}
-											{#if uniqueRestaurants.size > 1}
-												<div class="bg-warning/10 border-warning/20 mt-4 rounded-lg border p-3">
-													<p class="text-warning text-sm">
-														<strong>⚠️ Important Notice:</strong> You're ordering from {uniqueRestaurants.size}
-														different restaurants. Each restaurant will charge a separate delivery fee,
-														which will make your order significantly more expensive. Consider ordering
-														from a single restaurant to save on delivery costs.
+												<div class="flex-1">
+													<div class="mb-1 flex items-center justify-between">
+														<p class="font-semibold">Table Service</p>
+														<div
+															class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
+														>
+															<div class="h-2 w-2 rounded-full bg-white"></div>
+														</div>
+													</div>
+													<p class="text-base-content/70 text-sm">
+														We'll serve you at your table in the restaurant
 													</p>
 												</div>
-											{/if}
-										{/if}
-									</div>
-									<form onsubmit={payWithPaystack} class="space-y-6">
-										<div class="space-y-3">
-											<p class="flex items-center gap-2 text-sm font-semibold">
-												{@html iconPackage} Select Delivery Method
-											</p>
-											<label class="block cursor-pointer">
-												<input
-													type="radio"
-													bind:group={deliveryOption}
-													value="tableService"
-													class="peer sr-only"
-													required
-												/>
-												<div
-													class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
-												>
-													<div
-														class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
-													>
-														{@html iconUtensilsCrossed}
-													</div>
-													<div class="flex-1">
-														<div class="mb-1 flex items-center justify-between">
-															<p class="font-semibold">Table Service</p>
-															<div
-																class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
-															>
-																<div class="h-2 w-2 rounded-full bg-white"></div>
-															</div>
-														</div>
-														<p class="text-base-content/70 text-sm">
-															We'll serve you at your table in the restaurant
-														</p>
-													</div>
-												</div>
-											</label>
-											<label class="block cursor-pointer">
-												<input
-													type="radio"
-													bind:group={deliveryOption}
-													value="restaurantPickup"
-													class="peer sr-only"
-												/>
-												<div
-													class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
-												>
-													<div
-														class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
-													>
-														{@html iconPackage}
-													</div>
-													<div class="flex-1">
-														<div class="mb-1 flex items-center justify-between">
-															<p class="font-semibold">Pickup</p>
-															<div
-																class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
-															>
-																<div class="h-2 w-2 rounded-full bg-white"></div>
-															</div>
-														</div>
-														<p class="text-base-content/70 text-sm">
-															Pick up your order at the restaurant counter
-														</p>
-													</div>
-												</div>
-											</label>
-											<label class="block cursor-pointer">
-												<input
-													type="radio"
-													bind:group={deliveryOption}
-													value="home"
-													class="peer sr-only"
-												/>
-												<div
-													class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
-												>
-													<div
-														class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
-													>
-														{@html iconHome}
-													</div>
-													<div class="flex-1">
-														<div class="mb-1 flex items-center justify-between">
-															<p class="font-semibold">Home Delivery</p>
-															<div
-																class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
-															>
-																<div class="h-2 w-2 rounded-full bg-white"></div>
-															</div>
-														</div>
-														<p class="text-base-content/70 text-sm">
-															We'll deliver to your doorstep
-														</p>
-													</div>
-												</div>
-											</label>
-										</div>
-										{#if deliveryOption}
-											<div class="space-y-4" transition:slide={{ duration: 300 }}>
-												{#if deliveryOption === 'tableService'}
-													<div class="space-y-2">
-														<label class="block flex items-center gap-2 text-sm font-medium"
-															>{@html iconHash} Table Number</label
-														>
-														<div class="relative">
-															<input
-																type="number"
-																bind:value={tableNumber}
-																placeholder="e.g., 12"
-																min="1"
-																class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-full rounded-xl border-2 px-4 py-3 transition-all outline-none focus:ring-4"
-																required
-															/>
-														</div>
-														<p class="text-base-content/60 flex items-center gap-1 text-xs">
-															{@html iconInfo} Enter the table number where you're currently seated
-														</p>
-													</div>
-												{:else if deliveryOption === 'restaurantPickup'}
-													<div class="space-y-2">
-														<label class="block flex items-center gap-2 text-sm font-medium"
-															>{@html iconClock} Pickup Time</label
-														>
-														<div class="flex gap-3">
-															<select
-																bind:value={hour}
-																class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 flex-1 cursor-pointer appearance-none rounded-xl border-2 px-4 py-3 outline-none focus:ring-4"
-															>
-																{#each Array.from({ length: 12 }, (_, i) => i + 1) as h}<option
-																		value={h}>{h}</option
-																	>{/each}
-															</select>
-															<div class="text-base-content/30 flex items-center text-xl font-bold">
-																:
-															</div>
-															<select
-																bind:value={minutes}
-																class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 flex-1 cursor-pointer appearance-none rounded-xl border-2 px-4 py-3 outline-none focus:ring-4"
-															>
-																{#each ['00', '15', '30', '45'] as m}<option value={m}>{m}</option
-																	>{/each}
-															</select>
-															<select
-																bind:value={meridian}
-																class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-24 cursor-pointer appearance-none rounded-xl border-2 px-4 py-3 outline-none focus:ring-4"
-															>
-																<option>AM</option><option>PM</option>
-															</select>
-														</div>
-													</div>
-												{:else if deliveryOption === 'home'}
-													<div class="space-y-2">
-														<label class="block flex items-center gap-2 text-sm font-medium"
-															>{@html iconMapPin} Delivery Address</label
-														>
-														<textarea
-															bind:value={homeAddress}
-															placeholder="Enter your complete address including landmarks..."
-															rows="3"
-															maxlength="200"
-															class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-full resize-none rounded-xl border-2 px-4 py-3 transition-all outline-none focus:ring-4"
-															required
-														></textarea>
-														<div class="flex justify-between text-xs">
-															<span class="text-base-content/60 flex items-center gap-1"
-																>{@html iconInfo} Include landmarks for easier delivery</span
-															>
-															<span class="text-base-content/40">{homeAddress.length}/200</span>
-														</div>
-													</div>
-												{/if}
 											</div>
-										{/if}
-										<div class="border-base-200 space-y-4 border-t pt-6">
-											<div class="space-y-2">
-												<label class="block flex items-center gap-2 text-sm font-medium"
-													>{@html iconPhone} Phone Number</label
+										</label>
+										<label class="block cursor-pointer">
+											<input
+												type="radio"
+												bind:group={deliveryOption}
+												value="restaurantPickup"
+												class="peer sr-only"
+											/>
+											<div
+												class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
+											>
+												<div
+													class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
 												>
-												<div class="flex gap-3">
-													<div
-														class="border-base-300 bg-base-200 text-base-content/70 flex w-24 items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 font-medium"
-													>
-														<span class="text-lg">🇳🇬</span><span>+234</span>
+													{@html iconPackage}
+												</div>
+												<div class="flex-1">
+													<div class="mb-1 flex items-center justify-between">
+														<p class="font-semibold">Pickup</p>
+														<div
+															class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
+														>
+															<div class="h-2 w-2 rounded-full bg-white"></div>
+														</div>
 													</div>
-													<div class="relative flex-1">
+													<p class="text-base-content/70 text-sm">
+														Pick up your order at the restaurant counter
+													</p>
+												</div>
+											</div>
+										</label>
+										<label class="block cursor-pointer">
+											<input
+												type="radio"
+												bind:group={deliveryOption}
+												value="home"
+												class="peer sr-only"
+											/>
+											<div
+												class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
+											>
+												<div
+													class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
+												>
+													{@html iconHome}
+												</div>
+												<div class="flex-1">
+													<div class="mb-1 flex items-center justify-between">
+														<p class="font-semibold">Home Delivery</p>
+														<div
+															class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
+														>
+															<div class="h-2 w-2 rounded-full bg-white"></div>
+														</div>
+													</div>
+													<p class="text-base-content/70 text-sm">We'll deliver to your doorstep</p>
+												</div>
+											</div>
+										</label>
+									</div>
+									{#if deliveryOption}
+										<div class="space-y-4" transition:slide={{ duration: 300 }}>
+											{#if deliveryOption === 'tableService'}
+												<div class="space-y-2">
+													<label class="block flex items-center gap-2 text-sm font-medium"
+														>{@html iconHash} Table Number</label
+													>
+													<div class="relative">
 														<input
-															type="tel"
-															bind:value={phone}
-															placeholder="801 234 5678"
+															type="number"
+															bind:value={tableNumber}
+															placeholder="e.g., 12"
+															min="1"
 															class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-full rounded-xl border-2 px-4 py-3 transition-all outline-none focus:ring-4"
 															required
 														/>
-														{#if phone && !isValidPhone(prefix, phone)}
-															<div
-																class="text-error absolute -bottom-6 left-0 flex items-center gap-1 text-xs"
-															>
-																{@html iconAlertCircle} Enter a valid Nigerian phone number
-															</div>
-														{/if}
+													</div>
+													<p class="text-base-content/60 flex items-center gap-1 text-xs">
+														{@html iconInfo} Enter the table number where you're currently seated
+													</p>
+												</div>
+											{:else if deliveryOption === 'restaurantPickup'}
+												<div class="space-y-2">
+													<label class="block flex items-center gap-2 text-sm font-medium"
+														>{@html iconClock} Pickup Time</label
+													>
+													<div class="flex gap-3">
+														<select
+															bind:value={hour}
+															class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 flex-1 cursor-pointer appearance-none rounded-xl border-2 px-4 py-3 outline-none focus:ring-4"
+														>
+															{#each Array.from({ length: 12 }, (_, i) => i + 1) as h}<option
+																	value={h}>{h}</option
+																>{/each}
+														</select>
+														<div class="text-base-content/30 flex items-center text-xl font-bold">
+															:
+														</div>
+														<select
+															bind:value={minutes}
+															class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 flex-1 cursor-pointer appearance-none rounded-xl border-2 px-4 py-3 outline-none focus:ring-4"
+														>
+															{#each ['00', '15', '30', '45'] as m}<option value={m}>{m}</option
+																>{/each}
+														</select>
+														<select
+															bind:value={meridian}
+															class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-24 cursor-pointer appearance-none rounded-xl border-2 px-4 py-3 outline-none focus:ring-4"
+														>
+															<option>AM</option><option>PM</option>
+														</select>
 													</div>
 												</div>
-											</div>
-										</div>
-										<div class="border-base-200 space-y-6 border-t pt-6">
-											<label class="group flex cursor-pointer items-start gap-3">
-												<div class="relative mt-0.5 flex items-center">
-													<input type="checkbox" required class="peer sr-only" />
-													<div
-														class="border-base-300 peer-checked:border-primary peer-checked:bg-primary h-5 w-5 rounded border-2 transition-all"
-													></div>
-													<span
-														class="pointer-events-none absolute top-1 left-1 opacity-0 peer-checked:opacity-100"
-														>{@html iconCheck}</span
+											{:else if deliveryOption === 'home'}
+												<div class="space-y-2">
+													<label class="block flex items-center gap-2 text-sm font-medium"
+														>{@html iconMapPin} Delivery Address</label
 													>
+													<textarea
+														bind:value={homeAddress}
+														placeholder="Enter your complete address including landmarks..."
+														rows="3"
+														maxlength="200"
+														class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-full resize-none rounded-xl border-2 px-4 py-3 transition-all outline-none focus:ring-4"
+														required
+													></textarea>
+													<div class="flex justify-between text-xs">
+														<span class="text-base-content/60 flex items-center gap-1"
+															>{@html iconInfo} Include landmarks for easier delivery</span
+														>
+														<span class="text-base-content/40">{homeAddress.length}/200</span>
+													</div>
 												</div>
-												<span class="text-base-content/80 text-sm leading-relaxed"
-													>I agree to the <a
-														href="/terms"
-														class="text-primary font-medium hover:underline">Terms of Service</a
-													>
-													and
-													<a href="/refund" class="text-primary font-medium hover:underline"
-														>Refund Policy</a
-													></span
+											{/if}
+										</div>
+									{/if}
+									<div class="border-base-200 space-y-4 border-t pt-6">
+										<div class="space-y-2">
+											<label class="block flex items-center gap-2 text-sm font-medium"
+												>{@html iconPhone} Phone Number</label
+											>
+											<div class="flex gap-3">
+												<div
+													class="border-base-300 bg-base-200 text-base-content/70 flex w-24 items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 font-medium"
 												>
-											</label>
-											<button
-												type="submit"
-												class="bg-primary hover:bg-primary/90 text-primary-content shadow-primary/20 flex w-full transform items-center justify-center gap-3 rounded-xl px-6 py-4 text-lg font-bold shadow-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
-												disabled={$cart.length === 0 || !deliveryOption}
-											>
-												{@html iconLock}<span>Pay ₦{$total.toLocaleString()}</span>
-											</button>
-											<div
-												class="text-base-content/50 flex items-center justify-center gap-4 text-xs"
-											>
-												<div class="flex items-center gap-1">
-													{@html iconShield}<span>SSL Secured</span>
+													<span class="text-lg">🇳🇬</span><span>+234</span>
 												</div>
-												<div class="bg-base-content/30 h-1 w-1 rounded-full"></div>
-												<div class="flex items-center gap-1">
-													{@html iconCreditCard}<span>Secure Payment</span>
+												<div class="relative flex-1">
+													<input
+														type="tel"
+														bind:value={phone}
+														placeholder="801 234 5678"
+														class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-full rounded-xl border-2 px-4 py-3 transition-all outline-none focus:ring-4"
+														required
+													/>
+													{#if phone && !isValidPhone(prefix, phone)}
+														<div
+															class="text-error absolute -bottom-6 left-0 flex items-center gap-1 text-xs"
+														>
+															{@html iconAlertCircle} Enter a valid Nigerian phone number
+														</div>
+													{/if}
 												</div>
 											</div>
 										</div>
-									</form>
-								{/if}
-							</div>
+									</div>
+									<div class="border-base-200 space-y-6 border-t pt-6">
+										<label class="group flex cursor-pointer items-start gap-3">
+											<div class="relative mt-0.5 flex items-center">
+												<input type="checkbox" required class="peer sr-only" />
+												<div
+													class="border-base-300 peer-checked:border-primary peer-checked:bg-primary h-5 w-5 rounded border-2 transition-all"
+												></div>
+												<span
+													class="pointer-events-none absolute top-1 left-1 opacity-0 peer-checked:opacity-100"
+													>{@html iconCheck}</span
+												>
+											</div>
+											<span class="text-base-content/80 text-sm leading-relaxed"
+												>I agree to the <a
+													href="/terms"
+													class="text-primary font-medium hover:underline">Terms of Service</a
+												>
+												and
+												<a href="/refund" class="text-primary font-medium hover:underline"
+													>Refund Policy</a
+												></span
+											>
+										</label>
+										<button
+											type="submit"
+											class="bg-primary hover:bg-primary/90 text-primary-content shadow-primary/20 flex w-full transform items-center justify-center gap-3 rounded-xl px-6 py-4 text-lg font-bold shadow-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
+											disabled={$cart.length === 0 || !deliveryOption}
+										>
+											{@html iconLock}<span>Pay ₦{$total.toLocaleString()}</span>
+										</button>
+										<div
+											class="text-base-content/50 flex items-center justify-center gap-4 text-xs"
+										>
+											<div class="flex items-center gap-1">
+												{@html iconShield}<span>SSL Secured</span>
+											</div>
+											<div class="bg-base-content/30 h-1 w-1 rounded-full"></div>
+											<div class="flex items-center gap-1">
+												{@html iconCreditCard}<span>Secure Payment</span>
+											</div>
+										</div>
+									</div>
+								</form>
+							{/if}
 						</div>
 					</div>
-				</div>
-			</div>
-		{/if}
-	{:else}
-		<div class="flex min-h-screen items-center justify-center px-4">
-			<div class="max-w-md text-center" in:fade>
-				<div
-					class="bg-base-200 mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full"
-				>
-					{@html iconLock}
-				</div>
-				<h2 class="mb-2 text-2xl font-bold">Sign In Required</h2>
-				<p class="text-base-content/60 mb-6">
-					Please sign in to complete your checkout and place your order.
-				</p>
-				<div class="flex justify-center gap-3">
-					<button onclick={() => goto('/login')} class="btn btn-primary">Sign In</button>
-					<button onclick={() => goto('/signup')} class="btn btn-outline">Create Account</button>
 				</div>
 			</div>
 		</div>
