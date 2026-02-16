@@ -28,7 +28,20 @@
 	const iconClock = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
 	const iconStore = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2.5"/><path d="M2 17.5a.5.5 0 0 1 .5-.5h19a.5.5 0 0 1 .5.5v1a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 18.5Z"/><path d="m4 7.5 1.6 6.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L20 7.5"/></svg>`;
 
-	const paystackKey = derived(page, ($page) => $page.data.restaurant?.paystackKey);
+	const paystackKey = derived(page, ($page) => {
+		// First try to get from restaurant data
+		const key = $page.data.restaurant?.paystackKey;
+		if (key) return key;
+
+		// Fallback: find in allRestaurants
+		const restaurantId = $page.data.restaurant?.id;
+		if (restaurantId && $page.data.allRestaurants) {
+			const restaurant = $page.data.allRestaurants.find((r: any) => r.id === restaurantId);
+			return restaurant?.paystackKey;
+		}
+
+		return undefined;
+	});
 	const allRestaurants = derived(page, ($page) => $page.data.allRestaurants ?? []);
 	export const cart = writable<any[]>([]);
 	export const total = derived(cart, ($cart) =>
@@ -186,9 +199,15 @@
 	let meridian = $state('PM');
 	let pickupTime = $derived(`${hour}:${minutes} ${meridian}`);
 	const formattedPhone = $derived(`${prefix}${phone}`);
-	const PaystackPop = (window as any).PaystackPop;
-	let email = get(user)?.email;
-	let amount = get(total);
+	let email = $state('');
+	let amount = $state(0);
+
+	$effect(() => {
+		const currentUser = get(user);
+		if (currentUser) {
+			email = currentUser.email || '';
+		}
+	});
 
 	function isValidPhone(prefix: string, phone: string): boolean {
 		prefix = prefix.trim();
@@ -200,13 +219,37 @@
 
 	function payWithPaystack(e: Event) {
 		e.preventDefault();
+
+		const currentPaystackKey = get(paystackKey);
+		const PaystackPop = (window as any).PaystackPop;
+
+		// Debug: log what's in the page data
+		const pageData = get(page).data;
+		console.log('Page data:', pageData);
+		console.log('Restaurant:', pageData.restaurant);
+		console.log('Restaurant paystackKey:', pageData.restaurant?.paystackKey);
+		console.log('All restaurants:', pageData.allRestaurants);
+		console.log('Paystack Key:', currentPaystackKey);
+		console.log('PaystackPop available:', !!PaystackPop);
+
+		if (!currentPaystackKey) {
+			alert('Payment configuration error. Please contact support.');
+			console.error('Paystack key is missing');
+			return;
+		}
+
+		if (!PaystackPop) {
+			alert('Payment system is loading. Please try again in a moment.');
+			return;
+		}
+
 		if (!isValidPhone(prefix, phone)) {
 			alert('Please enter a valid Nigerian phone number.');
 			return;
 		}
 		amount = get(total);
 		let handler = PaystackPop.setup({
-			key: $paystackKey,
+			key: currentPaystackKey,
 			email: email,
 			amount: amount * 100,
 			currency: 'NGN',
