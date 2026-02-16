@@ -987,7 +987,7 @@
 					</h3>
 				{/if}
 
-				<div class="mx-auto grid max-w-7xl gap-8 md:grid-cols-2 lg:grid-cols-3">
+				<div class="mx-auto grid max-w-7xl gap-8 pb-12 md:grid-cols-2 lg:grid-cols-3">
 					{#each restaurants as r}
 						<div
 							class="flex flex-col rounded-2xl bg-white p-6 shadow-md transition hover:shadow-lg"
