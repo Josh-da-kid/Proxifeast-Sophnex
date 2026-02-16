@@ -5,6 +5,9 @@
 	import pb from '$lib/pb';
 	import { goto } from '$app/navigation';
 	import { fly, slide, fade } from 'svelte/transition';
+
+	export const ssr = false;
+	export const prerender = false;
 	// Custom SVG Icons
 	const iconArrowLeft = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`;
 	const iconShoppingBag = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`;
@@ -29,18 +32,9 @@
 	const iconStore = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2.5"/><path d="M2 17.5a.5.5 0 0 1 .5-.5h19a.5.5 0 0 1 .5.5v1a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 18.5Z"/><path d="m4 7.5 1.6 6.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L20 7.5"/></svg>`;
 
 	const paystackKey = derived(page, ($page) => {
-		// First try to get from restaurant data
-		const key = $page.data.restaurant?.paystackKey;
-		if (key) return key;
-
-		// Fallback: find in allRestaurants
-		const restaurantId = $page.data.restaurant?.id;
-		if (restaurantId && $page.data.allRestaurants) {
-			const restaurant = $page.data.allRestaurants.find((r: any) => r.id === restaurantId);
-			return restaurant?.paystackKey;
-		}
-
-		return undefined;
+		const restaurant = $page.data.restaurant;
+		if (!restaurant) return undefined;
+		return restaurant.paystackKey || undefined;
 	});
 	const allRestaurants = derived(page, ($page) => $page.data.allRestaurants ?? []);
 	export const cart = writable<any[]>([]);

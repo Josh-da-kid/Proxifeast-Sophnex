@@ -1,7 +1,8 @@
 // src/hooks.server.js
 import PocketBase from 'pocketbase';
+import type { Handle } from '@sveltejs/kit';
 
-/** @type {import('@sveltejs/kit').Handle} */
+/** @type {Handle} */
 export async function handle({ event, resolve }) {
 	event.locals.pb = new PocketBase('https://playgzero.pb.itcass.net/');
 
@@ -12,14 +13,14 @@ export async function handle({ event, resolve }) {
 		// verify and refresh the user
 		if (event.locals.pb.authStore.isValid) {
 			const authData = await event.locals.pb.collection('users').authRefresh();
-			event.locals.user = authData.record; // ✅ assign the user to locals
+			event.locals.user = authData.record;
 		} else {
 			event.locals.user = null;
 		}
 	} catch (_) {
 		// clear the auth store on failed refresh
 		event.locals.pb.authStore.clear();
-		event.locals.user = null; // ❗ set user to null on error
+		event.locals.user = null;
 	}
 
 	const response = await resolve(event);

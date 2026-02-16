@@ -3,36 +3,46 @@ import type { LayoutServerLoad } from './$types';
 import pb from '$lib/pb';
 
 export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) => {
-	const token = cookies.get('auth_token');
+	try {
+		const token = cookies.get('auth_token');
 
-	// 🧠 Get domain from request
-	const fullHost = request.headers.get('host') || '';
-	const domainOnly = fullHost.split(':')[0]; // Removes :5173 if present
+		// Get domain from request
+		const fullHost = request.headers.get('host') || '';
+		const domainOnly = fullHost.split(':')[0];
 
-	// 🔎 Find the restaurant by domain
-	const restaurants = await pb.collection('restaurants').getFullList({
-		filter: `domain="${domainOnly}"`
-	});
+		// Find restaurant by domain
+		const restaurants = await pb.collection('restaurants').getFullList({
+			filter: `domain="${domainOnly}"`
+		});
 
-	const restaurant = restaurants?.[0];
+		const restaurant = restaurants?.[0];
 
-	if (!restaurant) {
-		console.error(`❌ Restaurant not found for domain: ${domainOnly}`);
-		throw redirect(307, '/not-found'); // or handle however you want
+		if (!restaurant) {
+			console.error(`Restaurant not found for domain: ${domainOnly}`);
+			throw redirect(307, '/not-found');
+		}
+
+		// Set restaurant in locals
+		locals.restaurant = restaurant;
+
+		// Fetch all restaurants for restaurant lookup
+		const allRestaurants = await pb.collection('restaurants').getFullList({
+			sort: 'name',
+			filter: 'name != "ProxifeastLocal"'
+		});
+
+		return {
+			user: locals.user ?? null,
+			restaurant,
+			allRestaurants
+		};
+	} catch (err) {
+		console.error('Layout server error:', err);
+		// Return minimal data on error to prevent 500
+		return {
+			user: locals.user ?? null,
+			restaurant: null,
+			allRestaurants: []
+		};
 	}
-
-	// ✅ Set restaurant in locals
-	locals.restaurant = restaurant;
-
-	// Fetch all restaurants for restaurant lookup across the app
-	const allRestaurants = await pb.collection('restaurants').getFullList({
-		sort: 'name',
-		filter: 'name != "ProxifeastLocal"'
-	});
-
-	return {
-		user: locals.user ?? null,
-		restaurant,
-		allRestaurants
-	};
 };
