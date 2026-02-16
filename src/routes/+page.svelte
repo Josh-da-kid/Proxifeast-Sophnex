@@ -827,287 +827,389 @@
 		<div class="drawer-side">
 			<label for="my-drawer-5" aria-label="close sidebar" class="drawer-overlay"></label>
 
-			<div class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4">
-				<div class="">
-					<button
-						onclick={closeSideBar}
-						class="hover:text-secondary items-start justify-start hover:underline"
-					>
-						<span class="text-secondary">&lt;&lt;</span> Back</button
-					>
-					<h2 class="text-xl font-bold">Your Cart</h2>
-
-					<div class="z-100 mx-auto rounded-lg p-4">
-						<p class="text-lg font-semibold">Total: ₦{$total.toLocaleString()}</p>
-						<div class="mt-2 flex gap-2">
-							<button
-								onclick={() => {
-									clearModal.showModal();
-								}}
-								class="btn btn-sm btn-secondary">Clear</button
-							>
-							<a onclick={closeSideBar} href="/checkout" class="btn btn-sm btn-primary">Checkout</a>
-
-							<dialog id="my_modal_3" bind:this={clearModal} class="modal">
-								<div class="modal-box">
-									<h3 class="text-lg font-bold">
-										Hey <span class="text-secondary">{$user?.name}!</span>
-									</h3>
-
-									<p class="py-4">Are you sure you want to clear your cart?</p>
-
-									<div class="modal-action">
-										<form method="dialog">
-											<button class="btn">Close</button>
-										</form>
-										<button
-											onclick={() => {
-												clearCart(clearModal);
-											}}
-											class="btn btn-xs btn-error bg-red-500 p-5 text-lg text-white"
-										>
-											Clear Cart
-										</button>
-									</div>
-								</div>
-							</dialog>
-						</div>
-					</div>
-				</div>
-
-				{#if $cart.length > 0}
-					<ul class="scroll-hidden max-h-[80vh] justify-center space-y-4 overflow-y-auto pr-2">
-						{#each $cart as item (item.id)}
-							<li
-								class="flex items-center justify-between border-b border-gray-400 pb-2 text-lg"
-								class:opacity-50={item.expand.dish.availability !== 'Available'}
-							>
-								<div class="relative mx-auto flex flex-col gap-1 text-center">
-									<div class="relative">
-										<img
-											src={item.expand.dish.image}
-											alt={item.expand.dish.name}
-											class="h-25 w-25 rounded-full"
-										/>
-										{#if item.expand.dish.availability !== 'Available'}
-											<span class="badge absolute top-1 right-1 bg-gray-300">Unavailable</span>
-										{/if}
-									</div>
-									<p class="font-semibold">{item.expand.dish.name}</p>
-									<!-- Restaurant Name Tag -->
-									<span class="badge badge-primary text-xs text-white">
-										{allRestaurants.find((r: any) => r.id === item.expand.dish.restaurantId)
-											?.name || 'Unknown Restaurant'}
-									</span>
-									<div class="flex gap-3 text-start">
-										{#if item.expand.dish.promoAmount && item.expand.dish.promoAmount < item.expand.dish.defaultAmount}
-											<span
-												class="badge badge-accent mt-1"
-												class:bg-gray-100={item.expand.dish.availability !== 'Available'}
-												class:border-gray-200={item.expand.dish.availability !== 'Available'}
-											>
-												-{Math.round(
-													(1 - item.expand.dish.promoAmount / item.expand.dish.defaultAmount) * 100
-												)}%
-											</span>
-											<div class="flex gap-2">
-												<p class="text-secondary font-bold">
-													₦{Number(item.expand.dish.promoAmount).toLocaleString()}
-												</p>
-												<p class="text-gray-400 line-through">
-													₦{Number(item.expand.dish.defaultAmount).toLocaleString()}
-												</p>
-											</div>
-										{:else}
-											<p class="text-secondary font-bold">
-												₦{Number(item.expand.dish.defaultAmount).toLocaleString()}
-											</p>
-										{/if}
-									</div>
-								</div>
-
-								<div class="flex items-center justify-center gap-4">
-									<button
-										onclick={() => {
-											if (item.quantity <= 1) {
-												dishToDelete = item;
-												deleteModal.showModal();
-											} else {
-												updateQuantity({
-													itemId: item.id,
-													dishId: item.dish,
-													userId: $user.id,
-													newQty: item.quantity - 1,
-													promoAmount: item.expand.dish.promoAmount,
-													defaultAmount: item.expand.dish.defaultAmount
-												});
-											}
-										}}
-										class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
-										disabled={item.expand.dish.availability !== 'Available'}
-										class:opacity-50={item.expand.dish.availability !== 'Available'}
-										class:cursor-not-allowed={item.expand.dish.availability !== 'Available'}
-									>
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											width="24"
-											height="24"
-											viewBox="0 0 12 12"
-										>
-											<path
-												fill="currentColor"
-												d="M2 6a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 2 6"
-											/>
-										</svg>
-									</button>
-									<span class="text-secondary">{item.quantity}</span>
-									<button
-										onclick={() => {
-											updateQuantity({
-												itemId: item.id,
-												dishId: item.dish,
-												userId: $user.id,
-												newQty: item.quantity + 1,
-												promoAmount: item.expand.dish.promoAmount,
-												defaultAmount: item.expand.dish.defaultAmount
-											});
-										}}
-										class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
-										disabled={item.expand.dish.availability !== 'Available'}
-										class:opacity-50={item.expand.dish.availability !== 'Available'}
-										class:cursor-not-allowed={item.expand.dish.availability !== 'Available'}
-									>
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											width="24"
-											height="24"
-											viewBox="0 0 24 24"
-										>
-											<path
-												fill="currentColor"
-												d="M18 13h-5v5c0 .55-.45 1-1 1s-1-.45-1-1v-5H6c-.55 0-1-.45-1-1s.45-1 1-1h5V6c0-.55.45-1 1-1s1 .45 1 1v5h5c.55 0 1 .45 1 1s-.45 1-1 1"
-											/>
-										</svg>
-									</button>
-
-									<button
-										class=" btn-sm cursor-pointer text-red-500 transition-transform duration-300 hover:text-gray-500"
-										onclick={() => {
-											dishToDelete = item;
-											deleteModal.showModal();
-										}}
-									>
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											width="24"
-											height="24"
-											viewBox="0 0 24 24"
-										>
-											<path
-												fill="currentColor"
-												d="M7.616 20q-.672 0-1.144-.472T6 18.385V6H5V5h4v-.77h6V5h4v1h-1v12.385q0 .69-.462 1.153T16.384 20zM17 6H7v12.385q0 .269.173.442t.443.173h8.769q.23 0 .423-.192t.192-.424zM9.808 17h1V8h-1zm3.384 0h1V8h-1zM7 6v13z"
-											/>
-										</svg>
-									</button>
-								</div>
-
-								<dialog id="my_modal_2" bind:this={deleteModal} class="modal">
-									<div class="modal-box">
-										<h3 class="text-lg font-bold">
-											Hey <span class="text-secondary">{$user?.name}!</span>
-										</h3>
-										{#if dishToDelete}
-											<p class="py-4">
-												Are you sure you want to remove <span class="font-bold"
-													>{dishToDelete.expand.dish.name}</span
-												> from your cart?
-											</p>
-										{:else}
-											<p class="py-4">Loading dish info...</p>
-										{/if}
-										<div class="modal-action">
-											<form method="dialog">
-												<button class="btn">Close</button>
-											</form>
-											<button
-												onclick={() => {
-													removeFromCart(dishToDelete.id);
-													deleteModal.close();
-												}}
-												class="btn btn-xs btn-error bg-red-500 p-4 text-lg text-white"
-											>
-												Remove
-											</button>
-										</div>
-									</div>
-								</dialog>
-							</li>
-						{/each}
-					</ul>
-				{:else}
-					<div role="alert" class="alert alert-info mt-4">
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							fill="none"
-							viewBox="0 0 24 24"
-							class="h-6 w-6 shrink-0 stroke-current"
-						>
-							<path
+			<div class="bg-base-100 flex h-full w-96 flex-col">
+				<!-- Drawer Header -->
+				<div class="border-base-200 border-b p-6">
+					<div class="mb-4 flex items-center justify-between">
+						<h2 class="flex items-center gap-2 text-xl font-bold">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="24"
+								height="24"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
 								stroke-linecap="round"
 								stroke-linejoin="round"
+								><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path
+									d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+								/></svg
+							>
+							Your Cart
+						</h2>
+						<button onclick={closeSideBar} class="btn btn-ghost btn-circle btn-sm">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="20"
+								height="20"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
 								stroke-width="2"
-								d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-							></path>
-						</svg>
-						<span>Your cart is currently empty.</span>
-						<div>
-							<a onclick={closeSideBar} href="/#menu">
-								<button class="btn btn-sm btn-primary">Order</button>
+								stroke-linecap="round"
+								stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg
+							>
+						</button>
+					</div>
+					{#if $cart.length > 0}
+						<div class="flex items-end justify-between">
+							<div>
+								<p class="text-base-content/60 text-sm">Total Amount</p>
+								<p class="text-primary text-2xl font-bold">₦{$total.toLocaleString()}</p>
+							</div>
+							<p class="text-base-content/60 text-sm">
+								{$cart.length} item{$cart.length !== 1 ? 's' : ''}
+							</p>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Cart Items -->
+				{#if $cart.length > 0}
+					<div class="flex-1 overflow-y-auto p-4">
+						<div class="space-y-4">
+							{#each $cart as item (item.id)}
+								<div
+									class="bg-base-200 rounded-xl p-4 transition-all"
+									class:opacity-60={item.expand.dish.availability !== 'Available'}
+								>
+									<div class="flex gap-4">
+										<!-- Image -->
+										<div class="bg-base-300 h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg">
+											<img
+												src={item.expand.dish.image}
+												alt={item.expand.dish.name}
+												class="h-full w-full object-cover"
+											/>
+										</div>
+
+										<!-- Details -->
+										<div class="min-w-0 flex-1">
+											<div class="flex items-start justify-between gap-2">
+												<div>
+													<h3 class="truncate font-semibold">{item.expand.dish.name}</h3>
+													<span class="badge badge-primary badge-sm mt-1 text-white">
+														{allRestaurants.find((r: any) => r.id === item.expand.dish.restaurantId)
+															?.name || 'Restaurant'}
+													</span>
+												</div>
+												<button
+													onclick={() => {
+														dishToDelete = item;
+														deleteModal.showModal();
+													}}
+													class="text-error/60 hover:text-error p-1 transition-colors"
+												>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														width="16"
+														height="16"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														><path d="M3 6h18" /><path
+															d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"
+														/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line
+															x1="10"
+															x2="10"
+															y1="11"
+															y2="17"
+														/><line x1="14" x2="14" y1="11" y2="17" /></svg
+													>
+												</button>
+											</div>
+
+											<!-- Price -->
+											<div class="mt-2 flex items-center gap-2">
+												{#if item.expand.dish.promoAmount && item.expand.dish.promoAmount < item.expand.dish.defaultAmount}
+													<span class="text-primary font-bold"
+														>₦{Number(item.expand.dish.promoAmount).toLocaleString()}</span
+													>
+													<span class="text-base-content/40 text-sm line-through"
+														>₦{Number(item.expand.dish.defaultAmount).toLocaleString()}</span
+													>
+													<span class="badge badge-accent badge-sm"
+														>-{Math.round(
+															(1 - item.expand.dish.promoAmount / item.expand.dish.defaultAmount) *
+																100
+														)}%</span
+													>
+												{:else}
+													<span class="text-primary font-bold"
+														>₦{Number(item.expand.dish.defaultAmount).toLocaleString()}</span
+													>
+												{/if}
+												{#if item.expand.dish.availability !== 'Available'}
+													<span class="badge badge-error badge-sm">Unavailable</span>
+												{/if}
+											</div>
+
+											<!-- Quantity Controls -->
+											<div class="mt-3 flex items-center gap-3">
+												<button
+													onclick={() => {
+														if (item.expand.dish.availability !== 'Available') return;
+														if (item.quantity <= 1) {
+															dishToDelete = item;
+															deleteModal.showModal();
+														} else {
+															updateQuantity({
+																itemId: item.id,
+																newQty: item.quantity - 1,
+																promoAmount: item.expand.dish.promoAmount,
+																defaultAmount: item.expand.dish.defaultAmount
+															});
+														}
+													}}
+													class="bg-base-100 hover:bg-base-300 flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-50"
+													disabled={item.expand.dish.availability !== 'Available'}
+												>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														width="16"
+														height="16"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"><path d="M5 12h14" /></svg
+													>
+												</button>
+												<span class="w-8 text-center font-semibold">{item.quantity}</span>
+												<button
+													onclick={() => {
+														if (item.expand.dish.availability !== 'Available') return;
+														updateQuantity({
+															itemId: item.id,
+															newQty: item.quantity + 1,
+															promoAmount: item.expand.dish.promoAmount,
+															defaultAmount: item.expand.dish.defaultAmount
+														});
+													}}
+													class="bg-base-100 hover:bg-base-300 flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-50"
+													disabled={item.expand.dish.availability !== 'Available'}
+												>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														width="16"
+														height="16"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg
+													>
+												</button>
+											</div>
+										</div>
+									</div>
+								</div>
+							{/each}
+						</div>
+					</div>
+
+					<!-- Footer Actions -->
+					<div class="border-base-200 border-t p-4">
+						<div class="flex gap-3">
+							<button onclick={() => clearModal.showModal()} class="btn btn-ghost flex-1">
+								Clear Cart
+							</button>
+							<a onclick={closeSideBar} href="/checkout" class="btn btn-primary flex-[2]">
+								Checkout
 							</a>
 						</div>
+					</div>
+				{:else}
+					<!-- Empty State -->
+					<div class="flex flex-1 flex-col items-center justify-center p-8 text-center">
+						<div class="bg-base-200 mb-4 flex h-20 w-20 items-center justify-center rounded-full">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="40"
+								height="40"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.5"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								class="text-base-content/30"
+								><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path
+									d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+								/></svg
+							>
+						</div>
+						<h3 class="mb-2 text-lg font-semibold">Your cart is empty</h3>
+						<p class="text-base-content/60 mb-6 text-sm">Add some delicious items to get started</p>
+						<a onclick={closeSideBar} href="/#menu" class="btn btn-primary"> Browse Menu </a>
 					</div>
 				{/if}
 			</div>
 		</div>
 	</div>
+
+	<!-- Clear Cart Modal -->
+	<dialog bind:this={clearModal} class="modal">
+		<div class="modal-box max-w-sm text-center">
+			<div
+				class="bg-error/10 text-error mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="32"
+					height="32"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path
+						d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"
+					/></svg
+				>
+			</div>
+			<h3 class="text-lg font-bold">Clear Cart?</h3>
+			<p class="text-base-content/70 mt-2 mb-6">
+				Are you sure you want to remove all items from your cart?
+			</p>
+			<div class="flex justify-center gap-3">
+				<button onclick={() => clearModal.close()} class="btn btn-ghost">Cancel</button>
+				<button onclick={() => clearCart(clearModal)} class="btn btn-error"> Clear All </button>
+			</div>
+		</div>
+	</dialog>
+
+	<!-- Delete Item Modal -->
+	<dialog bind:this={deleteModal} class="modal">
+		<div class="modal-box max-w-sm text-center">
+			<div
+				class="bg-error/10 text-error mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="32"
+					height="32"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path
+						d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"
+					/></svg
+				>
+			</div>
+			<h3 class="text-lg font-bold">Remove Item?</h3>
+			{#if dishToDelete}
+				<p class="text-base-content/70 mt-2 mb-6">
+					Remove <span class="text-base-content font-semibold">{dishToDelete.expand.dish.name}</span
+					> from your cart?
+				</p>
+			{/if}
+			<div class="flex justify-center gap-3">
+				<button onclick={() => deleteModal.close()} class="btn btn-ghost">Cancel</button>
+				<button
+					onclick={() => {
+						removeFromCart(dishToDelete.id);
+						deleteModal.close();
+					}}
+					class="btn btn-error"
+				>
+					Remove
+				</button>
+			</div>
+		</div>
+	</dialog>
 {:else if viewMode === 'menu' && selectedRestaurant}
+	<!-- Not Logged In Drawer -->
 	<div class="drawer drawer-end z-[9999]">
 		<input id="my-drawer-5" type="checkbox" class="drawer-toggle" />
 		<div class="drawer-content"></div>
 		<div class="drawer-side">
 			<label for="my-drawer-5" aria-label="close sidebar" class="drawer-overlay"></label>
 
-			<div
-				class="menu bg-base-200 text-base-content min-h-full w-80 space-y-4 p-4 pl-6 md:min-w-1/3"
-			>
-				<div>
-					<button
-						onclick={closeSideBar}
-						class="hover:text-secondary cursor-pointer items-start justify-start hover:underline"
-					>
-						<span class="text-secondary">&lt;&lt;</span> Back</button
-					>
+			<div class="bg-base-100 flex h-full w-96 flex-col">
+				<!-- Header -->
+				<div class="border-base-200 border-b p-6">
+					<div class="flex items-center justify-between">
+						<h2 class="flex items-center gap-2 text-xl font-bold">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="24"
+								height="24"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path
+									d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+								/></svg
+							>
+							Your Cart
+						</h2>
+						<button onclick={closeSideBar} class="btn btn-ghost btn-circle btn-sm">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="20"
+								height="20"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg
+							>
+						</button>
+					</div>
 				</div>
-				<h2 class="mb-2 text-xl font-bold">Your Cart</h2>
 
-				<div role="alert" class="alert alert-info mt-4">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						fill="none"
-						viewBox="0 0 24 24"
-						class="h-6 w-6 shrink-0 stroke-current"
-					>
-						<path
+				<!-- Login Required State -->
+				<div class="flex flex-1 flex-col items-center justify-center p-8 text-center">
+					<div class="bg-base-200 mb-4 flex h-20 w-20 items-center justify-center rounded-full">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="40"
+							height="40"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.5"
 							stroke-linecap="round"
 							stroke-linejoin="round"
-							stroke-width="2"
-							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-						></path>
-					</svg>
-					<span>You must be logged in to view cart.</span>
-					<div>
-						<a onclick={closeSideBar} href="/login">
-							<button class="btn btn-sm btn-primary">Login</button>
+							class="text-base-content/30"
+							><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path
+								d="M7 11V7a5 5 0 0 1 10 0v4"
+							/></svg
+						>
+					</div>
+					<h3 class="mb-2 text-lg font-semibold">Sign In Required</h3>
+					<p class="text-base-content/60 mb-6 text-sm">
+						Please sign in to view your cart and place orders
+					</p>
+					<div class="flex w-full flex-col gap-3">
+						<a onclick={closeSideBar} href="/login" class="btn btn-primary w-full"> Sign In </a>
+						<a onclick={closeSideBar} href="/signup" class="btn btn-outline w-full">
+							Create Account
 						</a>
 					</div>
 				</div>
