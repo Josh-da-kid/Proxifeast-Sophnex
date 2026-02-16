@@ -63,7 +63,7 @@
 		name="description"
 		content="{restaurantName} is a restaurant online food ordering system. It is an online menu where users scan a QR code from the restaurant tables and order easily."
 	/>
-	<link rel="icon" href={restaurantLogo} type="image/png" />
+	<link rel="icon" href="/favicon.png" type="image/png" />
 </svelte:head>
 
 {#if loading}
