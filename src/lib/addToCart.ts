@@ -7,7 +7,8 @@ export async function addToCartPB(
 	userId: string,
 	defaultAmount: number,
 	promoAmount: number,
-	restaurantId: string // ✅ new argument
+	restaurantId: string,
+	restaurantName: string
 ) {
 	try {
 		// Determine price
@@ -17,9 +18,9 @@ export async function addToCartPB(
 		let existing: any = null;
 
 		try {
-			existing = await pb.collection('cart').getFirstListItem(
-				`user="${userId}" && dish="${dishId}" && restaurantId="${restaurantId}"`
-			);
+			existing = await pb
+				.collection('cart')
+				.getFirstListItem(`user="${userId}" && dish="${dishId}" && restaurantId="${restaurantId}"`);
 		} catch (err) {
 			// No item found — ignore
 		}
@@ -31,7 +32,8 @@ export async function addToCartPB(
 
 			const updated = await pb.collection('cart').update(existing.id, {
 				quantity: updatedQuantity,
-				amount: updatedAmount
+				amount: updatedAmount,
+				restaurantName
 			});
 
 			return updated;
@@ -44,7 +46,8 @@ export async function addToCartPB(
 				quantity,
 				amount: totalAmount,
 				user: userId,
-				restaurantId // ✅ include restaurantId
+				restaurantId,
+				restaurantName
 			});
 
 			return record;
@@ -54,5 +57,3 @@ export async function addToCartPB(
 		throw err;
 	}
 }
-
-

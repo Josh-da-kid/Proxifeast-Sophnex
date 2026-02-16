@@ -264,6 +264,7 @@
 		if (dish.availability !== 'Available') return;
 
 		const quantity = Number(dishQuantities[dish.id] || 1);
+		const restaurantName = getRestaurantNameForDish(dish);
 
 		try {
 			if ($isLoggedIn) {
@@ -274,7 +275,8 @@
 					$user.id,
 					dish.defaultAmount,
 					dish.promoAmount,
-					dish.restaurantId
+					dish.restaurantId,
+					restaurantName
 				);
 
 				await fetchCart();
@@ -401,11 +403,17 @@
 
 	// Get restaurant name for featured dish
 	function getRestaurantNameForDish(dish: any): string {
+		// First try to get from expand data
 		if (dish.expand?.restaurantId?.name) {
 			return dish.expand.restaurantId.name;
 		}
+		// Fallback: find in allRestaurants by restaurantId
 		const restaurant = allRestaurants.find((r: any) => r.id === dish.restaurantId);
-		return restaurant?.name || 'Unknown Restaurant';
+		if (restaurant?.name) {
+			return restaurant.name;
+		}
+		// Final fallback
+		return 'Unknown Restaurant';
 	}
 </script>
 
@@ -634,125 +642,263 @@
 	<!-- Hero Section -->
 	<section
 		id="home"
-		class="hero md:px-20l flex min-h-[75vh] flex-col items-center justify-center overflow-hidden px-6 text-center md:px-0"
+		class="relative flex min-h-[85vh] flex-col items-center justify-center overflow-hidden px-6 text-center"
 	>
-		<h3 class="text-secondary mt-4 ml-4 animate-bounce text-2xl font-bold md:mt-8">
-			Hi {$user?.name || 'there'}!!
-		</h3>
-		<h1
-			class="font-playfair text-primary mb-4 text-4xl font-bold drop-shadow-md sm:text-6xl lg:text-7xl"
-			in:fly={{ y: -100, duration: 800 }}
-		>
-			{#if viewMode === 'menu' && selectedRestaurant}
-				{selectedRestaurant.motto}
-			{:else}
-				Discover Great Food
+		<!-- Background -->
+		<div class="absolute inset-0 bg-gradient-to-b from-amber-50/80 to-white"></div>
+		<div
+			class="absolute inset-0 opacity-40"
+			style="background-image: url(&quot;data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23f59e0b' fill-opacity='0.12'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E&quot;);"
+		></div>
+
+		<div class="relative z-10 mx-auto max-w-4xl">
+			{#if $user?.name}
+				<div
+					class="mb-4 inline-block rounded-full bg-amber-100 px-4 py-1.5 text-sm font-medium text-amber-800"
+				>
+					Welcome back, {$user.name}!
+				</div>
 			{/if}
-		</h1>
-		<p
-			class="text-base-content mb-8 max-w-xl text-lg md:text-xl"
-			in:fade={{ delay: 600, duration: 900 }}
-		>
-			{#if viewMode === 'menu' && selectedRestaurant}
-				{selectedRestaurant.description}
-			{:else}
-				Explore restaurants and find your favorite dishes all in one place
+
+			<h1
+				class="font-playfair text-primary mb-6 text-5xl leading-tight font-bold sm:text-6xl lg:text-7xl"
+				in:fly={{ y: -100, duration: 800 }}
+			>
+				{#if viewMode === 'menu' && selectedRestaurant}
+					{selectedRestaurant.motto}
+				{:else}
+					Delicious Food<br /><span class="text-amber-600">Delivered Fast</span>
+				{/if}
+			</h1>
+			<p class="text-base-content/70 mb-10 text-xl" in:fade={{ delay: 600, duration: 900 }}>
+				{#if viewMode === 'menu' && selectedRestaurant}
+					{selectedRestaurant.description}
+				{:else}
+					Order from your favorite restaurants and enjoy restaurant-quality meals delivered to your
+					door
+				{/if}
+			</p>
+
+			{#if viewMode !== 'menu' || !selectedRestaurant}
+				<div
+					class="flex flex-col items-center justify-center gap-4 sm:flex-row"
+					in:fade={{ delay: 800, duration: 600 }}
+				>
+					<a
+						href="#menu"
+						class="btn btn-primary btn-lg rounded-full px-8 shadow-lg shadow-amber-500/25"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							class="mr-2"><path d="M3 3h18v18H3zM12 8v8M8 12h8" /></svg
+						>
+						Order Now
+					</a>
+					<a href="#specials" class="btn btn-outline btn-secondary btn-lg rounded-full px-8">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							class="mr-2"
+							><polygon
+								points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+							/></svg
+						>
+						View Specials
+					</a>
+				</div>
 			{/if}
-		</p>
-		<img
-			src={viewMode === 'menu' && selectedRestaurant
-				? selectedRestaurant.logoUrl
-				: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80'}
-			alt={viewMode === 'menu' && selectedRestaurant ? selectedRestaurant.name : 'Delicious Food'}
-			class="flex max-w-xl items-center justify-center rounded-xl text-center shadow-lg transition-transform duration-700 ease-in-out hover:scale-105 md:h-[450px] md:w-screen md:max-w-full"
-			in:scale={{ duration: 1000, easing: cubicOut }}
-		/>
+		</div>
+
+		<!-- Hero Image -->
+		<div class="mt-12 w-full max-w-5xl" in:scale={{ duration: 1000, easing: cubicOut, delay: 300 }}>
+			<div class="relative overflow-hidden rounded-3xl shadow-2xl shadow-amber-500/15">
+				<img
+					src={viewMode === 'menu' && selectedRestaurant
+						? selectedRestaurant.logoUrl
+						: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80'}
+					alt={viewMode === 'menu' && selectedRestaurant
+						? selectedRestaurant.name
+						: 'Delicious Food'}
+					class="h-[280px] w-full object-cover sm:h-[380px] lg:h-[420px]"
+				/>
+				<div
+					class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"
+				></div>
+			</div>
+		</div>
+
+		<!-- Scroll indicator -->
+		<div class="absolute bottom-6 left-1/2 -translate-x-1/2">
+			<div
+				class="flex h-10 w-6 items-start justify-center rounded-full border-2 border-amber-300 p-1"
+			>
+				<div class="h-2 w-1.5 animate-pulse rounded-full bg-amber-400"></div>
+			</div>
+		</div>
 	</section>
 
-	<!-- Today's Special - Only show when in list view or when we have featured dishes -->
+	<!-- Today's Special -->
 	{#if featuredDishes.length > 0}
-		<section class="relative py-12">
-			<h2
-				class="font-playfair text-primary mt-8 mb-8 text-center text-3xl font-semibold sm:mt-15 sm:text-5xl"
-				in:fly={{ x: -200, duration: 800 }}
-			>
-				Today's Special
-			</h2>
+		<section id="specials" class="bg-base-100 relative overflow-hidden py-20">
+			<!-- Decorative -->
+			<div class="absolute top-16 -left-24 h-48 w-48 rounded-full bg-amber-200/20"></div>
+			<div class="absolute -right-24 bottom-16 h-56 w-56 rounded-full bg-amber-100/30"></div>
 
-			<section class="overflow-hidden py-6">
-				<div
-					class="animate-marquee flex w-fit items-center gap-6 overflow-x-auto scroll-smooth px-4 whitespace-nowrap"
-				>
-					{#each Array(4) as _}
-						{#each featuredDishes as dish}
-							<div class="group relative w-72 flex-shrink-0 snap-center outline-none" tabindex="0">
+			<div class="container mx-auto px-6">
+				<div class="mb-12 text-center">
+					<span
+						class="mb-2 inline-block rounded-full bg-amber-100 px-4 py-1 text-sm font-semibold text-amber-700"
+					>
+						Hot & Ready
+					</span>
+					<h2
+						class="font-playfair text-primary text-4xl font-bold sm:text-5xl"
+						in:fly={{ x: -200, duration: 800 }}
+					>
+						Today's Specials
+					</h2>
+					<p class="text-base-content/60 mt-3 text-lg">Handpicked dishes just for you</p>
+				</div>
+
+				<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+					{#each featuredDishes as dish}
+						<div
+							class="group bg-base-100 cursor-pointer rounded-2xl shadow-lg shadow-gray-200/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl"
+							onclick={() => selectRestaurantFromDish(dish)}
+						>
+							<figure class="relative h-44 overflow-hidden rounded-t-2xl">
+								<img
+									src={dish.image}
+									alt={dish.name}
+									class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+								/>
 								<div
-									class="card bg-base-100 cursor-pointer shadow-xl transition-transform duration-300 group-hover:scale-105"
-									onclick={() => selectRestaurantFromDish(dish)}
-								>
-									<figure class="relative h-40 overflow-hidden">
-										<img src={dish.image} alt={dish.name} class="h-full w-full object-cover" />
-										<!-- Restaurant Tag -->
-										<div class="absolute top-2 left-2">
-											<span class="badge badge-primary text-white">
-												{getRestaurantNameForDish(dish)}
-											</span>
-										</div>
-									</figure>
-									<div class="card-body p-4">
-										<h3 class="card-title font-playfair text-lg whitespace-normal">
-											{dish.name}
-										</h3>
-										<div class="flex items-baseline gap-2">
-											{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
-												<p class="text-secondary font-bold">
-													₦{Number(dish.promoAmount).toLocaleString()}
-												</p>
-												<p class="text-xs text-gray-400 line-through">
-													₦{Number(dish.defaultAmount).toLocaleString()}
-												</p>
-											{:else}
-												<p class="text-secondary font-bold">
-													₦{Number(dish.defaultAmount).toLocaleString()}
-												</p>
-											{/if}
-										</div>
-									</div>
+									class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"
+								></div>
+
+								<div class="absolute top-2 left-2 flex gap-1.5">
+									<span class="badge badge-sm badge-primary">
+										<svg
+											xmlns="http://www.w3.org/20	0/svg"
+											width="16"
+											height="16"
+											viewBox="0 	0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+											class="mr-1 text-amber-500"
+										>
+											<path
+												d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+											/>
+										</svg>
+										{getRestaurantNameForDish(dish)}
+									</span>
 								</div>
-								<!-- View Restaurant Button Overlay -->
-								<div
-									class="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-black/50 opacity-0 transition-opacity duration-300 group-focus-within:opacity-100 group-hover:opacity-100"
-								>
+
+								{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
+									<div class="absolute top-3 right-3">
+										<span class="rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white">
+											-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}%
+										</span>
+									</div>
+								{/if}
+							</figure>
+
+							<div class="p-5">
+								<h3 class="font-playfair text-lg font-semibold">
+									{dish.name}
+								</h3>
+								<p class="mt-1 line-clamp-2 text-sm text-gray-500">
+									{dish.description}
+								</p>
+
+								<div class="mt-4 flex items-baseline justify-between">
+									<div class="flex items-baseline gap-2">
+										{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
+											<span class="text-xl font-bold text-amber-600">
+												₦{Number(dish.promoAmount).toLocaleString()}
+											</span>
+											<span class="text-sm text-gray-400 line-through">
+												₦{Number(dish.defaultAmount).toLocaleString()}
+											</span>
+										{:else}
+											<span class="text-xl font-bold text-amber-600">
+												₦{Number(dish.defaultAmount).toLocaleString()}
+											</span>
+										{/if}
+									</div>
 									<button
-										class="btn btn-primary"
+										class="btn btn-sm btn-primary rounded-full"
 										onclick={(e) => {
 											e.stopPropagation();
-											selectRestaurantFromDish(dish);
+											handleAddToCart(dish);
 										}}
 									>
-										View Restaurant
+										Order
 									</button>
 								</div>
 							</div>
-						{/each}
+						</div>
 					{/each}
 				</div>
-			</section>
+
+				<div class="mt-12 text-center">
+					<a href="#menu" class="btn btn-outline btn-primary btn-lg rounded-full px-8">
+						View Full Menu
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							class="ml-2"><path d="M5 12h14M12 5l7 7-7 7" /></svg
+						>
+					</a>
+				</div>
+			</div>
 		</section>
 	{/if}
 
 	<!-- Search Section -->
-	<section id="menu" class="mt-15 items-center justify-center gap-2 px-6">
-		<h2
-			class="font-playfair text-primary mt-8 mb-8 text-center text-5xl font-semibold sm:mt-15"
-			in:fly={{ x: -200, duration: 800 }}
-		>
-			{#if viewMode === 'menu' && selectedRestaurant}
-				{selectedRestaurant.name} Menu
-			{:else}
-				Available Restaurants
+	<section id="menu" class="container mx-auto mb-8 px-6 py-8">
+		<div class="mb-12 text-center">
+			<span
+				class="mb-2 inline-block rounded-full bg-amber-100 px-4 py-1 text-sm font-semibold text-amber-700"
+			>
+				{#if viewMode === 'menu' && selectedRestaurant}
+					Menu
+				{:else}
+					Explore
+				{/if}
+			</span>
+			<h2
+				class="font-playfair text-primary text-4xl font-bold sm:text-5xl"
+				in:fly={{ x: -200, duration: 800 }}
+			>
+				{#if viewMode === 'menu' && selectedRestaurant}
+					{selectedRestaurant.name}
+				{:else}
+					Our Restaurants
+				{/if}
+			</h2>
+			{#if viewMode !== 'menu' || !selectedRestaurant}
+				<p class="text-base-content/60 mt-3 text-lg">Discover your next favorite meal</p>
 			{/if}
-		</h2>
+		</div>
 
 		{#if viewMode === 'menu' && selectedRestaurant}
 			<!-- Back Button -->
@@ -829,7 +975,7 @@
 
 	<!-- Restaurant List View -->
 	{#if viewMode === 'list'}
-		<section class="px-6 py-8">
+		<section class="px-6">
 			{#if hasSearched && restaurants.length === 0}
 				<p class="mt-10 text-center text-lg font-medium text-gray-500">
 					❌ No restaurants found matching "<span class="text-yellow-600">{searchInput}</span>"
@@ -841,7 +987,7 @@
 					</h3>
 				{/if}
 
-				<div class="mx-auto mt-8 grid max-w-7xl gap-8 md:grid-cols-2 lg:grid-cols-3">
+				<div class="mx-auto grid max-w-7xl gap-8 md:grid-cols-2 lg:grid-cols-3">
 					{#each restaurants as r}
 						<div
 							class="flex flex-col rounded-2xl bg-white p-6 shadow-md transition hover:shadow-lg"
@@ -1110,8 +1256,11 @@
 												<div>
 													<h3 class="truncate font-semibold">{item.expand.dish.name}</h3>
 													<span class="badge badge-primary badge-sm mt-1 text-white">
-														{allRestaurants.find((r: any) => r.id === item.expand.dish.restaurantId)
-															?.name || 'Restaurant'}
+														{item.restaurantName ||
+															allRestaurants.find(
+																(r: any) => r.id === item.expand.dish.restaurantId
+															)?.name ||
+															'Restaurant'}
 													</span>
 												</div>
 												<button

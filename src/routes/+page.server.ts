@@ -122,7 +122,9 @@ export const actions = {
 				promoAmount: data.promoAmount ? parseInt(data.promoAmount as string) : null,
 				user: locals.user.id,
 				dish: data.dish,
-				restaurant: data.restaurantId
+				restaurant: data.restaurantId,
+				restaurantId: data.restaurantId,
+				restaurantName: data.restaurantName || 'Unknown Restaurant'
 			});
 
 			return { success: true, add };

@@ -63,9 +63,12 @@
 		return grouped;
 	}
 
-	function getRestaurantName(restaurantId: string) {
-		const restaurant = $allRestaurants.find((r: any) => r.id === restaurantId);
-		return restaurant?.name || 'Restaurant';
+	function getRestaurantName(restaurantId: string, restaurantName?: string) {
+		return (
+			restaurantName ||
+			$allRestaurants.find((r: any) => r.id === restaurantId)?.name ||
+			'Restaurant'
+		);
 	}
 
 	async function setupSubscriptions() {
@@ -351,7 +354,9 @@
 													{@html iconStore}
 												</div>
 												<div class="flex-1">
-													<p class="text-primary font-semibold">{getRestaurantName(restId)}</p>
+													<p class="text-primary font-semibold">
+														{getRestaurantName(restId, item.restaurantName)}
+													</p>
 													<p class="text-base-content/60 text-xs">
 														{items.length} item{items.length !== 1 ? 's' : ''}
 													</p>
