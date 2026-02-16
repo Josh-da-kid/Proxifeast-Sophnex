@@ -1,68 +1,231 @@
-<footer class="footer sm:footer-horizontal bg-primary text-neutral-content p-10">
-	<aside>
-		<svg
-			width="50"
-			height="50"
-			viewBox="0 0 24 24"
-			xmlns="http://www.w3.org/2000/svg"
-			fill-rule="evenodd"
-			clip-rule="evenodd"
-			class="fill-current"
-		>
-			<path
-				d="M22.672 15.226l-2.432.811.841 2.515c.33 1.019-.209 2.127-1.23 2.456-1.15.325-2.148-.321-2.463-1.226l-.84-2.518-5.013 1.677.84 2.517c.391 1.203-.434 2.542-1.831 2.542-.88 0-1.601-.564-1.86-1.314l-.842-2.516-2.431.809c-1.135.328-2.145-.317-2.463-1.229-.329-1.018.211-2.127 1.231-2.456l2.432-.809-1.621-4.823-2.432.808c-1.355.384-2.558-.59-2.558-1.839 0-.817.509-1.582 1.327-1.846l2.433-.809-.842-2.515c-.33-1.02.211-2.129 1.232-2.458 1.02-.329 2.13.209 2.461 1.229l.842 2.515 5.011-1.677-.839-2.517c-.403-1.238.484-2.553 1.843-2.553.819 0 1.585.509 1.85 1.326l.841 2.517 2.431-.81c1.02-.33 2.131.211 2.461 1.229.332 1.018-.21 2.126-1.23 2.456l-2.433.809 1.622 4.823 2.433-.809c1.242-.401 2.557.484 2.557 1.838 0 .819-.51 1.583-1.328 1.847m-8.992-6.428l-5.01 1.675 1.619 4.828 5.011-1.674-1.62-4.829z"
-			></path>
-		</svg>
-		<p>
-			&copy; 2025 Onyi's Kitchen. All rights reserved.
-			<br />
-			Providing reliable dishes since 1992
-		</p>
-	</aside>
-	<!-- svelte-ignore a11y_consider_explicit_label -->
-	<!-- svelte-ignore a11y_missing_attribute -->
-	<nav>
-		<h6 class="footer-title">Social</h6>
-		<div class="grid grid-flow-col gap-4">
-			<a href="/" class="transition-transform duration-300 hover:scale-105 hover:text-gray-300">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="24"
-					height="24"
-					viewBox="0 0 24 24"
-					class="fill-current"
-				>
-					<path
-						d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"
-					></path>
-				</svg>
-			</a>
-			<a href="/" class="transition-transform duration-300 hover:scale-105 hover:text-gray-300">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="24"
-					height="24"
-					viewBox="0 0 24 24"
-					class="fill-current"
-				>
-					<path
-						d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"
-					></path>
-				</svg>
-			</a>
-			<a href="/" class="transition-transform duration-300 hover:scale-105 hover:text-gray-300">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="24"
-					height="24"
-					viewBox="0 0 24 24"
-					class="fill-current"
-				>
-					<path
-						d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"
-					></path>
-				</svg>
-			</a>
+<script lang="ts">
+	import { page } from '$app/stores';
+
+	let { restaurant = $page.data.restaurant } = $props();
+</script>
+
+<footer class="bg-base-200 text-base-content">
+	<div class="container mx-auto px-6 py-12">
+		<div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+			<!-- Brand Section -->
+			<div class="space-y-4">
+				<div class="flex items-center gap-3">
+					{#if restaurant?.faviconUrl}
+						<img
+							src={restaurant.faviconUrl}
+							alt={restaurant.name}
+							class="h-10 w-10 rounded-lg object-contain"
+						/>
+					{:else}
+						<div
+							class="bg-primary text-primary-content flex h-10 w-10 items-center justify-center rounded-lg"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="24"
+								height="24"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+								<path d="M7 2v20" />
+								<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+							</svg>
+						</div>
+					{/if}
+					<span class="font-playfair text-xl font-bold">{restaurant?.name || 'Restaurant'}</span>
+				</div>
+				<p class="text-base-content/70 text-sm">
+					{restaurant?.description || 'Delicious food delivered fast to your doorstep.'}
+				</p>
+				{#if restaurant?.restaurantAddress}
+					<p class="text-base-content/60 flex items-start gap-2 text-sm">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="16"
+							height="16"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							class="mt-0.5 shrink-0"
+						>
+							<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+							<circle cx="12" cy="10" r="3" />
+						</svg>
+						{restaurant.restaurantAddress}
+					</p>
+				{/if}
+			</div>
+
+			<!-- Company Links -->
+			<div>
+				<h6 class="footer-title text-base-content">Company</h6>
+				<ul class="space-y-2 text-sm">
+					<li>
+						<a href="/about" class="link link-hover text-base-content/70 hover:text-primary"
+							>About Us</a
+						>
+					</li>
+					<li>
+						<a href="/restaurants" class="link link-hover text-base-content/70 hover:text-primary"
+							>Our Menu</a
+						>
+					</li>
+					<li>
+						<a href="/about" class="link link-hover text-base-content/70 hover:text-primary"
+							>Careers</a
+						>
+					</li>
+					<li>
+						<a href="/about" class="link link-hover text-base-content/70 hover:text-primary">Blog</a
+						>
+					</li>
+				</ul>
+			</div>
+
+			<!-- Support Links -->
+			<div>
+				<h6 class="footer-title text-base-content">Support</h6>
+				<ul class="space-y-2 text-sm">
+					<li>
+						<a href="/contact" class="link link-hover text-base-content/70 hover:text-primary"
+							>Contact Us</a
+						>
+					</li>
+					<li>
+						<a href="/about" class="link link-hover text-base-content/70 hover:text-primary">FAQ</a>
+					</li>
+					<li>
+						<a href="/about" class="link link-hover text-base-content/70 hover:text-primary"
+							>Shipping Info</a
+						>
+					</li>
+					<li>
+						<a href="/about" class="link link-hover text-base-content/70 hover:text-primary"
+							>Help Center</a
+						>
+					</li>
+				</ul>
+			</div>
+
+			<!-- Social & Newsletter -->
+			<div>
+				<h6 class="footer-title text-base-content">Connect With Us</h6>
+				<div class="flex gap-4">
+					<a
+						href="https://instagram.com"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="btn btn-circle btn-ghost btn-sm"
+						aria-label="Follow us on Instagram"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+							<path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+							<line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+						</svg>
+					</a>
+					<a
+						href="https://facebook.com"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="btn btn-circle btn-ghost btn-sm"
+						aria-label="Follow us on Facebook"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+						</svg>
+					</a>
+					<a
+						href="https://twitter.com"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="btn btn-circle btn-ghost btn-sm"
+						aria-label="Follow us on X (Twitter)"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"
+							/>
+						</svg>
+					</a>
+					<a
+						href="https://youtube.com"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="btn btn-circle btn-ghost btn-sm"
+						aria-label="Subscribe on YouTube"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"
+							/>
+							<path d="m10 15 5-3-5-3z" />
+						</svg>
+					</a>
+				</div>
+				<div class="mt-6">
+					<p class="text-base-content/70 mb-3 text-sm">Subscribe to our newsletter</p>
+					<div class="flex gap-2">
+						<input
+							type="email"
+							placeholder="your@email.com"
+							class="input input-bordered input-sm w-full max-w-xs"
+						/>
+						<button class="btn btn-primary btn-sm">Subscribe</button>
+					</div>
+				</div>
+			</div>
 		</div>
-	</nav>
+
+		<!-- Bottom Bar -->
+		<div
+			class="border-base-content/10 mt-12 flex flex-col items-center justify-between gap-4 border-t pt-8 md:flex-row"
+		>
+			<p class="text-base-content/60 text-sm">
+				&copy; {new Date().getFullYear()}
+				{restaurant?.name || 'Restaurant'}. All rights reserved.
+			</p>
+			<div class="flex gap-4 text-sm">
+				<a href="/about" class="text-base-content/60 hover:text-primary">Privacy Policy</a>
+				<a href="/about" class="text-base-content/60 hover:text-primary">Terms of Service</a>
+				<a href="/about" class="text-base-content/60 hover:text-primary">Cookie Policy</a>
+			</div>
+		</div>
+	</div>
 </footer>

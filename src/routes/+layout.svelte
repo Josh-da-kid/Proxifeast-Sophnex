@@ -80,7 +80,7 @@
 		<main class="flex-grow pt-20">{@render children()}</main>
 
 		<div class="bottom-0 z-2">
-			<Footer />
+			<Footer restaurant={$page.data.restaurant} />
 		</div>
 	</div>
 {/if}
