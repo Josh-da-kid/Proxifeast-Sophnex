@@ -447,9 +447,9 @@
 
 	// Get restaurant name for featured dish
 	function getRestaurantNameForDish(dish: any): string {
-		// First try to get from expand data
-		if (dish.expand?.restaurantId?.name) {
-			return dish.expand.restaurantId.name;
+		// First try to get from expand data (use 'restaurant' as that's what we expand)
+		if (dish.expand?.restaurant?.name) {
+			return dish.expand.restaurant.name;
 		}
 		// Fallback: find in allRestaurants by restaurantId
 		const restaurant = allRestaurants.find((r: any) => r.id === dish.restaurantId);
@@ -837,7 +837,13 @@
 
 				<div class="mx-auto grid max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
 					{#each featuredDishes as dish}
-						<div class="group cursor-pointer" onclick={() => selectRestaurantFromDish(dish)}>
+						<div
+							class="group cursor-pointer"
+							onclick={() => selectRestaurantFromDish(dish)}
+							onkeydown={(e) => e.key === 'Enter' && selectRestaurantFromDish(dish)}
+							role="button"
+							tabindex="0"
+						>
 							<article
 								class="relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
 							>

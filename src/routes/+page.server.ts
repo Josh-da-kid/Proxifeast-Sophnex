@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		const featuredDishes = await locals.pb.collection('dishes').getFullList({
 			filter: 'isFeatured = true && availability = "Available"',
 			sort: '-created',
-			expand: 'restaurantId'
+			expand: 'restaurant'
 		});
 
 		let filteredRestaurants = allRestaurants;
