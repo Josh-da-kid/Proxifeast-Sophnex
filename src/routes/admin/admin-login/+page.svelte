@@ -1,24 +1,20 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import { fly } from 'svelte/transition';
+	import { fly, fade } from 'svelte/transition';
 
-	// export let form;
-	let redirectTo = '';
+	let redirectTo = $state('');
 
-	$: {
+	$effect(() => {
 		redirectTo = $page.url.searchParams.get('redirectTo') || '/admin/admin-menu';
-	}
-	// const error = form?.error;
+	});
 
-	let logoutSuccess = false;
+	let logoutSuccess = $state(false);
 
-	// Reactively check the query param
-	$: {
+	$effect(() => {
 		if ($page.url.searchParams.get('logout') === 'success') {
 			logoutSuccess = true;
 
-			// Hide after 3 seconds
 			setTimeout(() => {
 				logoutSuccess = false;
 			}, 3000);
@@ -27,15 +23,16 @@
 			url.searchParams.delete('logout');
 			history.replaceState(null, '', url.pathname + url.search);
 		}
-	}
+	});
 
-	let email = '';
-	let password = '';
-	let error = '';
-	let success = '';
-	let isLoading = false;
+	let email = $state('');
+	let password = $state('');
+	let showPassword = $state(false);
+	let error = $state('');
+	let success = $state('');
+	let isLoading = $state(false);
 
-	async function adminLogin(e: any) {
+	async function adminLogin(e: Event) {
 		e.preventDefault();
 		error = '';
 		success = '';
@@ -47,7 +44,6 @@
 		};
 
 		try {
-			// const res = await fetch('/api/admin-login', {
 			const res = await fetch(`/api/admin-login?redirectTo=${encodeURIComponent(redirectTo)}`, {
 				method: 'POST',
 				headers: {
@@ -62,9 +58,6 @@
 				error = result.message || 'Login failed.';
 			} else {
 				success = result.message || 'Account Login successfully!';
-				// Optionally redirect or reset form
-				// window.location.href = '/admin/admin-menu';
-				// ✅ Redirect from backend response
 				if (result.redirectTo && result.success) {
 					window.location.href = result.redirectTo;
 				}
@@ -76,7 +69,7 @@
 		isLoading = false;
 	}
 
-	let showError = false;
+	let showError = $state(false);
 
 	onMount(() => {
 		const params = new URLSearchParams(window.location.search);
@@ -87,7 +80,6 @@
 			setTimeout(() => {
 				showError = false;
 
-				// Remove ?not_admin=1 from the URL without reloading
 				params.delete('not_admin');
 				const newUrl = `${window.location.pathname}?${params.toString()}`;
 				window.history.replaceState({}, '', newUrl);
@@ -96,24 +88,27 @@
 	});
 </script>
 
+<svelte:head>
+	<title>Admin Login - Proxifeast</title>
+</svelte:head>
+
 {#if showError}
 	<div
-		role="alert"
-		class="alert alert-error fixed z-20 mb-4 ml-2"
+		class="alert alert-error fixed top-4 left-1/2 z-50 w-[90%] max-w-md -translate-x-1/2 shadow-lg"
 		in:fly={{ y: -20, duration: 300 }}
-		out:fly={{ y: -20, duration: 300 }}
 	>
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
-			class="h-6 w-6 shrink-0 stroke-current"
-			fill="none"
+			class="h-5 w-5 shrink-0"
 			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
 		>
 			<path
 				stroke-linecap="round"
 				stroke-linejoin="round"
-				stroke-width="2"
-				d="M12 9v2m0 4h.01M12 5a7 7 0 100 14 7 7 0 000-14z"
+				d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
 			/>
 		</svg>
 		<span>You must be an admin to access the admin panel.</span>
@@ -122,107 +117,212 @@
 
 {#if logoutSuccess}
 	<div
-		class="alert alert-success fixed z-5 mb-4 ml-4"
+		class="alert alert-success fixed top-4 left-1/2 z-50 w-[90%] max-w-md -translate-x-1/2 shadow-lg"
 		in:fly={{ y: -20, duration: 300 }}
-		out:fly={{ y: -20, duration: 300 }}
 	>
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
-			class="h-6 w-6 shrink-0 stroke-current"
-			fill="none"
+			class="h-5 w-5 shrink-0"
 			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
 		>
 			<path
 				stroke-linecap="round"
 				stroke-linejoin="round"
-				stroke-width="2"
 				d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
 			/>
 		</svg>
-		<span>Logout successful! You can now log in to another account.</span>
+		<span>Logout successful!</span>
 	</div>
 {/if}
 
-<div class="hero bg-base-200 min-h-screen">
-	<div class="hero-content flex-col lg:flex-row-reverse">
-		<div class="text-center md:w-[500px] lg:text-left">
-			<h1 class="text-5xl font-bold">Welcome to Admin Login Page!</h1>
-			<p class="py-6">
-				Provident cupiditate voluptatem et in. Quaerat fugiat ut assumenda excepturi exercitationem
-				quasi. In deleniti eaque aut repudiandae et a id nisi.
-			</p>
+<div
+	class="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 py-8"
+>
+	<div class="w-full max-w-md" in:fade={{ duration: 400 }}>
+		<!-- Logo & Header -->
+		<div class="mb-8 text-center">
+			<div
+				class="bg-primary shadow-primary/30 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="text-primary-content h-8 w-8"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+				>
+					<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+					<path d="M7 2v20" />
+					<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+				</svg>
+			</div>
+			<h1 class="font-playfair text-3xl font-bold text-slate-900">Admin Login</h1>
+			<p class="mt-2 text-slate-600">Sign in to access the admin panel</p>
 		</div>
-		<div class="card bg-base-100 w-full max-w-sm shrink-0 shadow-2xl">
-			<div class="card-body">
-				<!-- <form method="POST" action="?/loginAdmin"> -->
 
-				<form onsubmit={adminLogin}>
-					<fieldset class="fieldset">
-						<label for="email" class="label">Email</label>
+		<!-- Login Card -->
+		<div class="rounded-2xl bg-white p-8 shadow-xl shadow-slate-200/50">
+			<form onsubmit={adminLogin} class="space-y-5">
+				<!-- Email -->
+				<div class="space-y-2">
+					<label for="email" class="block text-sm font-medium text-slate-700">Email Address</label>
+					<input
+						id="email"
+						bind:value={email}
+						type="email"
+						name="email"
+						class="focus:border-primary focus:ring-primary/20 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition-all duration-200 focus:bg-white focus:ring-2 focus:outline-none"
+						placeholder="admin@example.com"
+						required
+					/>
+				</div>
+
+				<!-- Password -->
+				<div class="space-y-2">
+					<div class="flex items-center justify-between">
+						<label for="password" class="block text-sm font-medium text-slate-700">Password</label>
+						<a href="/forgot" class="text-primary hover:text-primary/80 text-sm">Forgot password?</a
+						>
+					</div>
+					<div class="relative">
 						<input
-							bind:value={email}
-							name="email"
-							type="email"
-							class="input"
-							placeholder="Email"
-							required
-						/>
-						<label for="password" class="label">Password</label>
-						<input
+							id="password"
 							bind:value={password}
-							type="password"
+							type={showPassword ? 'text' : 'password'}
 							name="password"
-							class="input"
-							placeholder="Password"
+							class="focus:border-primary focus:ring-primary/20 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-slate-900 transition-all duration-200 focus:bg-white focus:ring-2 focus:outline-none"
+							placeholder="Enter your password"
 							required
 						/>
-						<!-- <div><a href="/signup" class="link link-hover">New here? signup</a></div> -->
-						{#if isLoading}
-							<div>
-								<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-									><path
-										fill="none"
-										stroke="currentColor"
-										stroke-dasharray="16"
-										stroke-dashoffset="16"
+						<button
+							type="button"
+							class="absolute top-1/2 right-3 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+							onclick={() => (showPassword = !showPassword)}
+						>
+							{#if showPassword}
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-5 w-5"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path
 										stroke-linecap="round"
 										stroke-linejoin="round"
-										stroke-width="2"
-										d="M12 3c4.97 0 9 4.03 9 9"
-										><animate
-											fill="freeze"
-											attributeName="stroke-dashoffset"
-											dur="0.2s"
-											values="16;0"
-										/><animateTransform
-											attributeName="transform"
-											dur="1.5s"
-											repeatCount="indefinite"
-											type="rotate"
-											values="0 12 12;360 12 12"
-										/></path
-									></svg
+										d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+									/>
+								</svg>
+							{:else}
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-5 w-5"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
 								>
-							</div>
-						{/if}
-						<!-- {#if form?.error}
-							<p class="mt-2 text-sm text-red-500">{form.message}</p>
-						{/if} -->
-						{#if error.length > 0}
-							<p class="mt-2 text-sm text-red-500">{error}</p>
-						{/if}
-						{#if success.length > 0}
-							<p class="mt-2 text-sm text-green-700">{success}</p>
-						{/if}
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+									/>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+									/>
+								</svg>
+							{/if}
+						</button>
+					</div>
+				</div>
 
-						<button name="loginAdmin" type="submit" class="btn btn-neutral mt-4">Login</button>
-						<div><a href="/" class="link link-hover">Forgot password?</a></div>
+				<!-- Error Message -->
+				{#if error}
+					<div
+						class="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-600"
+						in:fade
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="h-5 w-5 shrink-0"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+							/>
+						</svg>
+						{error}
+					</div>
+				{/if}
 
-						<!-- {#if form?.error}
-							<p class="mt-2 text-red-500">{form.message}</p>
-						{/if} -->
-					</fieldset>
-				</form>
+				<!-- Success Message -->
+				{#if success}
+					<div
+						class="flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-600"
+						in:fade
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="h-5 w-5 shrink-0"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+							/>
+						</svg>
+						{success}
+					</div>
+				{/if}
+
+				<!-- Submit Button -->
+				<button
+					type="submit"
+					disabled={isLoading}
+					class="btn btn-primary w-full rounded-xl py-3 text-base font-medium"
+				>
+					{#if isLoading}
+						<span class="loading loading-spinner loading-sm"></span>
+					{:else}
+						Sign In
+					{/if}
+				</button>
+			</form>
+
+			<!-- Back to Home -->
+			<div class="mt-6 text-center">
+				<a
+					href="/"
+					class="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="h-4 w-4"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+					</svg>
+					Back to Home
+				</a>
 			</div>
 		</div>
 	</div>

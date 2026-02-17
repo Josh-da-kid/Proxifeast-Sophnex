@@ -27,10 +27,10 @@
 	<title>Contact Us - Proxifeast</title>
 </svelte:head>
 
-<div class="min-h-screen bg-stone-50">
+<div class="min-h-screen bg-slate-50">
 	<!-- Header -->
 	<section
-		class="bg-gradient-to-b from-amber-900 via-amber-800 to-amber-700 py-12 text-center text-white"
+		class="bg-gradient-to-b from-slate-900 via-slate-800 to-slate-700 py-12 text-center text-white"
 	>
 		<div class="container mx-auto px-4">
 			<h1 class="font-playfair mb-2 text-3xl font-bold md:text-4xl">Contact Us</h1>
@@ -49,12 +49,12 @@
 						in:fly={{ y: 20, duration: 400, delay: i * 100 }}
 					>
 						<div
-							class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100"
+							class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100"
 						>
 							{#if info.icon === 'phone'}
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
-									class="h-6 w-6 text-amber-600"
+									class="h-6 w-6 text-slate-600"
 									viewBox="0 0 24 24"
 									fill="none"
 									stroke="currentColor"
@@ -67,7 +67,7 @@
 							{:else}
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
-									class="h-6 w-6 text-amber-600"
+									class="h-6 w-6 text-slate-600"
 									viewBox="0 0 24 24"
 									fill="none"
 									stroke="currentColor"
@@ -79,9 +79,9 @@
 							{/if}
 						</div>
 						<div>
-							<h3 class="font-playfair text-lg font-semibold text-gray-900">{info.title}</h3>
-							<p class="font-medium text-amber-700">{info.content}</p>
-							<p class="mt-1 text-sm text-gray-500">{info.desc}</p>
+							<h3 class="font-playfair text-lg font-semibold text-slate-900">{info.title}</h3>
+							<p class="font-medium text-slate-700">{info.content}</p>
+							<p class="mt-1 text-sm text-slate-500">{info.desc}</p>
 						</div>
 					</article>
 				{/each}
@@ -94,10 +94,10 @@
 					<div class="rounded-2xl bg-white p-8 shadow-lg" in:scale>
 						<div class="text-center">
 							<div class="mb-4 flex justify-center">
-								<div class="flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
+								<div class="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
-										class="h-10 w-10 text-green-600"
+										class="h-10 w-10 text-emerald-600"
 										viewBox="0 0 24 24"
 										fill="none"
 										stroke="currentColor"
@@ -107,8 +107,8 @@
 									</svg>
 								</div>
 							</div>
-							<h2 class="font-playfair mb-2 text-2xl font-bold text-gray-900">Message Sent!</h2>
-							<p class="text-gray-600">
+							<h2 class="font-playfair mb-2 text-2xl font-bold text-slate-900">Message Sent!</h2>
+							<p class="text-slate-600">
 								Thank you for contacting us. We'll get back to you shortly.
 							</p>
 							<button onclick={() => (submitted = false)} class="btn btn-primary mt-6"
@@ -122,54 +122,54 @@
 						class="rounded-2xl bg-white p-8 shadow-lg"
 						in:fly={{ x: -20, duration: 400 }}
 					>
-						<h2 class="font-playfair mb-6 text-xl font-semibold text-gray-900">
+						<h2 class="font-playfair mb-6 text-xl font-semibold text-slate-900">
 							Send us a Message
 						</h2>
 
 						<div class="space-y-4">
 							<div class="space-y-2">
-								<label for="name" class="text-sm font-medium text-gray-700">Your Name</label>
+								<label for="name" class="text-sm font-medium text-slate-700">Your Name</label>
 								<input
 									id="name"
 									type="text"
 									bind:value={name}
-									class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 transition-all focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
+									class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition-all focus:border-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-500/20 focus:outline-none"
 									placeholder="John Doe"
 									required
 								/>
 							</div>
 
 							<div class="space-y-2">
-								<label for="email" class="text-sm font-medium text-gray-700">Email Address</label>
+								<label for="email" class="text-sm font-medium text-slate-700">Email Address</label>
 								<input
 									id="email"
 									type="email"
 									bind:value={email}
-									class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 transition-all focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
+									class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition-all focus:border-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-500/20 focus:outline-none"
 									placeholder="john@example.com"
 									required
 								/>
 							</div>
 
 							<div class="space-y-2">
-								<label for="subject" class="text-sm font-medium text-gray-700">Subject</label>
+								<label for="subject" class="text-sm font-medium text-slate-700">Subject</label>
 								<input
 									id="subject"
 									type="text"
 									bind:value={subject}
-									class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 transition-all focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
+									class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition-all focus:border-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-500/20 focus:outline-none"
 									placeholder="How can we help?"
 									required
 								/>
 							</div>
 
 							<div class="space-y-2">
-								<label for="message" class="text-sm font-medium text-gray-700">Message</label>
+								<label for="message" class="text-sm font-medium text-slate-700">Message</label>
 								<textarea
 									id="message"
 									bind:value={message}
 									rows="4"
-									class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 transition-all focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
+									class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition-all focus:border-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-500/20 focus:outline-none"
 									placeholder="Your message here..."
 									required
 								></textarea>
@@ -208,11 +208,11 @@
 					<div class="bg-white p-6">
 						<div class="flex items-start gap-3">
 							<div
-								class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100"
+								class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100"
 							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
-									class="h-5 w-5 text-amber-600"
+									class="h-5 w-5 text-slate-600"
 									viewBox="0 0 24 24"
 									fill="none"
 									stroke="currentColor"
@@ -223,8 +223,8 @@
 								</svg>
 							</div>
 							<div>
-								<h3 class="font-medium text-gray-900">Visit Us</h3>
-								<p class="mt-1 text-gray-600">
+								<h3 class="font-medium text-slate-900">Visit Us</h3>
+								<p class="mt-1 text-slate-600">
 									{restaurant?.restaurantAddress || '123 Food Street, Calabar'}
 								</p>
 							</div>

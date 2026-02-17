@@ -162,15 +162,15 @@
 			case 'Pending':
 				return 'bg-amber-100 text-amber-800 border-amber-200';
 			case 'Preparing':
-				return 'bg-orange-100 text-orange-800 border-orange-200';
-			case 'Ready':
-				return 'bg-green-100 text-green-800 border-green-200';
-			case 'Delivered':
 				return 'bg-blue-100 text-blue-800 border-blue-200';
+			case 'Ready':
+				return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+			case 'Delivered':
+				return 'bg-slate-100 text-slate-800 border-slate-200';
 			case 'Cancelled':
 				return 'bg-red-100 text-red-800 border-red-200';
 			default:
-				return 'bg-gray-100 text-gray-800 border-gray-200';
+				return 'bg-slate-100 text-slate-800 border-slate-200';
 		}
 	}
 </script>
@@ -179,10 +179,10 @@
 	<title>Pending Orders - Proxifeast</title>
 </svelte:head>
 
-<div class="min-h-screen bg-stone-50">
+<div class="min-h-screen bg-slate-50">
 	<!-- Header -->
 	<section
-		class="bg-gradient-to-b from-amber-900 via-amber-800 to-amber-700 py-12 text-center text-white"
+		class="bg-gradient-to-b from-slate-900 via-slate-800 to-slate-700 py-12 text-center text-white"
 	>
 		<div class="container mx-auto px-4">
 			<h1 class="font-playfair mb-2 text-3xl font-bold md:text-4xl">Pending Orders</h1>
@@ -190,60 +190,59 @@
 		</div>
 	</section>
 
-	<!-- Push Notification Prompt -->
+	<!-- Push Notification Prompt - Sticky Bar -->
 	{#if showNotificationPrompt}
-		<section class="container mx-auto -mt-6 px-4" transition:fly={{ y: -20, duration: 300 }}>
-			<div class="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 p-4 text-white shadow-lg">
-				<div class="flex items-center justify-between">
-					<div class="flex items-center gap-3">
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-6 w-6"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-							/>
-						</svg>
-						<div>
-							<p class="font-semibold">Stay Updated!</p>
-							<p class="text-sm text-white/90">
-								Enable notifications to get real-time updates on your orders
-							</p>
-						</div>
-					</div>
-					<div class="flex gap-2">
-						<button
-							onclick={() => (showNotificationPrompt = false)}
-							class="rounded-lg px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
-						>
-							Later
-						</button>
-						<button
-							onclick={enableNotifications}
-							class="rounded-lg bg-white px-4 py-2 text-sm font-medium text-amber-600 hover:bg-white/90"
-						>
-							Enable
-						</button>
-					</div>
+		<div
+			class="sticky top-0 z-[100] border-b border-slate-200 bg-slate-50"
+			transition:fly={{ y: -20, duration: 300 }}
+		>
+			<div class="container mx-auto flex items-center justify-between px-4 py-3">
+				<div class="flex items-center gap-3">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="h-5 w-5 text-slate-600"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+						/>
+					</svg>
+					<p class="text-sm text-slate-700">
+						<strong>Stay Updated!</strong> Enable notifications to receive real-time updates on your
+						orders.
+					</p>
+				</div>
+				<div class="flex gap-2">
+					<button
+						onclick={() => (showNotificationPrompt = false)}
+						class="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+					>
+						Later
+					</button>
+					<button
+						onclick={enableNotifications}
+						class="rounded bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700"
+					>
+						Enable
+					</button>
 				</div>
 			</div>
-		</section>
+		</div>
 	{/if}
 
 	<!-- Search & Filter -->
-	<section class="container mx-auto -mt-6 px-4">
+	<section class="container mx-auto px-4 py-6">
 		<form
 			onsubmit={handleSearchSubmit}
 			class="flex flex-col gap-4 md:flex-row md:items-center md:justify-center"
 		>
 			<div
-				class="flex items-center gap-3 rounded-xl bg-white px-4 py-2 shadow-lg shadow-amber-900/10"
+				class="flex items-center gap-3 rounded-xl bg-white px-4 py-2 shadow-lg shadow-slate-900/10"
 			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -275,7 +274,7 @@
 
 			<select
 				bind:value={selectedCategoryInput}
-				class="rounded-xl border-0 bg-white px-4 py-3 shadow-lg shadow-amber-900/10 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+				class="rounded-xl border-0 bg-white px-4 py-3 shadow-lg shadow-slate-900/10 focus:ring-2 focus:ring-slate-500 focus:outline-none"
 				onchange={(e) => {
 					const selected = e.currentTarget.value;
 					if (selected === 'All') {
@@ -302,9 +301,9 @@
 				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 					{#each Array(3) as _}
 						<div class="animate-pulse rounded-2xl bg-white p-6 shadow-md">
-							<div class="mb-4 h-6 w-3/4 rounded bg-gray-200"></div>
-							<div class="mb-2 h-4 w-1/2 rounded bg-gray-200"></div>
-							<div class="h-20 w-full rounded bg-gray-200"></div>
+							<div class="mb-4 h-6 w-3/4 rounded bg-slate-200"></div>
+							<div class="mb-2 h-4 w-1/2 rounded bg-slate-200"></div>
+							<div class="h-20 w-full rounded bg-slate-200"></div>
 						</div>
 					{/each}
 				</div>
@@ -312,7 +311,7 @@
 				<div class="py-16 text-center">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
-						class="mx-auto h-16 w-16 text-gray-300"
+						class="mx-auto h-16 w-16 text-slate-300"
 						viewBox="0 0 24 24"
 						fill="none"
 						stroke="currentColor"
@@ -323,8 +322,8 @@
 						<path d="M9 12h6" />
 						<path d="M9 16h6" />
 					</svg>
-					<h3 class="mt-4 text-lg font-medium text-gray-700">No Pending Orders</h3>
-					<p class="mt-1 text-gray-500">You don't have any active orders at the moment.</p>
+					<h3 class="mt-4 text-lg font-medium text-slate-700">No Pending Orders</h3>
+					<p class="mt-1 text-slate-500">You don't have any active orders at the moment.</p>
 				</div>
 			{:else}
 				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -336,8 +335,8 @@
 							<!-- Header -->
 							<div class="mb-4 flex items-start justify-between">
 								<div>
-									<p class="text-sm text-gray-500">Order Reference</p>
-									<h3 class="font-playfair text-lg font-semibold text-gray-900">
+									<p class="text-sm text-slate-500">Order Reference</p>
+									<h3 class="font-playfair text-lg font-semibold text-slate-900">
 										{order.reference}
 									</h3>
 								</div>
@@ -365,7 +364,7 @@
 								</div>
 								<div class="flex justify-between">
 									<span class="text-gray-500">Total</span>
-									<span class="font-semibold text-amber-700"
+									<span class="font-semibold text-slate-700"
 										>₦{(order.orderTotal ?? order.totalAmount ?? 0).toLocaleString()}</span
 									>
 								</div>
@@ -416,7 +415,7 @@
 							<!-- Dishes -->
 							<div class="mb-4 border-t border-gray-100 pt-4">
 								<button
-									class="flex w-full items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+									class="flex w-full items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
 									onclick={(e) => {
 										const details = e.currentTarget.nextElementSibling;
 										if (details) details.classList.toggle('hidden');
@@ -436,7 +435,7 @@
 								</button>
 								<div class="mt-2 hidden space-y-2">
 									{#each order.dishes as item}
-										<div class="flex justify-between rounded-lg bg-amber-50 px-3 py-2 text-sm">
+										<div class="flex justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
 											<span class="text-gray-800">{item.name}</span>
 											<span class="text-gray-500">×{item.quantity}</span>
 										</div>
@@ -445,7 +444,7 @@
 							</div>
 
 							<!-- Footer -->
-							<div class="border-t border-gray-100 pt-3 text-xs text-gray-400">
+							<div class="border-t border-slate-100 pt-3 text-xs text-slate-400">
 								Ordered: {new Date(order.created).toLocaleDateString()} at {new Date(
 									order.created
 								).toLocaleTimeString()}
@@ -458,7 +457,7 @@
 			<div class="py-16 text-center">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
-					class="mx-auto h-16 w-16 text-gray-300"
+					class="mx-auto h-16 w-16 text-slate-300"
 					viewBox="0 0 24 24"
 					fill="none"
 					stroke="currentColor"
@@ -468,8 +467,8 @@
 					<polyline points="10 17 15 12 10 7" />
 					<line x1="15" x2="3" y1="12" y2="12" />
 				</svg>
-				<h3 class="mt-4 text-lg font-medium text-gray-700">Login Required</h3>
-				<p class="mt-1 text-gray-500">Please login to view your pending orders.</p>
+				<h3 class="mt-4 text-lg font-medium text-slate-700">Login Required</h3>
+				<p class="mt-1 text-slate-500">Please login to view your pending orders.</p>
 				<a href="/login" class="btn btn-primary mt-4">Sign In</a>
 			</div>
 		{/if}
