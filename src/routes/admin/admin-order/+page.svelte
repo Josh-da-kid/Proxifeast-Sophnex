@@ -22,32 +22,33 @@
 		return ($page.url.searchParams.get('search')?.trim() ?? '') !== '';
 	});
 
-	// Fetch cart data
+	// Fetch cart data - show ALL orders for all restaurants (multi-restaurant support)
 	export async function fetchPendingOrders() {
 		const userId = get(user)?.id;
 		const searchParams = get(page).url.searchParams;
 		const search = searchParams.get('search')?.trim() ?? '';
 		const category = searchParams.get('category')?.trim() ?? 'All';
+		const restaurantFilter = searchParams.get('restaurant')?.trim() ?? '';
 
-		// 👇 Get current restaurant ID
-		const restaurantId = get(page).data.restaurant?.id;
-		// console.log(restaurantId);
-		if (!userId || !restaurantId) return;
+		if (!userId) return;
 
 		let filterParts: string[] = [];
 
-		// 👇 Add restaurant filter
-		filterParts.push(`restaurantId="${restaurantId}"`);
-
+		// Filter by status
 		if (category !== 'All') {
 			filterParts.push(`status="${category}"`);
 		} else {
 			filterParts.push(`(status="Pending" || status="Preparing" || status="Ready")`);
 		}
 
+		// Filter by specific restaurant if selected
+		if (restaurantFilter) {
+			filterParts.push(`restaurantId="${restaurantFilter}"`);
+		}
+
 		if (search) {
 			filterParts.push(
-				`(reference~"${search}" || name~"${search}" || phone~"${search}" || deliveryType~"${search}")`
+				`(reference~"${search}" || name~"${search}" || phone~"${search}" || deliveryType~"${search}" || restaurantName~"${search}")`
 			);
 		}
 
@@ -65,11 +66,48 @@
 		}
 	}
 
+	let unsubscribe: (() => void) | null = null;
+
 	onMount(async () => {
 		searchInput = $page.url.searchParams.get('search') ?? '';
 		selectedCategoryInput = $page.url.searchParams.get('category') ?? 'All';
 		orders = (await fetchPendingOrders()) || [];
 		loading = false;
+
+		// Subscribe to real-time order updates for ALL restaurants
+		unsubscribe = await pb.collection('orders').subscribe('*', async (e) => {
+			const order = e.record;
+
+			if (e.action === 'create') {
+				// New order created - add to list if it matches current filter
+				const currentFilter = selectedCategoryInput;
+				if (currentFilter === 'All' || order.status === currentFilter) {
+					orders = [order, ...orders];
+					// Show browser notification
+					if (Notification.permission === 'granted') {
+						new Notification(`New Order from ${order.restaurantName || 'Unknown'}!`, {
+							body: `Order ${order.reference} - ₦${(order.totalAmount || 0).toLocaleString()}`,
+							icon: '/icons/icon-192x192.png'
+						});
+					}
+				}
+			} else if (e.action === 'update') {
+				// Order updated - refresh the list
+				orders = (await fetchPendingOrders()) || [];
+			} else if (e.action === 'delete') {
+				// Order deleted - remove from list
+				orders = orders.filter((o) => o.id !== order.id);
+			}
+		});
+	});
+
+	// Cleanup subscription on unmount
+	$effect(() => {
+		return () => {
+			if (unsubscribe) {
+				unsubscribe();
+			}
+		};
 	});
 
 	// async function updateOrderStatus(orderId: any, newStatus: any, orderRef: any) {
@@ -90,36 +128,58 @@
 			// ✅ Update the status
 			const updatedOrder = await pb.collection('orders').update(orderId, { status: newStatus });
 
-			// ✅ If status is Ready, send email
-			// if (newStatus === ('Ready'|| 'Cancelled' || 'Delivered')) {
+			// ✅ If status changed to Ready, Cancelled, or Delivered, send notifications
 			if (['Ready', 'Cancelled', 'Delivered'].includes(newStatus)) {
-				// 👇 Make a POST request to your custom endpoint to send email
-				const res = await fetch('/api/send-ready-email', {
+				// Send email notification
+				const emailRes = await fetch('/api/send-ready-email', {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'
 					},
 					body: JSON.stringify({
-						email: updatedOrder.email, // assumes your order has email field
+						email: updatedOrder.email,
 						name: updatedOrder.name,
 						reference: updatedOrder.reference,
 						status: newStatus,
 						deliveryType: updatedOrder.deliveryType,
-						address: updatedOrder.homeAddress, // 👈 if available
-						tableNumber: updatedOrder.tableNumber // 👈 if available
+						address: updatedOrder.homeAddress,
+						tableNumber: updatedOrder.tableNumber
 					})
 				});
-				if (res.ok) {
-					successMessage = await res.text(); // gets "Email sent"
+
+				if (emailRes.ok) {
+					successMessage = await emailRes.text();
 					setTimeout(() => {
 						successMessage = '';
 					}, 5000);
-				} else {
-					errorMessage = 'Failed to send email';
-					setTimeout(() => {
-						errorMessage = '';
-					}, 5000);
 				}
+
+				// Send push notification to user
+				const statusMessages: Record<string, string> = {
+					Ready: 'Your order is ready for pickup/delivery!',
+					Cancelled: 'Your order has been cancelled.',
+					Delivered: 'Your order has been delivered!'
+				};
+
+				await fetch('/api/send-push-notification', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						userId: updatedOrder.user,
+						title: `Order ${newStatus}`,
+						body:
+							statusMessages[newStatus] ||
+							`Your order #${updatedOrder.reference} is now ${newStatus}`,
+						data: {
+							url: '/pending',
+							orderId: updatedOrder.id,
+							reference: updatedOrder.reference
+						},
+						tag: `order-${updatedOrder.id}`
+					})
+				});
 			}
 
 			// ✅ Refresh orders
@@ -226,6 +286,22 @@
 					{#if searchInput.length > 0 && !$searchSubmitted}
 						<button type="submit" class="btn btn-secondary">Search</button>
 					{/if}
+				</div>
+
+				<!-- Restaurant Filter -->
+				<div class="mt-2 ml-4 px-2 sm:mt-0 sm:ml-0 sm:p-3">
+					<select
+						name="restaurant"
+						class="select select-bordered border-secondary focus:ring-secondary w-fit"
+						onchange={(e) => {
+							e.currentTarget.form?.requestSubmit();
+						}}
+					>
+						<option value="">All Restaurants</option>
+						{#each $page.data.allRestaurants || [] as restaurant}
+							<option value={restaurant.id}>{restaurant.name}</option>
+						{/each}
+					</select>
 				</div>
 
 				<div class="mt-2 ml-4 px-2 sm:mt-0 sm:ml-0 sm:p-3">

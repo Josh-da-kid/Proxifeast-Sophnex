@@ -600,82 +600,100 @@
 			amount: amount * 100,
 			currency: 'NGN',
 			ref: 'ORD-' + Math.floor(Math.random() * 1000000000 + 1),
-			callback: async function (response: any) {
+			callback: function (response: any) {
 				alert('Payment complete! Reference: ' + response.reference);
 
-				try {
-					// Group cart by restaurant
-					const grouped = groupCartByRestaurant(get(cart));
-					const savedOrders = [];
+				// Use promise chain instead of async/await for Paystack compatibility
+				const saveOrdersPromise = new Promise<void>((resolve, reject) => {
+					try {
+						// Group cart by restaurant
+						const grouped = groupCartByRestaurant(get(cart));
+						const savePromises: Promise<any>[] = [];
 
-					// Create separate order for each restaurant
-					for (const [restaurantId, items] of grouped) {
-						const restaurantName = getRestaurantName(restaurantId);
-						const deliveryFeeInfo = deliveryFees.get(restaurantId);
+						// Create separate order for each restaurant
+						grouped.forEach((items, restaurantId) => {
+							const restaurantName = getRestaurantName(restaurantId);
+							const deliveryFeeInfo = deliveryFees.get(restaurantId);
 
-						// Get fee details for this restaurant
-						const feeInfo = deliveryOption === 'home' ? deliveryFees.get(restaurantId) : null;
-						const foodSubtotal = items.reduce((acc: number, item: any) => {
-							const price = item.expand?.dish?.promoAmount ?? item.expand?.dish?.defaultAmount ?? 0;
-							return acc + price * item.quantity;
-						}, 0);
+							// Get fee details for this restaurant
+							const feeInfo = deliveryOption === 'home' ? deliveryFees.get(restaurantId) : null;
+							const foodSubtotal = items.reduce((acc: number, item: any) => {
+								const price =
+									item.expand?.dish?.promoAmount ?? item.expand?.dish?.defaultAmount ?? 0;
+								return acc + price * item.quantity;
+							}, 0);
 
-						const orderData = {
-							reference: response.reference + '-' + restaurantId.slice(0, 6),
-							mainReference: response.reference,
-							totalAmount: foodSubtotal + (feeInfo?.fees?.total || 0),
-							foodTotal: foodSubtotal,
-							deliveryFee: feeInfo?.fees?.deliveryFee || 0,
-							serviceFee: feeInfo?.fees?.serviceFee || 0,
-							smallOrderFee: feeInfo?.fees?.smallOrderFee || 0,
-							deliveryDistance: feeInfo?.distance || 0,
-							deliveryTier: feeInfo?.fees?.deliveryTier || '',
-							customerState: feeInfo?.customerState || '',
-							restaurantState: feeInfo?.restaurantState || '',
-							type: deliveryOption,
-							user: get(user).id,
-							dishes: items.map((item: any) => ({
-								dish: item.expand?.dish?.id,
-								name: item.expand?.dish?.name,
-								quantity: item.quantity,
-								amount: item.amount
-							})),
-							name: get(user).name,
-							email: get(user).email,
-							quantity: items.length,
-							formattedPhone,
-							tableNumber,
-							homeAddress,
-							pickupTime,
-							restaurantId: restaurantId,
-							restaurantName: restaurantName,
-							isMultiRestaurantOrder: grouped.size > 1,
-							totalRestaurants: grouped.size
-						};
+							const orderData = {
+								reference: response.reference + '-' + restaurantId.slice(0, 6),
+								mainReference: response.reference,
+								totalAmount: foodSubtotal + (feeInfo?.fees?.total || 0),
+								foodTotal: foodSubtotal,
+								deliveryFee: feeInfo?.fees?.deliveryFee || 0,
+								serviceFee: feeInfo?.fees?.serviceFee || 0,
+								smallOrderFee: feeInfo?.fees?.smallOrderFee || 0,
+								deliveryDistance: feeInfo?.distance || 0,
+								deliveryTier: feeInfo?.fees?.deliveryTier || '',
+								customerState: feeInfo?.customerState || '',
+								restaurantState: feeInfo?.restaurantState || '',
+								type: deliveryOption,
+								user: get(user).id,
+								dishes: items.map((item: any) => ({
+									dish: item.expand?.dish?.id,
+									name: item.expand?.dish?.name,
+									quantity: item.quantity,
+									amount: item.amount
+								})),
+								name: get(user).name,
+								email: get(user).email,
+								quantity: items.length,
+								formattedPhone,
+								tableNumber,
+								homeAddress,
+								pickupTime,
+								restaurantId: restaurantId,
+								restaurantName: restaurantName,
+								isMultiRestaurantOrder: grouped.size > 1,
+								totalRestaurants: grouped.size
+							};
 
-						const res = await fetch('/api/save-order', {
-							method: 'POST',
-							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify(orderData)
+							const savePromise = fetch('/api/save-order', {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify(orderData)
+							}).then((res) => {
+								if (!res.ok) {
+									throw new Error(`Failed to save order for ${restaurantName}`);
+								}
+								return res.json();
+							});
+
+							savePromises.push(savePromise);
 						});
 
-						if (!res.ok) {
-							throw new Error(`Failed to save order for ${restaurantName}`);
-						}
-
-						const data = await res.json();
-						savedOrders.push(data);
+						Promise.all(savePromises)
+							.then(() => {
+								alert('Orders saved successfully!');
+								goto('/pending');
+								clearCart();
+								resolve();
+							})
+							.catch((err) => {
+								console.error('Error saving orders:', err);
+								alert(
+									'Error saving some orders. Please contact support with reference: ' +
+										response.reference
+								);
+								reject(err);
+							});
+					} catch (err) {
+						console.error('Error in save orders:', err);
+						alert(
+							'Error processing orders. Please contact support with reference: ' +
+								response.reference
+						);
+						reject(err);
 					}
-
-					alert('Orders saved successfully!');
-					goto('/pending');
-					clearCart();
-				} catch (err) {
-					console.error('Error saving orders:', err);
-					alert(
-						'Error saving some orders. Please contact support with reference: ' + response.reference
-					);
-				}
+				});
 			},
 			onClose: function () {
 				alert('Transaction was cancelled');

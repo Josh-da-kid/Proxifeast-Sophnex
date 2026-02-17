@@ -22,31 +22,33 @@
 		return ($page.url.searchParams.get('search')?.trim() ?? '') !== '';
 	});
 
-	// Fetch cart data
+	// Fetch order history - show ALL orders for all restaurants (multi-restaurant support)
 	export async function fetchPendingOrders() {
 		const userId = get(user)?.id;
 		const searchParams = get(page).url.searchParams;
 		const search = searchParams.get('search')?.trim() ?? '';
 		const category = searchParams.get('category')?.trim() ?? 'All';
+		const restaurantFilter = searchParams.get('restaurant')?.trim() ?? '';
 
-		// 👇 Get current restaurant ID
-		const restaurantId = get(page).data.restaurant?.id;
-		if (!userId || !restaurantId) return;
+		if (!userId) return;
 
 		let filterParts: string[] = [];
 
-		// 👇 Add restaurant filter
-		filterParts.push(`restaurantId="${restaurantId}"`);
-
+		// Filter by status
 		if (category !== 'All') {
 			filterParts.push(`status="${category}"`);
 		} else {
 			filterParts.push(`(status="Delivered" || status="Cancelled")`);
 		}
 
+		// Filter by specific restaurant if selected
+		if (restaurantFilter) {
+			filterParts.push(`restaurantId="${restaurantFilter}"`);
+		}
+
 		if (search) {
 			filterParts.push(
-				`(reference~"${search}" || name~"${search}" || phone~"${search}" || deliveryType~"${search}")`
+				`(reference~"${search}" || name~"${search}" || phone~"${search}" || deliveryType~"${search}" || restaurantName~"${search}")`
 			);
 		}
 
@@ -59,7 +61,7 @@
 			});
 			return records;
 		} catch (err) {
-			console.error('Failed to fetch pending orders:', err);
+			console.error('Failed to fetch order history:', err);
 		}
 	}
 
@@ -90,7 +92,10 @@
 	async function handleSearchSubmit(e: Event) {
 		e.preventDefault();
 
-		if (!searchInput.trim() && selectedCategoryInput === 'All') {
+		const formData = new FormData(e.target as HTMLFormElement);
+		const restaurantFilter = formData.get('restaurant')?.toString() || '';
+
+		if (!searchInput.trim() && selectedCategoryInput === 'All' && !restaurantFilter) {
 			return;
 		}
 
@@ -98,6 +103,7 @@
 		if (searchInput.trim()) query.set('search', searchInput.trim());
 		if (selectedCategoryInput && selectedCategoryInput !== 'All')
 			query.set('category', selectedCategoryInput);
+		if (restaurantFilter) query.set('restaurant', restaurantFilter);
 
 		const target = `/admin/admin-history/?${query.toString()}`;
 
@@ -142,6 +148,22 @@
 					{#if searchInput.length > 0 && !$searchSubmitted}
 						<button type="submit" class="btn btn-secondary">Search</button>
 					{/if}
+				</div>
+
+				<!-- Restaurant Filter -->
+				<div class="mt-2 ml-4 px-2 sm:mt-0 sm:ml-0 sm:p-3">
+					<select
+						name="restaurant"
+						class="select select-bordered border-secondary focus:ring-secondary w-fit"
+						onchange={(e) => {
+							e.currentTarget.form?.requestSubmit();
+						}}
+					>
+						<option value="">All Restaurants</option>
+						{#each $page.data.allRestaurants || [] as restaurant}
+							<option value={restaurant.id}>{restaurant.name}</option>
+						{/each}
+					</select>
 				</div>
 
 				<div class="mt-2 ml-4 px-2 sm:mt-0 sm:ml-0 sm:p-3">

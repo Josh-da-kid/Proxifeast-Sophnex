@@ -6,6 +6,11 @@
 	import { onMount } from 'svelte';
 	import { derived, get } from 'svelte/store';
 	import { fade, fly } from 'svelte/transition';
+	import {
+		subscribeToPushNotifications,
+		checkNotificationStatus,
+		showLocalNotification
+	} from '$lib/notifications';
 
 	export const user = derived(page, ($page) => $page.data.user);
 
@@ -14,6 +19,8 @@
 	let searchInput = $state('');
 	let selectedCategoryInput = $state('All');
 	const restaurantName = get(page).data.restaurant?.name;
+	let unsubscribe: (() => void) | null = null;
+	let showNotificationPrompt = $state(false);
 
 	const categories = $page.data.categories ?? [];
 
@@ -28,9 +35,10 @@
 		const search = searchParams.get('search')?.trim() ?? '';
 		const category = searchParams.get('category')?.trim() ?? 'All';
 
-		if (!userId || !restaurantId) return;
+		if (!userId) return;
 
-		let filter = `(restaurantId="${restaurantId}" && user="${userId}")`;
+		// Build filter - only filter by user, not restaurant (to show multi-restaurant orders)
+		let filter = `user="${userId}"`;
 
 		if (category !== 'All') {
 			filter += ` && status="${category}"`;
@@ -39,7 +47,7 @@
 		}
 
 		if (search) {
-			filter += ` && (reference~"${search}" || name~"${search}" || phone~"${search}" || deliveryType~"${search}")`;
+			filter += ` && (reference~"${search}" || name~"${search}" || phone~"${search}" || deliveryType~"${search}" || restaurantName~"${search}")`;
 		}
 
 		try {
@@ -59,7 +67,72 @@
 		selectedCategoryInput = $page.url.searchParams.get('category') ?? 'All';
 		orders = (await fetchPendingOrders()) || [];
 		loading = false;
+
+		// Check if push notifications are enabled
+		const hasNotifications = await checkNotificationStatus();
+		if (!hasNotifications && Notification.permission === 'default') {
+			showNotificationPrompt = true;
+		}
+
+		// Subscribe to real-time order updates for this user
+		const userId = get(user)?.id;
+		if (userId) {
+			unsubscribe = await pb.collection('orders').subscribe('*', async (e) => {
+				const order = e.record;
+
+				// Only update if this order belongs to the current user
+				if (order.user === userId) {
+					if (e.action === 'create') {
+						// New order created
+						orders = [order, ...orders];
+					} else if (e.action === 'update') {
+						// Order updated - check if status changed
+						const oldOrder = orders.find((o) => o.id === order.id);
+						if (oldOrder && oldOrder.status !== order.status) {
+							// Status changed - show notification
+							const statusMessages: Record<string, string> = {
+								Ready: 'Your order is ready!',
+								Cancelled: 'Your order has been cancelled',
+								Delivered: 'Your order has been delivered',
+								Preparing: 'Your order is being prepared'
+							};
+
+							showLocalNotification(`Order ${order.status}`, {
+								body:
+									statusMessages[order.status] ||
+									`Order #${order.reference} status updated to ${order.status}`,
+								data: { url: '/pending' }
+							});
+						}
+						// Refresh orders list
+						orders = (await fetchPendingOrders()) || [];
+					} else if (e.action === 'delete') {
+						// Order deleted
+						orders = orders.filter((o) => o.id !== order.id);
+					}
+				}
+			});
+		}
 	});
+
+	// Cleanup subscription on unmount
+	$effect(() => {
+		return () => {
+			if (unsubscribe) {
+				unsubscribe();
+			}
+		};
+	});
+
+	async function enableNotifications() {
+		const userId = get(user)?.id;
+		if (userId) {
+			const success = await subscribeToPushNotifications(userId);
+			if (success) {
+				showNotificationPrompt = false;
+			}
+		}
+	}
 
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 
@@ -116,6 +189,52 @@
 			<p class="text-white/80">Track your active orders in real-time</p>
 		</div>
 	</section>
+
+	<!-- Push Notification Prompt -->
+	{#if showNotificationPrompt}
+		<section class="container mx-auto -mt-6 px-4" transition:fly={{ y: -20, duration: 300 }}>
+			<div class="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 p-4 text-white shadow-lg">
+				<div class="flex items-center justify-between">
+					<div class="flex items-center gap-3">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="h-6 w-6"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+							/>
+						</svg>
+						<div>
+							<p class="font-semibold">Stay Updated!</p>
+							<p class="text-sm text-white/90">
+								Enable notifications to get real-time updates on your orders
+							</p>
+						</div>
+					</div>
+					<div class="flex gap-2">
+						<button
+							onclick={() => (showNotificationPrompt = false)}
+							class="rounded-lg px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
+						>
+							Later
+						</button>
+						<button
+							onclick={enableNotifications}
+							class="rounded-lg bg-white px-4 py-2 text-sm font-medium text-amber-600 hover:bg-white/90"
+						>
+							Enable
+						</button>
+					</div>
+				</div>
+			</div>
+		</section>
+	{/if}
 
 	<!-- Search & Filter -->
 	<section class="container mx-auto -mt-6 px-4">

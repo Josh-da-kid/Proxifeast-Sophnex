@@ -1,0 +1,91 @@
+import { json } from '@sveltejs/kit';
+import PocketBase from 'pocketbase';
+import webpush from 'web-push';
+
+const pb = new PocketBase('https://playgzero.pb.itcass.net/');
+
+// Set VAPID details
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
+const VAPID_PRIVATE_KEY = import.meta.env.VITE_VAPID_PRIVATE_KEY || '';
+const VAPID_SUBJECT = import.meta.env.VITE_VAPID_SUBJECT || 'mailto:admin@proxifeast.com';
+
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+	webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+}
+
+interface PushSubscription {
+	endpoint: string;
+	keys: {
+		p256dh: string;
+		auth: string;
+	};
+}
+
+export async function POST({ request }: { request: Request }) {
+	try {
+		const { userId, title, body, data, tag } = await request.json();
+
+		if (!userId || !title || !body) {
+			return json({ success: false, error: 'Missing required fields' }, { status: 400 });
+		}
+
+		// Get all push subscriptions for this user
+		const subscriptions = await pb.collection('push_subscriptions').getFullList({
+			filter: `user="${userId}"`
+		});
+
+		if (subscriptions.length === 0) {
+			return json(
+				{ success: false, error: 'No push subscriptions found for user' },
+				{ status: 404 }
+			);
+		}
+
+		const payload = JSON.stringify({
+			title,
+			body,
+			data: data || {},
+			tag: tag || 'order-update',
+			icon: '/icons/icon-192x192.png',
+			badge: '/icons/icon-72x72.png',
+			requireInteraction: true
+		});
+
+		const results = [];
+		const errors = [];
+
+		// Send notification to all subscriptions
+		for (const sub of subscriptions) {
+			try {
+				const pushSubscription: PushSubscription = {
+					endpoint: sub.endpoint,
+					keys: {
+						p256dh: sub.p256dh,
+						auth: sub.auth
+					}
+				};
+
+				await webpush.sendNotification(pushSubscription, payload);
+				results.push({ endpoint: sub.endpoint, status: 'sent' });
+			} catch (error: any) {
+				console.error('Push notification error:', error);
+				errors.push({ endpoint: sub.endpoint, error: error.message });
+
+				// If subscription is expired or invalid, delete it
+				if (error.statusCode === 404 || error.statusCode === 410) {
+					await pb.collection('push_subscriptions').delete(sub.id);
+				}
+			}
+		}
+
+		return json({
+			success: results.length > 0,
+			sent: results.length,
+			failed: errors.length,
+			errors: errors.length > 0 ? errors : undefined
+		});
+	} catch (error: any) {
+		console.error('Send notification error:', error);
+		return json({ success: false, error: error.message }, { status: 500 });
+	}
+}
