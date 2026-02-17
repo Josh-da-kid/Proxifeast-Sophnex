@@ -110,13 +110,20 @@
 										{order.reference}
 									</h3>
 								</div>
-								<span
-									class="rounded-full border px-3 py-1 text-xs font-medium {getStatusColor(
-										order.status
-									)}"
-								>
-									{order.status}
-								</span>
+								<div class="flex flex-col items-end gap-1">
+									<span
+										class="rounded-full border px-3 py-1 text-xs font-medium {getStatusColor(
+											order.status
+										)}"
+									>
+										{order.status}
+									</span>
+									{#if order.restaurantName}
+										<span class="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+											{order.restaurantName}
+										</span>
+									{/if}
+								</div>
 							</div>
 
 							<!-- Details -->
@@ -153,10 +160,21 @@
 									{order.pickupTime}
 								</p>
 							{:else if order.deliveryType === 'home' && order.homeAddress}
-								<p class="mb-3 text-sm text-gray-600">
-									<strong>Address:</strong>
-									{order.homeAddress}
-								</p>
+								<div class="mb-3 space-y-1 text-sm">
+									<p class="text-gray-600">
+										<strong>Address:</strong>
+										{order.homeAddress}
+									</p>
+									{#if order.deliveryFee > 0}
+										<p class="text-gray-600">
+											<strong>Delivery:</strong>
+											₦{order.deliveryFee.toLocaleString()}
+											{#if order.deliveryDistance > 0}
+												<span class="text-gray-400">({order.deliveryDistance}km)</span>
+											{/if}
+										</p>
+									{/if}
+								</div>
 							{:else if order.deliveryType === 'tableService' && order.tableNumber}
 								<p class="mb-3 text-sm text-gray-600">
 									<strong>Table:</strong>

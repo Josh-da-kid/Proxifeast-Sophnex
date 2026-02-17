@@ -320,6 +320,11 @@
 							</div>
 
 							<div class="text-sm text-gray-600">
+								{#if order.isMultiRestaurantOrder}
+									<div class="mb-2 rounded bg-yellow-50 px-2 py-1 text-xs text-yellow-800">
+										Part of multi-restaurant order ({order.totalRestaurants || 1} restaurants)
+									</div>
+								{/if}
 								<p>
 									<strong>Total:</strong> ₦{(
 										order.orderTotal ??
@@ -327,16 +332,22 @@
 										0
 									).toLocaleString()}
 								</p>
-								<!-- {#if order.deliveryType === 'home'}
-									<p><strong>Delivery Fee:</strong> ₦{order.deliveryFee}</p>
-								{/if} -->
+								{#if order.foodTotal > 0}
+									<p><strong>Food Subtotal:</strong> ₦{order.foodTotal.toLocaleString()}</p>
+								{/if}
 								<p><strong>Quantity:</strong> {order.quantity}</p>
 								<!-- <p><strong>Delivery Type:</strong> {order.deliveryType}</p> -->
 								{#if order.deliveryType === 'restaurantPickup'}
 									<p><strong>Delivery Type:</strong> Pickup</p>
 								{:else if order.deliveryType === 'home'}
 									<p><strong>Delivery Type:</strong> Home Delivery</p>
-									<p><strong>Delivery Fee:</strong> ₦2,000</p>
+									{#if order.deliveryFee > 0}
+										<p>
+											<strong>Delivery Fee:</strong>
+											₦{order.deliveryFee.toLocaleString()}{#if order.deliveryDistance > 0}
+												<span class="text-gray-400">({order.deliveryDistance}km)</span>{/if}
+										</p>
+									{/if}
 								{:else if order.deliveryType === 'tableService'}
 									<p><strong>Delivery Type:</strong> Table Service</p>
 								{/if}
@@ -348,7 +359,7 @@
 									<p><strong>Table Number:</strong> {order.tableNumber}</p>
 								{/if}
 								<p><strong>Phone:</strong> {order.phone}</p>
-								<p><strong>Restaurant:</strong> {restaurantName}</p>
+								<p><strong>Restaurant:</strong> {order.restaurantName || restaurantName}</p>
 							</div>
 
 							<div class="dropdown dropdown-hover">
