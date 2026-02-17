@@ -11,42 +11,43 @@
 
 	let searchInput = $state('');
 	let selectedCategoryInput = $state('All');
+	let selectedRestaurantInput = $state('All');
 	let orders: any = $state([]);
+	let filteredOrders: any = $state([]);
 	let loading = $state(true);
 	const restaurantName = get(page).data.restaurant?.name;
+	const allRestaurants = get(page).data.allRestaurants ?? [];
 
 	const categories = $page.data.categories ?? [];
 
-	const searchSubmitted = derived(page, ($page) => {
-		return ($page.url.searchParams.get('search')?.trim() ?? '') !== '';
+	// Client-side filtered orders
+	$effect(() => {
+		filteredOrders = orders.filter((order: any) => {
+			const matchesSearch =
+				!searchInput.trim() ||
+				order.reference?.toLowerCase().includes(searchInput.toLowerCase()) ||
+				order.name?.toLowerCase().includes(searchInput.toLowerCase()) ||
+				order.phone?.toLowerCase().includes(searchInput.toLowerCase()) ||
+				order.deliveryType?.toLowerCase().includes(searchInput.toLowerCase()) ||
+				order.expand?.restaurant?.name?.toLowerCase().includes(searchInput.toLowerCase());
+
+			const matchesCategory =
+				selectedCategoryInput === 'All' || order.status === selectedCategoryInput;
+
+			const matchesRestaurant =
+				selectedRestaurantInput === 'All' || order.restaurantId === selectedRestaurantInput;
+
+			return matchesSearch && matchesCategory && matchesRestaurant;
+		});
 	});
 
 	export async function fetchPendingOrders() {
 		const userId = get(user)?.id;
-		const searchParams = get(page).url.searchParams;
-		const search = searchParams.get('search')?.trim() ?? '';
-		const category = searchParams.get('category')?.trim() ?? 'All';
-		const restaurantFilter = searchParams.get('restaurant')?.trim() ?? '';
 
 		if (!userId) return;
 
 		let filterParts: string[] = [];
-
-		if (category !== 'All') {
-			filterParts.push(`status="${category}"`);
-		} else {
-			filterParts.push(`(status="Pending" || status="Preparing" || status="Ready")`);
-		}
-
-		if (restaurantFilter) {
-			filterParts.push(`restaurantId="${restaurantFilter}"`);
-		}
-
-		if (search) {
-			filterParts.push(
-				`(reference~"${search}" || name~"${search}" || phone~"${search}" || deliveryType~"${search}" || restaurantName~"${search}")`
-			);
-		}
+		filterParts.push(`(status="Pending" || status="Preparing" || status="Ready")`);
 
 		const filter = filterParts.join(' && ');
 
@@ -54,20 +55,23 @@
 			const records = await pb.collection('orders').getFullList({
 				filter,
 				sort: '-created',
-				expand: 'dish'
+				expand: 'dish,restaurant'
 			});
+			orders = records;
+			filteredOrders = records;
+			loading = false;
 			return records;
 		} catch (err) {
 			console.error('Failed to fetch pending orders:', err);
+			loading = false;
 		}
 	}
 
 	let unsubscribe: (() => void) | null = null;
 
 	onMount(async () => {
-		searchInput = $page.url.searchParams.get('search') ?? '';
-		selectedCategoryInput = $page.url.searchParams.get('category') ?? 'All';
 		orders = (await fetchPendingOrders()) || [];
+		filteredOrders = orders;
 		loading = false;
 
 		unsubscribe = await pb.collection('orders').subscribe('*', async (e) => {
@@ -165,26 +169,15 @@
 
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 
-	async function clearSearch() {
-		window.location.href = '/admin/admin-order';
+	function clearSearch() {
+		searchInput = '';
+		selectedCategoryInput = 'All';
+		selectedRestaurantInput = 'All';
 	}
 
-	async function handleSearchSubmit(e: Event) {
+	function handleSearchSubmit(e: Event) {
 		e.preventDefault();
-
-		if (!searchInput.trim() && selectedCategoryInput === 'All') {
-			return;
-		}
-
-		const query = new URLSearchParams();
-		if (searchInput.trim()) query.set('search', searchInput.trim());
-		if (selectedCategoryInput && selectedCategoryInput !== 'All')
-			query.set('category', selectedCategoryInput);
-
-		const target = `/admin/admin-order/?${query.toString()}`;
-
-		await goto(target);
-		window.location.reload();
+		// Search is handled client-side via $effect
 	}
 
 	function getStatusColor(status: string) {
@@ -274,7 +267,7 @@
 					placeholder="Search orders..."
 					class="bg-transparent py-2 text-slate-700 placeholder-slate-400 focus:outline-none"
 				/>
-				{#if searchInput && $searchSubmitted}
+				{#if searchInput}
 					<button
 						type="button"
 						onclick={clearSearch}
@@ -286,11 +279,11 @@
 			<div class="flex flex-wrap gap-2">
 				<select
 					name="restaurant"
+					bind:value={selectedRestaurantInput}
 					class="rounded-xl border-0 bg-white px-4 py-2.5 shadow-md shadow-slate-900/5 focus:ring-2 focus:ring-slate-500 focus:outline-none"
-					onchange={(e) => e.currentTarget.form?.requestSubmit()}
 				>
-					<option value="">All Restaurants</option>
-					{#each $page.data.allRestaurants || [] as restaurant}
+					<option value="All">All Restaurants</option>
+					{#each allRestaurants as restaurant}
 						<option value={restaurant.id}>{restaurant.name}</option>
 					{/each}
 				</select>
@@ -299,14 +292,6 @@
 					name="category"
 					bind:value={selectedCategoryInput}
 					class="rounded-xl border-0 bg-white px-4 py-2.5 shadow-md shadow-slate-900/5 focus:ring-2 focus:ring-slate-500 focus:outline-none"
-					onchange={(e) => {
-						const selected = e.currentTarget.value;
-						if (selected === 'All') {
-							clearSearch();
-						} else {
-							e.currentTarget.form?.requestSubmit();
-						}
-					}}
 				>
 					<option value="All">All Statuses</option>
 					<option value="Pending">Pending</option>
@@ -337,7 +322,7 @@
 						></path>
 					</svg>
 				</div>
-			{:else if orders.length === 0}
+			{:else if filteredOrders.length === 0}
 				<div class="py-16 text-center">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
@@ -355,7 +340,7 @@
 				</div>
 			{:else}
 				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-					{#each orders as order}
+					{#each filteredOrders as order}
 						<article
 							class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"
 							in:fly={{ y: 20, duration: 300 }}

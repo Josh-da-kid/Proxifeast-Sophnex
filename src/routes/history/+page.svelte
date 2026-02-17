@@ -20,7 +20,7 @@
 			const records = await pb.collection('orders').getFullList({
 				filter,
 				sort: '-updated',
-				expand: 'dish'
+				expand: 'dish,restaurant'
 			});
 			return records;
 		} catch (err) {
@@ -29,15 +29,46 @@
 	}
 
 	let orders: RecordModel[] = $state([]);
+	let filteredOrders: RecordModel[] = $state([]);
 	let loading = $state(true);
+	let searchInput = $state('');
+	let selectedCategoryInput = $state('All');
 	const restaurantName = get(page).data.restaurant?.name;
+
+	// Client-side filtered orders
+	$effect(() => {
+		filteredOrders = orders.filter((order: any) => {
+			const matchesSearch =
+				!searchInput.trim() ||
+				order.reference?.toLowerCase().includes(searchInput.toLowerCase()) ||
+				order.name?.toLowerCase().includes(searchInput.toLowerCase()) ||
+				order.phone?.toLowerCase().includes(searchInput.toLowerCase()) ||
+				order.deliveryType?.toLowerCase().includes(searchInput.toLowerCase());
+
+			const matchesCategory =
+				selectedCategoryInput === 'All' || order.status === selectedCategoryInput;
+
+			return matchesSearch && matchesCategory;
+		});
+	});
 
 	onMount(async () => {
 		orders = (await fetchPendingOrders()) || [];
+		filteredOrders = orders;
 		loading = false;
 	});
 
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
+
+	function handleSearchSubmit(e: Event) {
+		e.preventDefault();
+		// Search is handled client-side via $effect
+	}
+
+	function clearSearch() {
+		searchInput = '';
+		selectedCategoryInput = 'All';
+	}
 
 	function getStatusColor(status: string) {
 		switch (status) {
@@ -68,6 +99,31 @@
 
 	<!-- Orders -->
 	<main class="container mx-auto px-4 py-8">
+		<!-- Search and Filter -->
+		{#if $isLoggedIn && !loading && orders.length > 0}
+			<div class="mb-8">
+				<form onsubmit={handleSearchSubmit} class="flex flex-col gap-4 md:flex-row md:items-center">
+					<input
+						type="text"
+						bind:value={searchInput}
+						placeholder="Search by reference, name, or phone..."
+						class="input input-bordered flex-1 border-slate-300"
+					/>
+					<select
+						bind:value={selectedCategoryInput}
+						class="select select-bordered border-slate-300"
+					>
+						<option value="All">All Status</option>
+						<option value="Delivered">Delivered</option>
+						<option value="Cancelled">Cancelled</option>
+					</select>
+					{#if searchInput || selectedCategoryInput !== 'All'}
+						<button type="button" onclick={clearSearch} class="btn btn-ghost"> Clear </button>
+					{/if}
+				</form>
+			</div>
+		{/if}
+
 		{#if $isLoggedIn}
 			{#if loading}
 				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -79,7 +135,7 @@
 						</div>
 					{/each}
 				</div>
-			{:else if orders.length === 0}
+			{:else if filteredOrders.length === 0}
 				<div class="py-16 text-center">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
@@ -97,7 +153,7 @@
 				</div>
 			{:else}
 				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-					{#each orders as order, i}
+					{#each filteredOrders as order, i}
 						<article
 							class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-lg"
 							in:fly={{ y: 20, duration: 300, delay: i * 50 }}

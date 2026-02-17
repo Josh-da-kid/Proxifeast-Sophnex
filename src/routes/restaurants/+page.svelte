@@ -1,27 +1,70 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
+	import { page } from '$app/stores';
 
 	let restaurants: any[] = $state([]);
 	let filteredRestaurants: any[] = $state([]);
 	let searchInput = $state('');
 	let hasSearched = $state(false);
 	let isLoading = $state(true);
+	let favorites: string[] = $state([]);
+	let user = $derived($page.data.user);
+	let togglingFavorite = $state<string | null>(null);
 
 	onMount(async () => {
 		try {
-			const res = await fetch(
-				'https://playgzero.pb.itcass.net/api/collections/restaurants/records'
-			);
-			const data = await res.json();
-			restaurants = data.items.filter((r) => r.name !== 'ProxifeastLocal');
+			const [restaurantsRes, favoritesRes] = await Promise.all([
+				fetch('https://playgzero.pb.itcass.net/api/collections/restaurants/records'),
+				user ? fetch('/api/favorites') : Promise.resolve(null)
+			]);
+
+			const data = await restaurantsRes.json();
+			restaurants = data.items.filter((r: any) => r.name !== 'ProxifeastLocal');
 			filteredRestaurants = restaurants;
+
+			if (favoritesRes && favoritesRes.ok) {
+				const favData = await favoritesRes.json();
+				favorites = favData.favorites || [];
+			}
 		} catch (err) {
 			console.error('Failed to fetch restaurants:', err);
 		} finally {
 			isLoading = false;
 		}
 	});
+
+	async function toggleFavorite(restaurantId: string, e: Event) {
+		e.stopPropagation();
+		if (!user) {
+			window.location.href = '/login';
+			return;
+		}
+
+		togglingFavorite = restaurantId;
+		const action = favorites.includes(restaurantId) ? 'remove' : 'add';
+
+		try {
+			const res = await fetch('/api/favorites', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ restaurantId, action })
+			});
+
+			if (res.ok) {
+				const data = await res.json();
+				favorites = data.favorites;
+			}
+		} catch (err) {
+			console.error('Failed to toggle favorite:', err);
+		} finally {
+			togglingFavorite = null;
+		}
+	}
+
+	function isFavorite(restaurantId: string): boolean {
+		return favorites.includes(restaurantId);
+	}
 
 	function handleSearch(e: Event) {
 		e.preventDefault();
@@ -47,40 +90,43 @@
 		filteredRestaurants = restaurants;
 		hasSearched = false;
 	}
+
+	function selectRestaurant(r: any) {
+		window.location.href = `/?restaurant=${r.id}`;
+	}
 </script>
 
 <svelte:head>
 	<title>Restaurants - Proxifeast</title>
 </svelte:head>
 
-<div class="min-h-screen bg-stone-50">
+<div class="min-h-screen bg-slate-50">
 	<!-- Hero Section -->
 	<section
-		class="bg-gradient-to-b from-amber-900 via-amber-800 to-amber-700 py-16 text-center text-white"
+		class="relative overflow-hidden bg-gradient-to-b from-slate-900 via-slate-800 to-slate-700 py-20 text-center text-white"
 	>
-		<div class="container mx-auto px-4">
-			<div class="mb-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					class="h-4 w-4"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
+		<div class="absolute inset-0 opacity-10">
+			<svg class="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+				<pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+					<path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" stroke-width="0.5" />
+				</pattern>
+				<rect width="100" height="100" fill="url(#grid)" />
+			</svg>
+		</div>
+		<div class="relative container mx-auto px-4">
+			<div class="mx-auto max-w-3xl">
+				<h1
+					class="font-playfair mb-4 text-4xl font-bold md:text-5xl"
+					in:fly={{ y: 30, duration: 600 }}
 				>
-					<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
-					<path d="M7 2v20" />
-					<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
-				</svg>
-				Proxifeast
-			</div>
-			<h1 class="font-playfair mb-4 text-4xl font-bold md:text-5xl">Discover Fine Dining</h1>
-			<p class="mx-auto max-w-2xl text-lg text-white/80">
-				Explore our curated selection of exceptional restaurants, each offering unique culinary
-				experiences
-			</p>
-			<div class="mt-6 text-sm text-white/60">
-				{restaurants.length} restaurants available
+					Discover Fine Dining
+				</h1>
+				<p class="text-lg font-medium text-slate-300" in:fade={{ duration: 600, delay: 200 }}>
+					Explore curated restaurants with unique culinary experiences
+				</p>
+				<div class="mt-4 text-sm text-slate-400" in:fade={{ duration: 600, delay: 300 }}>
+					{restaurants.length} restaurants available
+				</div>
 			</div>
 		</div>
 	</section>
@@ -90,12 +136,12 @@
 		<div class="mx-auto max-w-2xl">
 			<form
 				onsubmit={handleSearch}
-				class="flex items-center gap-3 rounded-2xl bg-white p-2 shadow-xl shadow-amber-900/10"
+				class="flex items-center gap-3 rounded-2xl bg-white p-2 shadow-xl"
 			>
 				<div class="flex items-center pl-3">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
-						class="h-5 w-5 text-gray-400"
+						class="h-5 w-5 text-slate-400"
 						viewBox="0 0 24 24"
 						fill="none"
 						stroke="currentColor"
@@ -109,20 +155,20 @@
 					type="text"
 					bind:value={searchInput}
 					placeholder="Search by name, cuisine, or location..."
-					class="flex-1 bg-transparent py-3 text-gray-700 placeholder-gray-400 focus:outline-none"
+					class="flex-1 bg-transparent py-3 text-slate-700 placeholder-slate-400 focus:outline-none"
 				/>
 				{#if searchInput}
 					<button
 						type="button"
 						onclick={clearSearch}
-						class="rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-200"
+						class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200"
 					>
 						Clear
 					</button>
 				{:else}
 					<button
 						type="submit"
-						class="rounded-xl bg-amber-600 px-6 py-2 text-sm font-medium text-white transition hover:bg-amber-700"
+						class="rounded-xl bg-slate-800 px-6 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
 					>
 						Search
 					</button>
@@ -132,18 +178,18 @@
 	</section>
 
 	<!-- Results Info -->
-	<section class="container mx-auto px-4 py-8">
+	<section class="container mx-auto px-4 py-12">
 		{#if hasSearched}
 			<div class="mb-6 text-center" in:fade>
 				{#if filteredRestaurants.length > 0}
-					<p class="text-gray-600">
-						Found <span class="font-semibold text-amber-700">{filteredRestaurants.length}</span>
+					<p class="text-slate-600">
+						Found <span class="font-semibold text-slate-800">{filteredRestaurants.length}</span>
 						restaurant{filteredRestaurants.length !== 1 ? 's' : ''} matching "<span
 							class="font-medium">{searchInput}</span
 						>"
 					</p>
 				{:else}
-					<p class="text-gray-500">
+					<p class="text-slate-500">
 						No restaurants found for "<span class="font-medium">{searchInput}</span>"
 					</p>
 				{/if}
@@ -156,14 +202,14 @@
 				{#each Array(6) as _}
 					<div class="animate-pulse rounded-2xl bg-white p-6 shadow-md">
 						<div class="mb-4 flex items-center gap-4">
-							<div class="h-16 w-16 rounded-xl bg-gray-200"></div>
+							<div class="h-16 w-16 rounded-xl bg-slate-200"></div>
 							<div class="flex-1">
-								<div class="mb-2 h-5 w-3/4 rounded bg-gray-200"></div>
-								<div class="h-4 w-1/2 rounded bg-gray-200"></div>
+								<div class="mb-2 h-6 w-3/4 rounded bg-slate-200"></div>
+								<div class="h-4 w-1/2 rounded bg-slate-200"></div>
 							</div>
 						</div>
-						<div class="mb-4 h-16 w-full rounded bg-gray-200"></div>
-						<div class="h-4 w-full rounded bg-gray-200"></div>
+						<div class="mb-4 h-16 w-full rounded bg-slate-200"></div>
+						<div class="h-4 w-full rounded bg-slate-200"></div>
 					</div>
 				{/each}
 			</div>
@@ -172,7 +218,7 @@
 			<div class="py-16 text-center">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
-					class="mx-auto h-16 w-16 text-gray-300"
+					class="mx-auto h-16 w-16 text-slate-300"
 					viewBox="0 0 24 24"
 					fill="none"
 					stroke="currentColor"
@@ -182,46 +228,105 @@
 					<path d="M7 2v20" />
 					<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
 				</svg>
-				<h3 class="mt-4 text-lg font-medium text-gray-700">No Restaurants Available</h3>
-				<p class="mt-1 text-gray-500">Please check back later</p>
+				<h3 class="mt-4 text-lg font-medium text-slate-700">No Restaurants Available</h3>
+				<p class="text-slate-500">Please check back later</p>
 			</div>
 		{:else}
 			<!-- Restaurant Grid -->
 			<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 				{#each filteredRestaurants as r, i}
 					<article
-						class="group flex flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-amber-900/5"
+						class="group relative flex flex-col rounded-2xl bg-white p-6 shadow-md transition-all hover:-translate-y-1 hover:shadow-lg"
 						in:fly={{ y: 20, duration: 300, delay: i * 50 }}
 					>
+						<!-- Favorite Button -->
+						<button
+							onclick={(e) => toggleFavorite(r.id, e)}
+							disabled={togglingFavorite === r.id}
+							class="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-md transition-all hover:scale-110 hover:bg-white disabled:opacity-50"
+							title={user
+								? isFavorite(r.id)
+									? 'Remove from favorites'
+									: 'Add to favorites'
+								: 'Sign in to save favorites'}
+						>
+							{#if togglingFavorite === r.id}
+								<svg
+									class="h-5 w-5 animate-spin text-slate-400"
+									xmlns="http://www.w3.org/2000/svg"
+									fill="none"
+									viewBox="0 0 24 24"
+								>
+									<circle
+										class="opacity-25"
+										cx="12"
+										cy="12"
+										r="10"
+										stroke="currentColor"
+										stroke-width="4"
+									></circle>
+									<path
+										class="opacity-75"
+										fill="currentColor"
+										d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+									></path>
+								</svg>
+							{:else if isFavorite(r.id)}
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-5 w-5 text-red-500"
+									viewBox="0 0 24 24"
+									fill="currentColor"
+								>
+									<path
+										d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"
+									/>
+								</svg>
+							{:else}
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-5 w-5 text-slate-400 transition-colors group-hover:text-red-400"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path
+										d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+									/>
+								</svg>
+							{/if}
+						</button>
+
 						<!-- Header -->
 						<div class="mb-5 flex items-start gap-4">
 							<div class="shrink-0">
 								<img
 									src={r.faviconUrl || r.logoUrl}
 									alt={r.name}
-									class="h-16 w-16 rounded-xl border border-gray-100 object-contain shadow-sm"
+									class="h-16 w-16 rounded-xl border border-slate-100 object-contain shadow-sm"
 								/>
 							</div>
 							<div class="min-w-0 flex-1">
-								<h2 class="font-playfair truncate text-xl font-semibold text-gray-900">
+								<h2 class="font-playfair truncate text-xl font-semibold text-slate-900">
 									{r.name}
 								</h2>
 								{#if r.motto}
-									<p class="mt-0.5 truncate text-sm text-amber-600">{r.motto}</p>
+									<p class="mt-0.5 truncate text-sm text-slate-600">{r.motto}</p>
 								{/if}
 							</div>
 						</div>
 
 						<!-- Description -->
 						{#if r.description}
-							<p class="mb-4 line-clamp-3 text-sm leading-relaxed text-gray-600">
+							<p class="mb-4 line-clamp-3 text-sm leading-relaxed text-slate-600">
 								{r.description}
 							</p>
 						{/if}
 
 						<!-- Address -->
 						{#if r.restaurantAddress}
-							<div class="mb-5 flex items-start gap-2 text-sm text-gray-500">
+							<div class="mb-5 flex items-start gap-2 text-sm text-slate-500">
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									class="mt-0.5 h-4 w-4 shrink-0"
@@ -239,11 +344,9 @@
 
 						<!-- Spacer -->
 						<div class="mt-auto pt-2">
-							<a
-								href={`https://${r.domain}/#menu`}
-								target="_blank"
-								rel="noopener noreferrer"
-								class="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-600 px-4 py-3 text-sm font-medium text-amber-600 transition-all duration-200 hover:bg-amber-600 hover:text-white"
+							<button
+								onclick={() => selectRestaurant(r)}
+								class="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-800 px-4 py-3 text-sm font-medium text-slate-800 transition-all hover:bg-slate-800 hover:text-white"
 							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
@@ -258,7 +361,7 @@
 									<line x1="15" x2="3" y1="12" y2="12" />
 								</svg>
 								View Menu
-							</a>
+							</button>
 						</div>
 					</article>
 				{/each}
@@ -267,9 +370,9 @@
 	</section>
 
 	<!-- Footer Note -->
-	<section class="border-t border-gray-200 bg-white py-8 text-center">
-		<p class="text-sm text-gray-500">
-			Powered by <span class="font-medium text-amber-700">Proxifeast</span> • Quality Dining Experience
+	<section class="border-t border-slate-200 bg-white py-8 text-center">
+		<p class="text-sm text-slate-500">
+			Powered by <span class="font-medium text-slate-700">Proxifeast</span> • Quality Dining Experience
 		</p>
 	</section>
 </div>

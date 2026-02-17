@@ -3,14 +3,39 @@
 	import { cubicOut } from 'svelte/easing';
 	import Nav from '$lib/Nav.svelte';
 	import { derived, get, writable } from 'svelte/store';
-	import { page } from '$app/stores';
 	import { afterNavigate, goto, invalidateAll } from '$app/navigation';
+	import { navigating, page } from '$app/stores';
 	import { onMount, onDestroy } from 'svelte';
 	import pb from '$lib/pb';
 	import { addToCartPB } from '$lib/addToCart';
 
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 	const user = derived(page, ($page) => $page.data.user);
+
+	// Loading state
+	let isLoading = $state(true);
+
+	// Watch for navigation changes
+	$effect(() => {
+		const unsubscribe = navigating.subscribe((nav) => {
+			if (nav) {
+				isLoading = true;
+			} else {
+				isLoading = false;
+			}
+		});
+		return unsubscribe;
+	});
+
+	// Check initial load
+	$effect(() => {
+		const unsubscribe = page.subscribe(($p) => {
+			if ($p.data.dishes !== undefined) {
+				isLoading = false;
+			}
+		});
+		return unsubscribe;
+	});
 
 	// Data from server
 	const restaurants = $derived($page.data.restaurants ?? []);
@@ -25,12 +50,31 @@
 	// State management
 	let viewMode = $state('list'); // 'list' or 'menu'
 	let searchInput = $state('');
-	let searchTypeInput = $state('restaurant');
 	let selectedCategoryInput = $state('All');
+	let menuRestaurantId = $state('');
 	let hasSearched = $state(false);
 	let dishQuantities = $state<Record<string, number>>({});
 	let addToCartAlert = $state(false);
 	let cartErrorAlert = $state(false);
+
+	// Derived: get selected restaurant from menu dropdown
+	let menuRestaurant = $derived(
+		menuRestaurantId ? allRestaurants.find((r: any) => r.id === menuRestaurantId) : null
+	);
+
+	// Client-side filtered data
+	let filteredRestaurants = $derived.by(() => {
+		if (!hasSearched || !searchInput.trim()) {
+			return restaurants;
+		}
+		const query = searchInput.toLowerCase();
+		return restaurants.filter(
+			(r: any) =>
+				r.name.toLowerCase().includes(query) ||
+				r.restaurantAddress?.toLowerCase().includes(query) ||
+				r.motto?.toLowerCase().includes(query)
+		);
+	});
 
 	// Modal states
 	let modalImage: string | null = $state(null);
@@ -59,7 +103,6 @@
 	// Initialize state from URL on mount
 	onMount(() => {
 		searchInput = searchQuery;
-		searchTypeInput = searchType;
 
 		if (selectedRestaurant) {
 			viewMode = 'menu';
@@ -175,26 +218,20 @@
 	}
 
 	// Search functionality
-	async function handleSearchSubmit(e: Event) {
+	function handleSearchSubmit(e: Event) {
 		e.preventDefault();
 
 		if (!searchInput.trim()) {
-			await goto('/');
+			hasSearched = false;
 			return;
 		}
 
-		const query = new URLSearchParams();
-		query.set('search', searchInput.trim());
-		query.set('type', searchTypeInput);
-
-		await goto(`/?${query.toString()}`);
 		hasSearched = true;
 	}
 
-	async function clearSearch() {
+	function clearSearch() {
 		searchInput = '';
 		hasSearched = false;
-		await goto('/');
 	}
 
 	// Restaurant selection
@@ -207,6 +244,14 @@
 		viewMode = 'list';
 		cleanupSubscriptions();
 		await goto('/');
+	}
+
+	async function handleMenuRestaurantChange(e: Event) {
+		const target = e.target as HTMLSelectElement;
+		const restaurant = allRestaurants.find((r: any) => r.id === target.value);
+		if (restaurant) {
+			await selectRestaurant(restaurant);
+		}
 	}
 
 	// Select restaurant from featured dish
@@ -388,8 +433,9 @@
 
 	// Derived data for grouped dishes
 	const groupedDishes = $derived.by(() => {
+		const sourceDishes = dishes;
 		const groups: Record<string, typeof dishes> = {};
-		for (const dish of dishes) {
+		for (const dish of sourceDishes) {
 			dish.quantity = dishQuantities[dish.id] || 1;
 			if (dish.category) {
 				if (!groups[dish.category]) {
@@ -749,7 +795,30 @@
 	</section>
 
 	<!-- Today's Special -->
-	{#if featuredDishes.length > 0}
+	{#if isLoading}
+		<!-- Featured Dishes Skeleton -->
+		<section class="bg-base-100 relative overflow-hidden py-20">
+			<div class="container mx-auto px-6">
+				<div class="mb-12 text-center">
+					<div class="mx-auto mb-4 h-8 w-48 animate-pulse rounded-full bg-gray-300"></div>
+					<div class="mx-auto h-12 w-64 animate-pulse rounded bg-gray-300"></div>
+				</div>
+				<div class="grid gap-6 px-4 sm:grid-cols-2 lg:grid-cols-4">
+					{#each [1, 2, 3, 4] as _}
+						<div class="animate-pulse rounded-2xl bg-white p-4 shadow-lg">
+							<div class="h-44 w-full rounded-2xl bg-gray-300"></div>
+							<div class="mt-4 h-6 w-3/4 animate-pulse rounded bg-gray-300"></div>
+							<div class="mt-2 h-4 w-1/2 animate-pulse rounded bg-gray-300"></div>
+							<div class="mt-3 flex items-center justify-between">
+								<div class="h-6 w-20 animate-pulse rounded bg-gray-300"></div>
+								<div class="h-10 w-24 animate-pulse rounded-lg bg-gray-300"></div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
+		</section>
+	{:else if featuredDishes.length > 0}
 		<section id="specials" class="bg-base-100 relative overflow-hidden py-20">
 			<!-- Decorative -->
 			<div class="absolute top-16 -left-24 h-48 w-48 rounded-full bg-amber-200/20"></div>
@@ -758,98 +827,103 @@
 			<div class="container mx-auto px-6">
 				<div class="mb-12 text-center">
 					<span
-						class="mb-2 inline-block rounded-full bg-amber-100 px-4 py-1 text-sm font-semibold text-amber-700"
+						class="mb-3 inline-block rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-500/30"
 					>
 						Hot & Ready
 					</span>
-					<h2
-						class="font-playfair text-primary text-4xl font-bold sm:text-5xl"
-						in:fly={{ x: -200, duration: 800 }}
-					>
+					<h2 class="font-playfair text-primary mt-4 text-4xl font-bold sm:text-5xl">
 						Today's Specials
 					</h2>
 					<p class="text-base-content/60 mt-3 text-lg">Handpicked dishes just for you</p>
 				</div>
 
-				<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+				<div class="mx-auto grid max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
 					{#each featuredDishes as dish}
-						<div
-							class="group bg-base-100 cursor-pointer rounded-2xl shadow-lg shadow-gray-200/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl"
-							onclick={() => selectRestaurantFromDish(dish)}
-						>
-							<figure class="relative h-44 overflow-hidden rounded-t-2xl">
-								<img
-									src={dish.image}
-									alt={dish.name}
-									class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-								/>
-								<div
-									class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"
-								></div>
+						<div class="group cursor-pointer" onclick={() => selectRestaurantFromDish(dish)}>
+							<article
+								class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+							>
+								<!-- Image -->
+								<div class="relative h-52 overflow-hidden">
+									<img
+										src={dish.image}
+										alt={dish.name}
+										class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+									/>
+									<!-- Gradient -->
+									<div
+										class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"
+									></div>
 
-								<div class="absolute top-2 left-2 flex gap-1.5">
-									<span class="badge badge-sm border-none bg-slate-800 text-white">
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											width="12"
-											height="12"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2"
-											class="mr-1"
+									<!-- Restaurant Tag -->
+									<div class="absolute top-3 left-3">
+										<span
+											class="flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
 										>
-											<path
-												d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-											/>
-										</svg>
-										{getRestaurantNameForDish(dish)}
-									</span>
-								</div>
-
-								{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
-									<div class="absolute top-3 right-3">
-										<span class="rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white">
-											-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}%
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												class="h-3 w-3"
+												viewBox="0 0 24 24"
+												fill="currentColor"
+											>
+												<path
+													d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+												/>
+											</svg>
+											{getRestaurantNameForDish(dish)}
 										</span>
 									</div>
-								{/if}
-							</figure>
 
-							<div class="p-5">
-								<h3 class="font-playfair text-lg font-semibold">
-									{dish.name}
-								</h3>
-								<p class="mt-1 line-clamp-2 text-sm text-gray-500">
-									{dish.description}
-								</p>
-
-								<div class="mt-4 flex items-baseline justify-between">
-									<div class="flex items-baseline gap-2">
-										{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
-											<span class="text-xl font-bold text-amber-600">
-												₦{Number(dish.promoAmount).toLocaleString()}
+									<!-- Discount Badge -->
+									{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
+										<div class="absolute top-3 right-3">
+											<span
+												class="rounded-full bg-gradient-to-r from-red-500 to-red-600 px-3 py-1.5 text-xs font-bold text-white shadow-lg"
+											>
+												-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
 											</span>
-											<span class="text-sm text-gray-400 line-through">
-												₦{Number(dish.defaultAmount).toLocaleString()}
-											</span>
-										{:else}
-											<span class="text-xl font-bold text-amber-600">
-												₦{Number(dish.defaultAmount).toLocaleString()}
-											</span>
-										{/if}
-									</div>
-									<button
-										class="btn btn-sm btn-primary rounded-full"
-										onclick={(e) => {
-											e.stopPropagation();
-											handleAddToCart(dish);
-										}}
-									>
-										Order
-									</button>
+										</div>
+									{/if}
 								</div>
-							</div>
+
+								<!-- Content -->
+								<div class="p-5">
+									<h3
+										class="font-playfair mb-2 text-lg leading-tight font-semibold text-slate-900 transition-colors group-hover:text-amber-600"
+									>
+										{dish.name}
+									</h3>
+									<p class="mb-4 line-clamp-2 text-sm leading-relaxed text-slate-500">
+										{dish.description}
+									</p>
+
+									<div class="flex items-center justify-between">
+										<div class="flex items-baseline gap-2">
+											{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
+												<span class="text-xl font-bold text-amber-600">
+													₦{Number(dish.promoAmount).toLocaleString()}
+												</span>
+												<span class="text-sm text-slate-400 line-through">
+													₦{Number(dish.defaultAmount).toLocaleString()}
+												</span>
+											{:else}
+												<span class="text-xl font-bold text-slate-900">
+													₦{Number(dish.defaultAmount).toLocaleString()}
+												</span>
+											{/if}
+										</div>
+										<button
+											class="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 transition-all hover:from-amber-600 hover:to-amber-700 hover:shadow-xl"
+											onclick={(e) => {
+												e.stopPropagation();
+												handleAddToCart(dish);
+											}}
+										>
+											Order
+										</button>
+									</div>
+								</div>
+							</article>
 						</div>
 					{/each}
 				</div>
@@ -900,62 +974,51 @@
 			{/if}
 		</div>
 
-		{#if viewMode === 'menu' && selectedRestaurant}
-			<!-- Back Button -->
-			<div class="mb-6 text-center">
-				<button onclick={backToRestaurants} class="btn btn-outline btn-secondary">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="mr-2 h-5 w-5"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
+		<!-- Menu View -->
+		{#if viewMode === 'menu'}
+			<!-- Restaurant Selector & Category -->
+			<div class="mb-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+				<!-- Restaurant Dropdown -->
+				<div class="relative">
+					<select
+						value={menuRestaurantId}
+						onchange={handleMenuRestaurantChange}
+						class="appearance-none rounded-xl border-0 bg-white px-6 py-3 pr-12 text-base font-semibold shadow-lg shadow-slate-900/10 focus:ring-2 focus:ring-amber-500 focus:outline-none"
 					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M10 19l-7-7m0 0l7-7m-7 7h18"
-						/>
-					</svg>
-					Back to Restaurants
-				</button>
-			</div>
-		{/if}
-
-		{#if viewMode === 'list'}
-			<!-- Restaurant Search -->
-			<form onsubmit={handleSearchSubmit} class="justify-center gap-2 sm:flex">
-				<div class="mx-auto items-center justify-center gap-2 p-2 sm:flex">
-					<div class="flex flex-col gap-2 px-2 sm:flex-row">
-						<input
-							type="text"
-							name="search"
-							placeholder={searchTypeInput === 'restaurant'
-								? 'Search restaurants...'
-								: 'Search dishes...'}
-							bind:value={searchInput}
-							class="input input-bordered border-primary focus:ring-primary w-full max-w-xs border focus:ring-2 focus:outline-none md:w-[400px]"
-						/>
-
-						<select
-							bind:value={searchTypeInput}
-							class="select select-bordered border-primary focus:ring-primary"
+						<option value="">Select Restaurant</option>
+						{#each allRestaurants as restaurant}
+							<option value={restaurant.id}>{restaurant.name}</option>
+						{/each}
+					</select>
+					<div class="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2">
+						<svg
+							class="h-5 w-5 text-slate-400"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
 						>
-							<option value="restaurant">Search Restaurants</option>
-							<option value="dish">Search Dishes</option>
-						</select>
-
-						{#if hasSearched}
-							<button type="button" onclick={clearSearch} class="btn btn-primary"> Cancel </button>
-						{:else if searchInput.length > 0}
-							<button type="submit" class="btn btn-primary">Search</button>
-						{:else}
-							<button type="submit" class="btn btn-primary">Search</button>
-						{/if}
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M19 9l-7 7-7-7"
+							/>
+						</svg>
 					</div>
 				</div>
-			</form>
+
+				<!-- Category Filter -->
+				<select
+					bind:value={selectedCategoryInput}
+					onchange={handleCategoryChange}
+					class="rounded-xl border-0 bg-white px-6 py-3 shadow-lg shadow-slate-900/10 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+				>
+					<option value="All">All Categories</option>
+					{#each categories as category}
+						<option value={category}>{category}</option>
+					{/each}
+				</select>
+			</div>
 		{:else}
 			<!-- Category Filter for Menu View -->
 			<div class="mb-6 flex justify-center gap-2">
@@ -976,52 +1039,151 @@
 	<!-- Restaurant List View -->
 	{#if viewMode === 'list'}
 		<section class="px-6">
-			{#if hasSearched && restaurants.length === 0}
+			{#if isLoading}
+				<!-- Restaurant List Skeleton -->
+				<div class="mt-10 grid gap-6 px-4 sm:grid-cols-2 lg:grid-cols-3">
+					{#each [1, 2, 3, 4, 5, 6] as _}
+						<div class="animate-pulse rounded-2xl bg-white p-6 shadow-lg">
+							<div class="flex items-center gap-4">
+								<div class="h-16 w-16 animate-pulse rounded-full bg-gray-300"></div>
+								<div class="flex-1">
+									<div class="mb-2 h-6 w-3/4 animate-pulse rounded bg-gray-300"></div>
+									<div class="h-4 w-1/2 animate-pulse rounded bg-gray-300"></div>
+								</div>
+							</div>
+							<div class="mt-4 h-4 w-full animate-pulse rounded bg-gray-300"></div>
+							<div class="mt-2 h-4 w-2/3 animate-pulse rounded bg-gray-300"></div>
+							<div class="mt-4 h-4 w-1/3 animate-pulse rounded bg-gray-300"></div>
+							<div class="mt-6 h-10 w-full animate-pulse rounded-lg bg-gray-300"></div>
+						</div>
+					{/each}
+				</div>
+			{:else if hasSearched && filteredRestaurants.length === 0}
 				<p class="mt-10 text-center text-lg font-medium text-gray-500">
 					❌ No restaurants found matching "<span class="text-yellow-600">{searchInput}</span>"
 				</p>
 			{:else}
-				{#if hasSearched && restaurants.length >= 1}
+				{#if hasSearched && filteredRestaurants.length >= 1}
 					<h3 class="mb-6 text-center">
 						Showing results for <span class="text-gray-500">'{searchInput}'</span>
 					</h3>
 				{/if}
 
-				<div class="mx-auto grid max-w-7xl gap-8 pb-12 md:grid-cols-2 lg:grid-cols-3">
-					{#each restaurants as r}
-						<div
-							class="flex flex-col rounded-2xl bg-white p-6 shadow-md transition hover:shadow-lg"
+				<div class="mx-auto grid max-w-7xl grid-cols-1 gap-8 pb-12 sm:grid-cols-2 lg:grid-cols-3">
+					{#each filteredRestaurants as r}
+						<article
+							class="group relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
 						>
-							<div class="mb-4 flex items-center space-x-4">
-								<img
-									src={r.faviconUrl || r.logoUrl}
-									alt={r.name}
-									class="h-16 w-16 rounded-full border object-contain"
-								/>
-								<div>
-									<h2 class="text-xl font-semibold">{r.name}</h2>
-									<p class="text-sm text-gray-500">{r.motto}</p>
-								</div>
+							<!-- Background Pattern -->
+							<div class="absolute inset-0 opacity-5">
+								<svg class="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+									<pattern
+										id="restaurant-pattern-{r.id}"
+										width="20"
+										height="20"
+										patternUnits="userSpaceOnUse"
+									>
+										<circle cx="10" cy="10" r="1" fill="currentColor" />
+									</pattern>
+									<rect width="100" height="100" fill="url(#restaurant-pattern-{r.id})" />
+								</svg>
 							</div>
 
-							<p class="mb-4 line-clamp-3 text-gray-600">{r.description}</p>
+							<div class="relative p-6">
+								<!-- Header -->
+								<div class="mb-5 flex items-start gap-4">
+									<div class="shrink-0">
+										<img
+											src={r.faviconUrl || r.logoUrl}
+											alt={r.name}
+											class="h-18 w-18 rounded-2xl border-2 border-slate-100 object-contain shadow-sm"
+										/>
+									</div>
+									<div class="min-w-0 flex-1">
+										<h2 class="font-playfair truncate text-xl font-bold text-slate-900">
+											{r.name}
+										</h2>
+										{#if r.motto}
+											<p class="mt-1 truncate text-sm font-medium text-amber-600">{r.motto}</p>
+										{/if}
+									</div>
+								</div>
 
-							<div class="mb-6 text-sm text-gray-500">📍 {r.restaurantAddress}</div>
+								<!-- Description -->
+								{#if r.description}
+									<p class="mb-5 line-clamp-3 text-sm leading-relaxed text-slate-600">
+										{r.description}
+									</p>
+								{/if}
 
-							<button
-								onclick={() => selectRestaurant(r)}
-								class="mt-auto inline-block cursor-pointer rounded-lg bg-blue-700 px-4 py-2 text-center font-medium text-white transition hover:bg-blue-500"
-							>
-								View Menu
-							</button>
-						</div>
+								<!-- Address -->
+								{#if r.restaurantAddress}
+									<div class="mb-5 flex items-start gap-2 text-sm text-slate-500">
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											class="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+										>
+											<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+											<circle cx="12" cy="10" r="3" />
+										</svg>
+										<span class="line-clamp-2">{r.restaurantAddress}</span>
+									</div>
+								{/if}
+
+								<!-- Action -->
+								<button
+									onclick={() => selectRestaurant(r)}
+									class="group/btn mt-auto inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-slate-800 to-slate-900 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-500/30 transition-all hover:from-slate-900 hover:to-slate-800 hover:shadow-xl"
+								>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										class="h-5 w-5 transition-transform group-hover/btn:translate-x-1"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+									>
+										<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+										<polyline points="10 17 15 12 10 7" />
+										<line x1="15" x2="3" y1="12" y2="12" />
+									</svg>
+									View Menu
+								</button>
+							</div>
+						</article>
 					{/each}
 				</div>
 			{/if}
 		</section>
 	{:else}
 		<!-- Menu View -->
-		{#if dishes.length === 0}
+		{#if isLoading}
+			<!-- Skeleton Loading for Dishes -->
+			<div class="container mx-auto max-w-7xl px-4 py-6">
+				<!-- Category Skeleton -->
+				<div class="mb-10">
+					<div class="mb-6 ml-4 h-8 w-32 animate-pulse rounded bg-gray-300"></div>
+					<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+						{#each [1, 2, 3, 4, 5, 6] as _}
+							<div class="animate-pulse rounded-xl bg-white p-4 shadow-lg">
+								<div class="h-48 w-full rounded-lg bg-gray-300"></div>
+								<div class="mt-4 h-6 w-3/4 animate-pulse rounded bg-gray-300"></div>
+								<div class="mt-2 h-4 w-full animate-pulse rounded bg-gray-300"></div>
+								<div class="mt-2 h-4 w-2/3 animate-pulse rounded bg-gray-300"></div>
+								<div class="mt-4 flex items-center justify-between">
+									<div class="h-6 w-20 animate-pulse rounded bg-gray-300"></div>
+									<div class="h-10 w-28 animate-pulse rounded-lg bg-gray-300"></div>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			</div>
+		{:else if dishes.length === 0}
 			<p class="mt-6 py-12 text-center text-gray-500">
 				No dishes found in {selectedCategoryInput !== 'All' ? `${selectedCategoryInput}` : 'all'} category.
 			</p>
@@ -1033,11 +1195,11 @@
 						<div class="border-2 underline"></div>
 					</div>
 
-					<div class="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 sm:grid-cols-2 lg:grid-cols-3">
+					<div class="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 sm:grid-cols-2 lg:grid-cols-3">
 						{#each dishesInCategory as dish}
-							<div class="group relative" in:fly={{ y: 50, duration: 600 }}>
+							<div class="group" in:fly={{ y: 50, duration: 600 }}>
 								<article
-									class="card card-compact bg-base-200 transform cursor-pointer overflow-hidden rounded-xl shadow-lg transition-transform duration-300 hover:scale-105"
+									class="relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
 									onclick={() => (
 										(modalImage = dish.image),
 										(modalDish = dish.name),
@@ -1050,24 +1212,30 @@
 										(modalAvailability = dish.availability)
 									)}
 								>
-									<figure>
+									<!-- Image Container -->
+									<div class="relative h-56 overflow-hidden">
 										<img
 											src={dish.image}
 											alt={dish.name}
-											class="h-48 w-full rounded-lg object-cover transition-transform duration-200 hover:scale-105"
+											class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
 										/>
+										<!-- Gradient Overlay -->
+										<div
+											class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"
+										></div>
+
 										<!-- Restaurant Tag -->
-										<div class="absolute top-2 left-2">
-											<span class="badge badge-sm border-none bg-slate-800 text-white">
+										<div class="absolute top-3 left-3">
+											<span
+												class="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
+											>
 												<svg
 													xmlns="http://www.w3.org/2000/svg"
-													width="12"
-													height="12"
+													class="h-3.5 w-3.5"
 													viewBox="0 0 24 24"
 													fill="none"
 													stroke="currentColor"
 													stroke-width="2"
-													class="mr-1"
 												>
 													<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
 													<path d="M7 2v20" />
@@ -1076,113 +1244,142 @@
 												{getRestaurantNameForDish(dish)}
 											</span>
 										</div>
-									</figure>
 
-									<div class="card-body">
-										<h4 class="card-title text-primary font-playfair">{dish.name}</h4>
+										<!-- Discount Badge -->
+										{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
+											<div class="absolute top-3 right-3">
+												<span
+													class="rounded-full bg-amber-500 px-3 py-1.5 text-xs font-bold text-white shadow-lg"
+												>
+													-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
+												</span>
+											</div>
+										{/if}
 
-										<p class="text-base-content">{dish.description}</p>
+										<!-- Availability Badge -->
+										<div class="absolute right-3 bottom-3">
+											{#if dish.availability === 'Available'}
+												<span
+													class="rounded-full bg-emerald-500/90 px-3 py-1 text-xs font-semibold text-white shadow-lg backdrop-blur-sm"
+												>
+													Available
+												</span>
+											{:else if dish.availability === 'Unavailable'}
+												<span
+													class="rounded-full bg-red-500/90 px-3 py-1 text-xs font-semibold text-white shadow-lg backdrop-blur-sm"
+												>
+													Unavailable
+												</span>
+											{/if}
+										</div>
+									</div>
 
-										<div class="mt-1 mb-1 flex justify-between">
-											<div
-												class="tooltip"
-												data-tip={dish.availability !== 'Available'
-													? 'Dish is unavailable'
-													: 'Set quantity'}
-											>
-												<span class="font-semibold">Quantity </span>
-												<div class="mt-2 flex items-center justify-center gap-4">
+									<!-- Content -->
+									<div class="flex flex-1 flex-col p-5">
+										<!-- Title -->
+										<h4
+											class="font-playfair mb-2 text-xl leading-tight font-semibold text-slate-900 transition-colors group-hover:text-amber-600"
+										>
+											{dish.name}
+										</h4>
+
+										<!-- Description -->
+										<p class="mb-4 line-clamp-2 text-sm leading-relaxed text-slate-500">
+											{dish.description}
+										</p>
+
+										<!-- Spacer -->
+										<div class="mt-auto">
+											<!-- Price -->
+											<div class="mb-4 flex items-baseline gap-2">
+												{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
+													<span class="text-2xl font-bold text-amber-600">
+														₦{Number(dish.promoAmount).toLocaleString()}
+													</span>
+													<span class="text-sm text-slate-400 line-through">
+														₦{Number(dish.defaultAmount).toLocaleString()}
+													</span>
+												{:else}
+													<span class="text-2xl font-bold text-slate-900">
+														₦{Number(dish.defaultAmount).toLocaleString()}
+													</span>
+												{/if}
+											</div>
+
+											<!-- Quantity & Add to Cart -->
+											<div class="flex items-center justify-between gap-3">
+												<!-- Quantity Selector -->
+												<div class="flex items-center gap-2 rounded-full bg-slate-100 p-1">
 													<button
 														onclick={(e) => {
 															e.stopPropagation();
 															updateDishQuantity(dish.id, -1);
 														}}
-														disabled={(dishQuantities[dish.id] ?? 1) <= 1}
-														class="cursor-pointer rounded-full bg-blue-500 text-white disabled:cursor-not-allowed disabled:opacity-50"
+														disabled={(dishQuantities[dish.id] ?? 1) <= 1 ||
+															dish.availability !== 'Available'}
+														class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm transition-all hover:bg-amber-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
 													>
 														<svg
 															xmlns="http://www.w3.org/2000/svg"
-															width="24"
-															height="24"
-															viewBox="0 0 12 12"
+															class="h-4 w-4"
+															viewBox="0 0 24 24"
+															fill="none"
+															stroke="currentColor"
+															stroke-width="2.5"
 														>
-															<path
-																fill="currentColor"
-																d="M2 6a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 2 6"
-															/>
+															<path d="M5 12h14" />
 														</svg>
 													</button>
-													<span class="text-secondary">{dishQuantities[dish.id] || 1}</span>
+													<span class="w-8 text-center font-semibold text-slate-800">
+														{dishQuantities[dish.id] || 1}
+													</span>
 													<button
 														onclick={(e) => {
 															e.stopPropagation();
 															updateDishQuantity(dish.id, 1);
 														}}
-														class="hover:text-secondary cursor-pointer rounded-full bg-blue-500 text-white"
+														disabled={dish.availability !== 'Available'}
+														class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm transition-all hover:bg-amber-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
 													>
 														<svg
 															xmlns="http://www.w3.org/2000/svg"
-															width="24"
-															height="24"
+															class="h-4 w-4"
 															viewBox="0 0 24 24"
+															fill="none"
+															stroke="currentColor"
+															stroke-width="2.5"
 														>
-															<path
-																fill="currentColor"
-																d="M18 13h-5v5c0 .55-.45 1-1 1s-1-.45-1-1v-5H6c-.55 0-1-.45-1-1s.45-1 1-1h5V6c0-.55.45-1 1-1s1 .45 1 1v5h5c.55 0 1 .45 1 1s-.45 1-1 1"
-															/>
+															<path d="M12 5v14M5 12h14" />
 														</svg>
 													</button>
 												</div>
-											</div>
-										</div>
 
-										<div class="mr-3 flex justify-between">
-											<div class="flex items-baseline gap-2">
-												{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
-													<div class="flex gap-2">
-														<p class="text-secondary font-bold">
-															₦{Number(dish.promoAmount).toLocaleString()}
-														</p>
-														<p class="text-gray-400 line-through">
-															₦{Number(dish.defaultAmount).toLocaleString()}
-														</p>
-													</div>
-
-													<div
-														class="absolute top-3 right-0 left-0 mx-auto mt-1 flex justify-between px-3"
+												<!-- Add to Cart Button -->
+												<button
+													class="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 transition-all hover:from-amber-600 hover:to-amber-700 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
+													onclick={(e) => {
+														e.stopPropagation();
+														handleAddToCart(dish);
+													}}
+													disabled={dish.availability !== 'Available'}
+												>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														class="h-5 w-5"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
 													>
-														<span
-															class="badge badge-accent"
-															class:bg-gray-100={dish.availability !== 'Available'}
-															class:border-gray-200={dish.availability !== 'Available'}
-														>
-															-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
-														</span>
-
-														{#if dish.availability === 'Available'}
-															<span class="badge badge-success">Available</span>
-														{:else if dish.availability === 'Unavailable'}
-															<span class="badge badge-error">Unavailable</span>
-														{/if}
-													</div>
-												{:else}
-													<p class="text-secondary font-bold">
-														₦{Number(dish.defaultAmount).toLocaleString()}
-													</p>
-												{/if}
+														<circle cx="9" cy="21" r="1" />
+														<circle cx="20" cy="21" r="1" />
+														<path
+															d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+														/>
+													</svg>
+													Add
+												</button>
 											</div>
-										</div>
-										<div
-											class="mt-2 flex items-center justify-center rounded-xl transition-opacity duration-300 group-focus-within:opacity-100 group-hover:opacity-100"
-										>
-											<button
-												class="btn btn-primary"
-												onclick={(e) => {
-													e.stopPropagation();
-													handleAddToCart(dish);
-												}}
-												disabled={dish.availability !== 'Available'}>Add to Cart</button
-											>
 										</div>
 									</div>
 								</article>

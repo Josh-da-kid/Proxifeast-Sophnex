@@ -3,12 +3,10 @@ import PocketBase from 'pocketbase';
 
 const pb = new PocketBase('https://playgzero.pb.itcass.net');
 
-
 // export const actions = {
 // 	reset: async ({ locals, request }) => {
 // 		const formData = await request.formData();
 // 		const data = Object.fromEntries([...formData]);
-
 
 //         await pb.collection('users').requestPasswordReset(data.email);
 //     }
@@ -25,35 +23,21 @@ export const actions = {
 
 		try {
 			await pb.collection('users').requestPasswordReset(email.toString());
-			// return { success: true };
-			// 	return {
-			// 	error: false,
-			// 	success: true,
-			// 	message: 'A reset Email has been sent to your Inbox, follow the link to reset your password.',
-			// 	email: formData?.email
-			// };
 		} catch (err) {
 			console.error('Password reset error:', err);
-			// return { success: false, error: err.message || 'Failed to send reset email' };
-			
+			const error = err as Error;
+
 			return {
 				error: true,
 				success: false,
-				message: err?.message || 'Failed to send reset email.',
-				email: formData?.email
+				message: error?.message || 'Failed to send reset email.',
+				email: email
 			};
 		}
 
-		// 5. Redirect to login with success message
-				throw redirect(303, '/forgot/?reset=success');
+		throw redirect(303, '/forgot/?reset=success');
 	}
-	
 };
-
-
-
-
-
 
 // ---
 // (optional) in your custom confirmation page:

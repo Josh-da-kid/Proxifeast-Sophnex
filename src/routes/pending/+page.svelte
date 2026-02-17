@@ -15,56 +15,64 @@
 	export const user = derived(page, ($page) => $page.data.user);
 
 	let orders: RecordModel[] = $state([]);
+	let filteredOrders: RecordModel[] = $state([]);
 	let loading = $state(true);
 	let searchInput = $state('');
 	let selectedCategoryInput = $state('All');
+	let selectedRestaurantInput = $state('All');
 	const restaurantName = get(page).data.restaurant?.name;
+	const allRestaurants = get(page).data.allRestaurants ?? [];
 	let unsubscribe: (() => void) | null = null;
 	let showNotificationPrompt = $state(false);
 
 	const categories = $page.data.categories ?? [];
 
-	const searchSubmitted = derived(page, ($page) => {
-		return ($page.url.searchParams.get('search')?.trim() ?? '') !== '';
+	// Client-side filtered orders
+	$effect(() => {
+		filteredOrders = orders.filter((order: any) => {
+			const matchesSearch =
+				!searchInput.trim() ||
+				order.reference?.toLowerCase().includes(searchInput.toLowerCase()) ||
+				order.name?.toLowerCase().includes(searchInput.toLowerCase()) ||
+				order.phone?.toLowerCase().includes(searchInput.toLowerCase()) ||
+				order.deliveryType?.toLowerCase().includes(searchInput.toLowerCase()) ||
+				order.expand?.restaurant?.name?.toLowerCase().includes(searchInput.toLowerCase());
+
+			const matchesCategory =
+				selectedCategoryInput === 'All' || order.status === selectedCategoryInput;
+
+			const matchesRestaurant =
+				selectedRestaurantInput === 'All' || order.restaurantId === selectedRestaurantInput;
+
+			return matchesSearch && matchesCategory && matchesRestaurant;
+		});
 	});
 
 	export async function fetchPendingOrders() {
 		const userId = get(user)?.id;
-		const restaurantId = get(page).data.restaurant?.id;
-		const searchParams = get(page).url.searchParams;
-		const search = searchParams.get('search')?.trim() ?? '';
-		const category = searchParams.get('category')?.trim() ?? 'All';
 
 		if (!userId) return;
 
-		// Build filter - only filter by user, not restaurant (to show multi-restaurant orders)
-		let filter = `user="${userId}"`;
-
-		if (category !== 'All') {
-			filter += ` && status="${category}"`;
-		} else {
-			filter += ` && (status="Pending" || status="Preparing" || status="Ready")`;
-		}
-
-		if (search) {
-			filter += ` && (reference~"${search}" || name~"${search}" || phone~"${search}" || deliveryType~"${search}" || restaurantName~"${search}")`;
-		}
+		// Get all orders for user with pending/preparing/ready status
+		let filter = `user="${userId}" && (status="Pending" || status="Preparing" || status="Ready")`;
 
 		try {
 			const records = await pb.collection('orders').getFullList({
 				filter,
 				sort: '-created',
-				expand: 'dish'
+				expand: 'restaurant'
 			});
+			orders = records;
+			loading = false;
 			return records;
 		} catch (err) {
-			console.error('Failed to fetch pending orders:', err);
+			console.error('Error fetching orders:', err);
+			loading = false;
+			return [];
 		}
 	}
 
 	onMount(async () => {
-		searchInput = $page.url.searchParams.get('search') ?? '';
-		selectedCategoryInput = $page.url.searchParams.get('category') ?? 'All';
 		orders = (await fetchPendingOrders()) || [];
 		loading = false;
 
@@ -136,25 +144,15 @@
 
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 
-	async function clearSearch() {
-		window.location.href = '/pending';
+	function handleSearchSubmit(e: Event) {
+		e.preventDefault();
+		// Search is handled client-side via $effect
 	}
 
-	async function handleSearchSubmit(e: Event) {
-		e.preventDefault();
-
-		if (!searchInput.trim() && selectedCategoryInput === 'All') {
-			return;
-		}
-
-		const query = new URLSearchParams();
-		if (searchInput.trim()) query.set('search', searchInput.trim());
-		if (selectedCategoryInput && selectedCategoryInput !== 'All')
-			query.set('category', selectedCategoryInput);
-
-		const target = `/pending/?${query.toString()}`;
-		await goto(target);
-		window.location.reload();
+	function clearSearch() {
+		searchInput = '';
+		selectedCategoryInput = 'All';
+		selectedRestaurantInput = 'All';
 	}
 
 	function getStatusColor(status: string) {
@@ -275,21 +273,21 @@
 			<select
 				bind:value={selectedCategoryInput}
 				class="rounded-xl border-0 bg-white px-4 py-3 shadow-lg shadow-slate-900/10 focus:ring-2 focus:ring-slate-500 focus:outline-none"
-				onchange={(e) => {
-					const selected = e.currentTarget.value;
-					if (selected === 'All') {
-						clearSearch();
-					} else {
-						e.currentTarget.form?.requestSubmit();
-					}
-				}}
 			>
 				<option value="All">All Statuses</option>
 				<option value="Pending">Pending</option>
 				<option value="Preparing">Preparing</option>
 				<option value="Ready">Ready</option>
-				<option value="Completed">Delivered</option>
-				<option value="Cancelled">Cancelled</option>
+			</select>
+
+			<select
+				bind:value={selectedRestaurantInput}
+				class="rounded-xl border-0 bg-white px-4 py-3 shadow-lg shadow-slate-900/10 focus:ring-2 focus:ring-slate-500 focus:outline-none"
+			>
+				<option value="All">All Restaurants</option>
+				{#each allRestaurants as restaurant}
+					<option value={restaurant.id}>{restaurant.name}</option>
+				{/each}
 			</select>
 		</form>
 	</section>
@@ -307,7 +305,7 @@
 						</div>
 					{/each}
 				</div>
-			{:else if orders.length === 0}
+			{:else if filteredOrders.length === 0}
 				<div class="py-16 text-center">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
@@ -327,7 +325,7 @@
 				</div>
 			{:else}
 				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-					{#each orders as order, i}
+					{#each filteredOrders as order, i}
 						<article
 							class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:shadow-lg"
 							in:fly={{ y: 20, duration: 300, delay: i * 50 }}
@@ -348,9 +346,9 @@
 									>
 										{order.status}
 									</span>
-									{#if order.restaurantName}
+									{#if order.expand?.restaurant?.name}
 										<span class="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-											{order.restaurantName}
+											{order.expand.restaurant.name}
 										</span>
 									{/if}
 								</div>

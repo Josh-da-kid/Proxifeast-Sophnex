@@ -10,6 +10,10 @@
 	let dishes = $state($page.form?.dishes ?? $page.data.dishes ?? []);
 	const categories = $page.data.categories ?? [];
 
+	// State for search/filter
+	let searchInput = $state('');
+	let selectedCategoryInput = $state('All');
+
 	// Keep dishes in sync with page data
 	$effect(() => {
 		dishes = $page.form?.dishes ?? $page.data.dishes ?? [];
@@ -18,9 +22,6 @@
 	let unsubscribe: (() => void) | null = null;
 
 	onMount(async () => {
-		searchInput = $page.url.searchParams.get('search') ?? '';
-		selectedCategoryInput = $page.url.searchParams.get('category') ?? 'All';
-
 		// Subscribe to real-time dish updates
 		unsubscribe = await pb.collection('dishes').subscribe('*', async (e) => {
 			// Refresh the page data when any dish is created, updated, or deleted
@@ -59,8 +60,10 @@
 	});
 
 	const groupedDishes = $derived.by(() => {
+		const sourceDishes =
+			searchInput.trim() || selectedCategoryInput !== 'All' ? filteredDishes : dishes;
 		const groups: Record<string, typeof dishes> = {};
-		for (const dish of dishes) {
+		for (const dish of sourceDishes) {
 			if (dish.category) {
 				if (!groups[dish.category]) {
 					groups[dish.category] = [];
@@ -102,19 +105,19 @@
 		return ($page.url.searchParams.get('search')?.trim() ?? '') !== '';
 	});
 
-	let searchInput = $state('');
-	let selectedCategoryInput = $state('All');
+	// Client-side filtered dishes
+	let filteredDishes = $derived.by(() => {
+		return dishes.filter((dish: any) => {
+			const matchesSearch =
+				!searchInput.trim() ||
+				dish.name?.toLowerCase().includes(searchInput.toLowerCase()) ||
+				dish.description?.toLowerCase().includes(searchInput.toLowerCase());
 
-	onMount(() => {
-		searchInput = $page.url.searchParams.get('search') ?? '';
-		selectedCategoryInput = $page.url.searchParams.get('category') ?? 'All';
+			const matchesCategory =
+				selectedCategoryInput === 'All' || dish.category === selectedCategoryInput;
 
-		// Subscribe to real-time dish updates
-		(async () => {
-			unsubscribe = await pb.collection('dishes').subscribe('*', async () => {
-				await invalidateAll();
-			});
-		})();
+			return matchesSearch && matchesCategory;
+		});
 	});
 
 	onDestroy(() => {
@@ -125,27 +128,14 @@
 
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 
-	async function clearSearch() {
-		await goto('/admin/admin-menu');
-		window.location.reload();
+	function clearSearch() {
+		searchInput = '';
+		selectedCategoryInput = 'All';
 	}
 
-	async function handleSearchSubmit(e: Event) {
+	function handleSearchSubmit(e: Event) {
 		e.preventDefault();
-
-		if (!searchInput.trim() && selectedCategoryInput === 'All') {
-			return;
-		}
-
-		const query = new URLSearchParams();
-		if (searchInput.trim()) query.set('search', searchInput.trim());
-		if (selectedCategoryInput && selectedCategoryInput !== 'All')
-			query.set('category', selectedCategoryInput);
-
-		const target = `/admin/admin-menu?${query.toString()}`;
-
-		await goto(target);
-		window.location.reload();
+		// Search is handled client-side via $derived
 	}
 
 	let deleteModal: HTMLDialogElement;
