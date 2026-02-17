@@ -52,19 +52,13 @@
 	let searchInput = $state('');
 	let selectedCategoryInput = $state('All');
 	let menuRestaurantId = $state('');
-	let hasSearched = $state(false);
 	let dishQuantities = $state<Record<string, number>>({});
 	let addToCartAlert = $state(false);
 	let cartErrorAlert = $state(false);
 
-	// Derived: get selected restaurant from menu dropdown
-	let menuRestaurant = $derived(
-		menuRestaurantId ? allRestaurants.find((r: any) => r.id === menuRestaurantId) : null
-	);
-
-	// Client-side filtered data
+	// Client-side filtered data for restaurants (only used in list view)
 	let filteredRestaurants = $derived.by(() => {
-		if (!hasSearched || !searchInput.trim()) {
+		if (!searchInput.trim()) {
 			return restaurants;
 		}
 		const query = searchInput.toLowerCase();
@@ -102,14 +96,17 @@
 
 	// Initialize state from URL on mount
 	onMount(() => {
-		searchInput = searchQuery;
-
 		// Check URL for restaurant parameter
 		const urlParams = new URLSearchParams(window.location.search);
 		const restaurantParam = urlParams.get('restaurant');
 
 		if (restaurantParam || selectedRestaurant) {
 			viewMode = 'menu';
+			// Clear search when loading directly to menu
+			searchInput = '';
+		} else {
+			// Default to list view
+			viewMode = 'list';
 		}
 
 		// Initialize dish quantities
@@ -221,30 +218,31 @@
 		unsubscribeCart?.();
 	}
 
-	// Search functionality
+	// Search functionality - only for restaurant list
 	function handleSearchSubmit(e: Event) {
 		e.preventDefault();
-
-		if (!searchInput.trim()) {
-			hasSearched = false;
-			return;
-		}
-
-		hasSearched = true;
+		// Search is handled reactively via filteredRestaurants
+		// Always ensure we're in list view when searching
+		viewMode = 'list';
 	}
 
 	function clearSearch() {
 		searchInput = '';
-		hasSearched = false;
 	}
 
 	// Restaurant selection
 	async function selectRestaurant(restaurant: any) {
+		// Clear search when selecting a restaurant
+		searchInput = '';
+		selectedCategoryInput = 'All';
 		viewMode = 'menu';
 		await goto(`/?restaurant=${restaurant.id}#menu`);
 	}
 
 	async function backToRestaurants() {
+		// Clear state when going back to list
+		searchInput = '';
+		selectedCategoryInput = 'All';
 		viewMode = 'list';
 		cleanupSubscriptions();
 		await goto('/');
@@ -266,19 +264,10 @@
 		}
 	}
 
-	// Category filter
-	async function handleCategoryChange(e: Event) {
+	// Category filter - client-side only
+	function handleCategoryChange(e: Event) {
 		const target = e.target as HTMLSelectElement;
 		selectedCategoryInput = target.value;
-
-		if (selectedRestaurant) {
-			const query = new URLSearchParams();
-			query.set('restaurant', selectedRestaurant.id);
-			if (selectedCategoryInput !== 'All') {
-				query.set('category', selectedCategoryInput);
-			}
-			await goto(`/?${query.toString()}#menu`);
-		}
 	}
 
 	// Cart functionality
@@ -437,7 +426,12 @@
 
 	// Derived data for grouped dishes
 	const groupedDishes = $derived.by(() => {
-		const sourceDishes = dishes;
+		// Filter by category if selected
+		let sourceDishes = dishes;
+		if (selectedCategoryInput !== 'All') {
+			sourceDishes = dishes.filter((d: any) => d.category === selectedCategoryInput);
+		}
+
 		const groups: Record<string, typeof dishes> = {};
 		for (const dish of sourceDishes) {
 			dish.quantity = dishQuantities[dish.id] || 1;
@@ -1044,6 +1038,7 @@
 						<input
 							type="text"
 							bind:value={searchInput}
+							oninput={() => (viewMode = 'list')}
 							placeholder="Search restaurants by name or location..."
 							class="flex-1 bg-transparent text-slate-700 placeholder-slate-400 focus:outline-none"
 						/>
@@ -1084,12 +1079,12 @@
 						</div>
 					{/each}
 				</div>
-			{:else if hasSearched && filteredRestaurants.length === 0}
+			{:else if searchInput && filteredRestaurants.length === 0}
 				<p class="mt-10 text-center text-lg font-medium text-gray-500">
 					❌ No restaurants found matching "<span class="text-yellow-600">{searchInput}</span>"
 				</p>
 			{:else}
-				{#if hasSearched && filteredRestaurants.length >= 1}
+				{#if searchInput && filteredRestaurants.length >= 1}
 					<h3 class="mb-6 text-center">
 						Showing results for <span class="text-gray-500">'{searchInput}'</span>
 					</h3>
@@ -1583,6 +1578,7 @@
 											</div>
 
 											<!-- Quantity Controls -->
+											<!-- svelte-ignore a11y_consider_explicit_label -->
 											<div class="mt-3 flex items-center gap-3">
 												<button
 													onclick={() => {
