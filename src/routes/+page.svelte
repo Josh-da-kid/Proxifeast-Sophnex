@@ -845,10 +845,10 @@
 					{#each featuredDishes as dish}
 						<div class="group cursor-pointer" onclick={() => selectRestaurantFromDish(dish)}>
 							<article
-								class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+								class="relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
 							>
 								<!-- Image -->
-								<div class="relative h-52 overflow-hidden">
+								<div class="relative h-48 shrink-0 overflow-hidden">
 									<img
 										src={dish.image}
 										alt={dish.name}
@@ -891,7 +891,7 @@
 								</div>
 
 								<!-- Content -->
-								<div class="p-5">
+								<div class="flex flex-1 flex-col p-5">
 									<h3
 										class="font-playfair mb-2 text-lg leading-tight font-semibold text-slate-900 transition-colors group-hover:text-amber-600"
 									>
@@ -901,7 +901,7 @@
 										{dish.description}
 									</p>
 
-									<div class="flex items-center justify-between">
+									<div class="mt-auto flex items-center justify-between">
 										<div class="flex items-baseline gap-2">
 											{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
 												<span class="text-xl font-bold text-amber-600">
