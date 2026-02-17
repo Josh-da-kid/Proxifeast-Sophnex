@@ -101,39 +101,50 @@ export const actions = {
 			}
 		} else if (imageSource === 'url') {
 			const inputUrl = formData.get('imageUrl');
-			if (inputUrl && typeof inputUrl === 'string') {
+			if (inputUrl && typeof inputUrl === 'string' && inputUrl.trim() !== '') {
 				imageUrl = inputUrl;
 			}
 		}
 
-		const host = request.headers.get('host') || '';
-		const domain = host.split(':')[0];
+		// Set default image if none provided
+		if (!imageUrl) {
+			imageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800';
+		}
 
-		const restaurant = await locals.pb
-			.collection('restaurants')
-			.getFirstListItem(`domain = "${domain}"`);
+		// Get restaurantId from form selection
+		const restaurantIdFromForm = formData.get('restaurantId') as string;
 
-		const restaurantId = restaurant.id;
-
-		if (!restaurantId || typeof restaurantId !== 'string') {
+		// Validate required fields
+		if (
+			!formData.get('name') ||
+			!formData.get('description') ||
+			!formData.get('category') ||
+			!formData.get('availability') ||
+			!restaurantIdFromForm
+		) {
 			return {
 				success: false,
-				error: 'restaurantId is required.'
+				error: 'Please fill in all required fields.'
 			};
 		}
 
 		try {
+			const defaultAmount = parseInt(formData.get('defaultAmount') as string);
+			const promoAmount = formData.get('promoAmount')
+				? parseInt(formData.get('promoAmount') as string)
+				: null;
+
 			const record = await locals.pb.collection('dishes').create({
 				name: formData.get('name'),
 				description: formData.get('description'),
 				category: formData.get('category'),
 				image: imageUrl,
 				imageSource: imageSource,
-				quantity: parseInt(formData.get('quantity')),
+				quantity: parseInt(formData.get('quantity') as string) || 1,
 				availability: formData.get('availability'),
-				defaultAmount: parseInt(formData.get('defaultAmount')),
-				promoAmount: formData.get('promoAmount') ? parseInt(formData.get('promoAmount')) : null,
-				restaurantId // <-- this links the dish to a restaurant
+				defaultAmount: defaultAmount,
+				promoAmount: promoAmount && !isNaN(promoAmount) ? promoAmount : null,
+				restaurantId: restaurantIdFromForm
 			});
 
 			return {

@@ -562,116 +562,173 @@
 		<div class="drawer-content"></div>
 		<div class="drawer-side">
 			<label for="my-drawer-4" aria-label="close sidebar" class="drawer-overlay"></label>
-			<div class="min-h-full w-80 bg-white p-6 md:w-96">
-				<div class="mb-6 flex items-center justify-between">
-					<button onclick={closeSideBar} class="text-sm text-slate-500 hover:text-slate-700">
-						← Back
-					</button>
-					<h2 class="font-playfair text-xl font-semibold text-slate-900">Edit Dish</h2>
+			<div class="min-h-full w-full max-w-md bg-white">
+				<!-- Header -->
+				<div
+					class="border-b border-slate-200 bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-5"
+				>
+					<div class="flex items-center justify-between">
+						<div>
+							<h2 class="font-playfair text-xl font-semibold text-white">Edit Dish</h2>
+							<p class="mt-1 text-sm text-slate-300">Update menu item</p>
+						</div>
+						<button
+							onclick={closeSideBar}
+							class="rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-5 w-5"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path d="M6 18L18 6M6 6l12 12" />
+							</svg>
+						</button>
+					</div>
 				</div>
 
-				<form action="?/editDish" method="POST" enctype="multipart/form-data" class="space-y-4">
+				<!-- Form -->
+				<form
+					action="?/editDish"
+					method="POST"
+					enctype="multipart/form-data"
+					class="flex-1 overflow-y-auto p-6"
+				>
 					<input type="hidden" name="id" value={selectedDish.id} />
 					<input type="hidden" name="restaurantId" value={selectedDish.restaurantId} />
 
-					<div>
-						<label class="mb-1 block text-sm font-medium text-slate-700">Name</label>
-						<input
-							type="text"
-							name="name"
-							bind:value={selectedDish.name}
-							class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 focus:border-slate-500 focus:outline-none"
-							required
-						/>
+					<div class="space-y-5">
+						<!-- Name -->
+						<div>
+							<label class="mb-1.5 block text-sm font-medium text-slate-700">Dish Name *</label>
+							<input
+								type="text"
+								name="name"
+								bind:value={selectedDish.name}
+								class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
+								placeholder="e.g. Grilled Salmon"
+								required
+							/>
+						</div>
+
+						<!-- Description -->
+						<div>
+							<label class="mb-1.5 block text-sm font-medium text-slate-700">Description *</label>
+							<textarea
+								name="description"
+								bind:value={selectedDish.description}
+								class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
+								rows="3"
+								placeholder="Describe the dish..."
+								required
+							></textarea>
+						</div>
+
+						<!-- Category & Availability -->
+						<div class="grid grid-cols-2 gap-4">
+							<div>
+								<label class="mb-1.5 block text-sm font-medium text-slate-700">Category *</label>
+								<select
+									name="category"
+									bind:value={selectedDish.category}
+									class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
+									required
+								>
+									<option value="Main Dish">Main Dish</option>
+									<option value="Seafood">Seafood</option>
+									<option value="Drinks & Sides">Drinks & Sides</option>
+								</select>
+							</div>
+							<div>
+								<label class="mb-1.5 block text-sm font-medium text-slate-700">Availability *</label
+								>
+								<select
+									name="availability"
+									bind:value={selectedDish.availability}
+									class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
+									required
+								>
+									<option value="Available">Available</option>
+									<option value="Unavailable">Unavailable</option>
+								</select>
+							</div>
+						</div>
+
+						<!-- Image URL -->
+						<div>
+							<label class="mb-1.5 block text-sm font-medium text-slate-700">Image URL</label>
+							<input
+								type="url"
+								name="imageUrl"
+								bind:value={selectedDish.image}
+								class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
+								placeholder="https://example.com/image.jpg"
+							/>
+						</div>
+
+						<!-- Quantity -->
+						<div>
+							<label class="mb-1.5 block text-sm font-medium text-slate-700">Quantity *</label>
+							<input
+								type="number"
+								name="quantity"
+								bind:value={selectedDish.quantity}
+								min="1"
+								class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
+								required
+							/>
+						</div>
+
+						<!-- Pricing -->
+						<div class="grid grid-cols-2 gap-4">
+							<div>
+								<label class="mb-1.5 block text-sm font-medium text-slate-700"
+									>Regular Price (₦) *</label
+								>
+								<input
+									type="number"
+									name="defaultAmount"
+									bind:value={selectedDish.defaultAmount}
+									class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
+									placeholder="e.g. 5500"
+									required
+								/>
+							</div>
+							<div>
+								<label class="mb-1.5 block text-sm font-medium text-slate-700"
+									>Promo Price (₦)</label
+								>
+								<input
+									type="number"
+									name="promoAmount"
+									bind:value={selectedDish.promoAmount}
+									class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
+									placeholder="e.g. 2500"
+								/>
+							</div>
+						</div>
 					</div>
 
-					<div>
-						<label class="mb-1 block text-sm font-medium text-slate-700">Description</label>
-						<textarea
-							name="description"
-							bind:value={selectedDish.description}
-							class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 focus:border-slate-500 focus:outline-none"
-							rows="3"
-							required
-						></textarea>
-					</div>
-
-					<div>
-						<label class="mb-1 block text-sm font-medium text-slate-700">Category</label>
-						<select
-							name="category"
-							bind:value={selectedDish.category}
-							class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 focus:border-slate-500 focus:outline-none"
-							required
+					<!-- Submit Button -->
+					<div class="mt-8 flex gap-3">
+						<button
+							type="button"
+							onclick={closeSideBar}
+							class="flex-1 rounded-lg border border-slate-300 px-4 py-3 font-medium text-slate-700 hover:bg-slate-50"
 						>
-							<option value="Main Dish">Main Dish</option>
-							<option value="Seafood">Seafood</option>
-							<option value="Drinks & Sides">Drinks & Sides</option>
-						</select>
-					</div>
-
-					<div>
-						<label class="mb-1 block text-sm font-medium text-slate-700">Availability</label>
-						<select
-							name="availability"
-							bind:value={selectedDish.availability}
-							class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 focus:border-slate-500 focus:outline-none"
-							required
+							Cancel
+						</button>
+						<button
+							type="submit"
+							name="editDish"
+							class="flex-1 rounded-lg bg-gradient-to-r from-slate-800 to-slate-700 px-4 py-3 font-medium text-white shadow-lg shadow-slate-800/30 hover:from-slate-700 hover:to-slate-600"
 						>
-							<option value="Available">Available</option>
-							<option value="Unavailable">Unavailable</option>
-						</select>
+							Save Changes
+						</button>
 					</div>
-
-					<div>
-						<label class="mb-1 block text-sm font-medium text-slate-700">Image URL</label>
-						<input
-							type="text"
-							name="imageUrl"
-							bind:value={selectedDish.image}
-							class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 focus:border-slate-500 focus:outline-none"
-							placeholder="https://..."
-						/>
-					</div>
-
-					<div>
-						<label class="mb-1 block text-sm font-medium text-slate-700">Quantity</label>
-						<input
-							type="number"
-							name="quantity"
-							bind:value={selectedDish.quantity}
-							min="1"
-							class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 focus:border-slate-500 focus:outline-none"
-							required
-						/>
-					</div>
-
-					<div>
-						<label class="mb-1 block text-sm font-medium text-slate-700">Amount (₦)</label>
-						<input
-							type="text"
-							name="defaultAmount"
-							bind:value={selectedDish.defaultAmount}
-							class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 focus:border-slate-500 focus:outline-none"
-							placeholder="5500"
-							required
-						/>
-					</div>
-
-					<div>
-						<label class="mb-1 block text-sm font-medium text-slate-700">Promo Amount (₦)</label>
-						<input
-							type="text"
-							name="promoAmount"
-							bind:value={selectedDish.promoAmount}
-							class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 focus:border-slate-500 focus:outline-none"
-							placeholder="2500"
-						/>
-					</div>
-
-					<button type="submit" name="editDish" class="btn btn-primary w-full rounded-xl"
-						>Save Changes</button
-					>
 				</form>
 			</div>
 		</div>
@@ -682,28 +739,53 @@
 		<div class="drawer-content"></div>
 		<div class="drawer-side">
 			<label for="my-drawer-4" aria-label="close sidebar" class="drawer-overlay"></label>
-			<div class="min-h-full w-80 bg-white p-6 md:w-96">
-				<div class="mb-6 flex items-center justify-between">
-					<button onclick={closeSideBar} class="text-sm text-slate-500 hover:text-slate-700"
-						>← Back</button
-					>
-					<h2 class="font-playfair text-xl font-semibold text-slate-900">Edit Dish</h2>
+			<div class="min-h-full w-full max-w-md bg-white">
+				<!-- Header -->
+				<div
+					class="border-b border-slate-200 bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-5"
+				>
+					<div class="flex items-center justify-between">
+						<div>
+							<h2 class="font-playfair text-xl font-semibold text-white">Edit Dish</h2>
+							<p class="mt-1 text-sm text-slate-300">Update menu item</p>
+						</div>
+						<button
+							onclick={closeSideBar}
+							class="rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-5 w-5"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path d="M6 18L18 6M6 6l12 12" />
+							</svg>
+						</button>
+					</div>
 				</div>
-				<div class="rounded-xl bg-slate-50 p-4 text-center">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="mx-auto h-10 w-10 text-slate-400"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-					>
-						<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-						<polyline points="10 17 15 12 10 7" />
-						<line x1="15" x2="3" y1="12" y2="12" />
-					</svg>
-					<p class="mt-3 text-slate-600">You must be logged in as an admin to edit dishes.</p>
-					<a href="/admin/admin-login" class="btn btn-primary mt-4">Login</a>
+
+				<!-- Not Logged In Message -->
+				<div class="flex flex-1 items-center justify-center p-6">
+					<div class="text-center">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="mx-auto h-16 w-16 text-slate-400"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.5"
+						>
+							<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+							<polyline points="10 17 15 12 10 7" />
+							<line x1="15" x2="3" y1="12" y2="12" />
+						</svg>
+						<h3 class="mt-4 text-lg font-medium text-slate-800">Login Required</h3>
+						<p class="mt-2 text-slate-600">You must be logged in as an admin to edit dishes.</p>
+						<a href="/admin/admin-login" class="btn btn-primary mt-6">Login</a>
+					</div>
 				</div>
 			</div>
 		</div>

@@ -10,7 +10,7 @@
 	import { get } from 'svelte/store';
 	import { page } from '$app/stores';
 
-	let { children } = $props();
+	let { children, data } = $props();
 
 	function closeSideBar() {
 		const drawerToggle = document.getElementById('my-drawer-4');
@@ -94,15 +94,22 @@
 	<!-- Add Dish -->
 	<label for="my-drawer-5">
 		<div
-			class="tooltip indicator bg-secondary fixed right-4 bottom-22 z-10 cursor-pointer rounded-full p-4 text-white shadow-xl transition-transform duration-300 hover:scale-105"
+			class="tooltip indicator fixed right-8 bottom-8 z-40 cursor-pointer rounded-full bg-gradient-to-br from-slate-800 to-slate-900 p-4 text-white shadow-2xl shadow-slate-900/50 transition-all duration-300 hover:scale-110 hover:shadow-xl"
 			data-tip="Add Dish"
 		>
-			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-				><path
-					fill="currentColor"
-					d="M11 13H6q-.425 0-.712-.288T5 12t.288-.712T6 11h5V6q0-.425.288-.712T12 5t.713.288T13 6v5h5q.425 0 .713.288T19 12t-.288.713T18 13h-5v5q0 .425-.288.713T12 19t-.712-.288T11 18z"
-				/></svg
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				class="h-7 w-7"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2.5"
+				stroke-linecap="round"
+				stroke-linejoin="round"
 			>
+				<line x1="12" x2="12" y1="5" y2="19"></line>
+				<line x1="5" x2="19" y1="12" y2="12"></line>
+			</svg>
 		</div>
 	</label>
 
@@ -133,4 +140,4 @@
 {/if}
 
 <!-- Drawer Cart -->
-<Drawer />
+<Drawer restaurants={data.allRestaurants} />
