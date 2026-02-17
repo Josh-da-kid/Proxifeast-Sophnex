@@ -104,7 +104,11 @@
 	onMount(() => {
 		searchInput = searchQuery;
 
-		if (selectedRestaurant) {
+		// Check URL for restaurant parameter
+		const urlParams = new URLSearchParams(window.location.search);
+		const restaurantParam = urlParams.get('restaurant');
+
+		if (restaurantParam || selectedRestaurant) {
 			viewMode = 'menu';
 		}
 
@@ -1020,18 +1024,40 @@
 				</select>
 			</div>
 		{:else}
-			<!-- Category Filter for Menu View -->
-			<div class="mb-6 flex justify-center gap-2">
-				<select
-					bind:value={selectedCategoryInput}
-					onchange={handleCategoryChange}
-					class="select select-bordered border-secondary focus:ring-secondary"
-				>
-					<option value="All">All Categories</option>
-					{#each categories as category}
-						<option value={category}>{category}</option>
-					{/each}
-				</select>
+			<!-- Restaurant Search for List View -->
+			<div class="mx-auto mb-8 max-w-2xl">
+				<form onsubmit={handleSearchSubmit} class="relative">
+					<div
+						class="flex items-center gap-3 rounded-2xl bg-white px-5 py-3 shadow-lg shadow-slate-900/10"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="h-5 w-5 shrink-0 text-slate-400"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<circle cx="11" cy="11" r="8" />
+							<path d="m21 21-4.3-4.3" />
+						</svg>
+						<input
+							type="text"
+							bind:value={searchInput}
+							placeholder="Search restaurants by name or location..."
+							class="flex-1 bg-transparent text-slate-700 placeholder-slate-400 focus:outline-none"
+						/>
+						{#if searchInput}
+							<button
+								type="button"
+								onclick={clearSearch}
+								class="text-sm text-slate-500 hover:text-amber-600"
+							>
+								Clear
+							</button>
+						{/if}
+					</div>
+				</form>
 			</div>
 		{/if}
 	</section>
@@ -1182,6 +1208,28 @@
 						{/each}
 					</div>
 				</div>
+			</div>
+		{:else if !selectedRestaurant}
+			<!-- No restaurant selected, show prompt -->
+			<div class="py-20 text-center">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="mx-auto h-16 w-16 text-slate-300"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="1.5"
+				>
+					<path stroke-linecap="round" stroke-linejoin="round" d="M3 3h18v18H3V3z" />
+					<path stroke-linecap="round" stroke-linejoin="round" d="M12 8v8M8 12h8" />
+				</svg>
+				<p class="mt-4 text-lg text-slate-600">Please select a restaurant to view its menu</p>
+				<button
+					onclick={() => (viewMode = 'list')}
+					class="mt-4 rounded-xl bg-amber-500 px-6 py-2.5 font-semibold text-white"
+				>
+					Browse Restaurants
+				</button>
 			</div>
 		{:else if dishes.length === 0}
 			<p class="mt-6 py-12 text-center text-gray-500">
