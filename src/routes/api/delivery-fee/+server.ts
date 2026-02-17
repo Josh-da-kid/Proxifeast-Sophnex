@@ -1,7 +1,13 @@
 import { json } from '@sveltejs/kit';
 import PocketBase from 'pocketbase';
 
-const ORS_API_KEY = import.meta.env.VITE_ORS_API_KEY;
+// Try to get API key from environment
+// In production, use process.env, in dev use import.meta.env
+const ORS_API_KEY =
+	(typeof process !== 'undefined' && process.env.ORS_API_KEY) ||
+	(typeof process !== 'undefined' && process.env.VITE_ORS_API_KEY) ||
+	(typeof import.meta !== 'undefined' && import.meta.env?.VITE_ORS_API_KEY) ||
+	'';
 const pb = new PocketBase('https://playgzero.pb.itcass.net/');
 
 // Delivery tier configuration (Glovo/Bolt style)
@@ -123,6 +129,20 @@ export async function POST({ request }: { request: Request }) {
 		);
 	}
 
+	// Check if API key is configured
+	if (!ORS_API_KEY) {
+		console.error('ORS_API_KEY not configured');
+		return json(
+			{
+				success: false,
+				canDeliver: false,
+				error: 'Delivery service not configured. Please contact support.',
+				details: 'ORS_API_KEY missing'
+			},
+			{ status: 500 }
+		);
+	}
+
 	console.log('=== DELIVERY FEE CALCULATION ===');
 	console.log('Restaurant ID:', restaurantId);
 	console.log('Address:', address);
@@ -196,11 +216,18 @@ export async function POST({ request }: { request: Request }) {
 		const geocodeUrl = `https://api.openrouteservice.org/geocode/search?api_key=${ORS_API_KEY}&text=${encodeURIComponent(address)}&boundary.country=NGA`;
 		console.log('Geocoding URL:', geocodeUrl);
 
-		const geoRes = await fetch(geocodeUrl);
+		const controller1 = new AbortController();
+		const timeout1 = setTimeout(() => controller1.abort(), 15000); // 15 second timeout for geocoding
+
+		const geoRes = await fetch(geocodeUrl, {
+			signal: controller1.signal
+		});
+		clearTimeout(timeout1);
 
 		if (!geoRes.ok) {
-			console.log('Geocoding failed:', geoRes.status);
-			throw new Error(`Geocoding failed: ${geoRes.status}`);
+			const errorText = await geoRes.text();
+			console.log('Geocoding failed:', geoRes.status, errorText);
+			throw new Error(`Geocoding failed: ${geoRes.status} - ${errorText}`);
 		}
 
 		const geoData = await geoRes.json();
@@ -226,11 +253,18 @@ export async function POST({ request }: { request: Request }) {
 		const directionsUrl = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${ORS_API_KEY}&start=${restaurantCoords}&end=${userCoords}`;
 		console.log('Directions URL:', directionsUrl);
 
-		const routeRes = await fetch(directionsUrl);
+		const controller2 = new AbortController();
+		const timeout2 = setTimeout(() => controller2.abort(), 15000); // 15 second timeout for directions
+
+		const routeRes = await fetch(directionsUrl, {
+			signal: controller2.signal
+		});
+		clearTimeout(timeout2);
 
 		if (!routeRes.ok) {
-			console.log('Route calculation failed:', routeRes.status);
-			throw new Error(`Route calculation failed: ${routeRes.status}`);
+			const errorText = await routeRes.text();
+			console.log('Route calculation failed:', routeRes.status, errorText);
+			throw new Error(`Route calculation failed: ${routeRes.status} - ${errorText}`);
 		}
 
 		const routeData = await routeRes.json();
@@ -317,12 +351,25 @@ export async function POST({ request }: { request: Request }) {
 		});
 	} catch (err: any) {
 		console.error('Delivery fee calculation error:', err);
+
+		if (err.name === 'AbortError') {
+			return json(
+				{
+					success: false,
+					canDeliver: false,
+					error: 'Request timed out. Please try again.',
+					details: 'Timeout'
+				},
+				{ status: 504 }
+			);
+		}
+
 		return json(
 			{
 				success: false,
 				canDeliver: false,
 				error: 'An error occurred while calculating delivery fee. Please try again.',
-				details: err.message
+				details: err.message || String(err)
 			},
 			{ status: 500 }
 		);

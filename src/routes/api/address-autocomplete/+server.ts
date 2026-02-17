@@ -1,6 +1,12 @@
 import { json } from '@sveltejs/kit';
 
-const ORS_API_KEY = import.meta.env.VITE_ORS_API_KEY;
+// Try to get API key from environment
+// In production, use process.env, in dev use import.meta.env
+const ORS_API_KEY =
+	(typeof process !== 'undefined' && process.env.ORS_API_KEY) ||
+	(typeof process !== 'undefined' && process.env.VITE_ORS_API_KEY) ||
+	(typeof import.meta !== 'undefined' && import.meta.env?.VITE_ORS_API_KEY) ||
+	'';
 
 // Debounce cache to prevent duplicate requests
 const requestCache = new Map<string, { data: any; timestamp: number }>();
@@ -11,6 +17,19 @@ export async function GET({ url }: { url: URL }) {
 
 	if (!query || query.length < 3) {
 		return json({ suggestions: [], error: 'Query must be at least 3 characters' });
+	}
+
+	// Check if API key is configured
+	if (!ORS_API_KEY) {
+		console.error('ORS_API_KEY not configured');
+		return json(
+			{
+				success: false,
+				suggestions: [],
+				error: 'Address search service not configured'
+			},
+			{ status: 500 }
+		);
 	}
 
 	// Check cache first
@@ -24,17 +43,28 @@ export async function GET({ url }: { url: URL }) {
 		// Using Nigeria focus and bounding box for better local results
 		const autocompleteUrl = `https://api.openrouteservice.org/geocode/autocomplete?api_key=${ORS_API_KEY}&text=${encodeURIComponent(query)}&focus.point.lat=9.0765&focus.point.lon=7.3986&boundary.country=NGA&size=10`;
 
+		console.log('Fetching from ORS API:', autocompleteUrl.replace(ORS_API_KEY, '***'));
+
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
 		const response = await fetch(autocompleteUrl, {
 			headers: {
 				Accept: 'application/json'
-			}
+			},
+			signal: controller.signal
 		});
 
+		clearTimeout(timeoutId);
+
 		if (!response.ok) {
-			throw new Error(`API error: ${response.status}`);
+			const errorText = await response.text();
+			console.error('ORS API error:', response.status, errorText);
+			throw new Error(`API error: ${response.status} - ${errorText}`);
 		}
 
 		const data = await response.json();
+		console.log('ORS API response features:', data.features?.length || 0);
 
 		// Format suggestions like Glovo/Bolt
 		const suggestions =
@@ -76,11 +106,24 @@ export async function GET({ url }: { url: URL }) {
 		return json(result);
 	} catch (err: any) {
 		console.error('Autocomplete error:', err);
+
+		if (err.name === 'AbortError') {
+			return json(
+				{
+					success: false,
+					suggestions: [],
+					error: 'Request timed out. Please try again.'
+				},
+				{ status: 504 }
+			);
+		}
+
 		return json(
 			{
 				success: false,
 				suggestions: [],
-				error: 'Failed to fetch suggestions'
+				error: 'Failed to fetch suggestions',
+				details: err.message || String(err)
 			},
 			{ status: 500 }
 		);

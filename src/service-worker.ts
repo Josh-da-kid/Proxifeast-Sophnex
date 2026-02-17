@@ -45,6 +45,11 @@ sw.addEventListener('fetch', (event) => {
 		const url = new URL(event.request.url);
 		const cache = await caches.open(CACHE);
 
+		// Skip API routes - don't cache them
+		if (url.pathname.startsWith('/api/')) {
+			return fetch(event.request);
+		}
+
 		// `build`/`files` can always be served from the cache
 		if (ASSETS.includes(url.pathname)) {
 			const response = await cache.match(url.pathname);
@@ -55,7 +60,8 @@ sw.addEventListener('fetch', (event) => {
 		// fall back to the cache if we're offline
 		try {
 			const response = await fetch(event.request);
-			if (response.status === 200) {
+			// Only cache successful responses that are not opaque
+			if (response.status === 200 && response.type === 'basic') {
 				cache.put(event.request, response.clone());
 			}
 			return response;

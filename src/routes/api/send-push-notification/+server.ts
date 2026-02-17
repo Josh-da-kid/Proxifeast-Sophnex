@@ -5,9 +5,22 @@ import webpush from 'web-push';
 const pb = new PocketBase('https://playgzero.pb.itcass.net/');
 
 // Set VAPID details
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
-const VAPID_PRIVATE_KEY = import.meta.env.VITE_VAPID_PRIVATE_KEY || '';
-const VAPID_SUBJECT = import.meta.env.VITE_VAPID_SUBJECT || 'mailto:admin@proxifeast.com';
+// In production, use process.env, in dev use import.meta.env
+const getEnvVar = (name: string): string => {
+	if (typeof process !== 'undefined' && process.env[name]) {
+		return process.env[name] as string;
+	}
+	if (typeof import.meta !== 'undefined' && import.meta.env?.[name]) {
+		return import.meta.env[name] as string;
+	}
+	return '';
+};
+
+const VAPID_PUBLIC_KEY = getEnvVar('VAPID_PUBLIC_KEY') || getEnvVar('VITE_VAPID_PUBLIC_KEY') || '';
+const VAPID_PRIVATE_KEY =
+	getEnvVar('VAPID_PRIVATE_KEY') || getEnvVar('VITE_VAPID_PRIVATE_KEY') || '';
+const VAPID_SUBJECT =
+	getEnvVar('VAPID_SUBJECT') || getEnvVar('VITE_VAPID_SUBJECT') || 'mailto:admin@proxifeast.com';
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 	webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
