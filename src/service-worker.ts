@@ -41,8 +41,11 @@ sw.addEventListener('fetch', (event) => {
 	// ignore POST requests etc
 	if (event.request.method !== 'GET') return;
 
+	// Skip non-http(s) requests (chrome-extension, data URIs, etc)
+	const url = new URL(event.request.url);
+	if (!url.protocol.startsWith('http')) return;
+
 	async function respond() {
-		const url = new URL(event.request.url);
 		const cache = await caches.open(CACHE);
 
 		// Skip API routes - don't cache them
