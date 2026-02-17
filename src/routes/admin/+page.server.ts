@@ -1,31 +1,78 @@
-import type { PageServerLoad } from "../$types";
+import type { PageServerLoad } from '../$types';
 
 export const load: PageServerLoad = async ({ locals, request }) => {
 	const host = request.headers.get('host') || '';
 	const domain = host.split(':')[0];
-	// console.log("domain:", domain)
 
 	try {
-		// ✅ Look up the restaurant by domain
-		const restaurant = await locals.pb.collection('restaurants').getFirstListItem(`domain = "${domain}"`);
-
+		const restaurant = await locals.pb
+			.collection('restaurants')
+			.getFirstListItem(`domain = "${domain}"`);
 		const restaurantId = restaurant.id;
+
+		// Check if user is admin - if so, show stats for ALL restaurants
+		const isAdmin = locals.user?.isAdmin === true;
+
+		// Build restaurant filter - admin sees all, otherwise just their restaurant
+		const restaurantFilter = isAdmin ? '' : `restaurantId = "${restaurantId}" && `;
+
+		// Get today's date range
+		const today = new Date();
+		const startOfDay = new Date(
+			today.getFullYear(),
+			today.getMonth(),
+			today.getDate()
+		).toISOString();
+		const endOfDay = new Date(
+			today.getFullYear(),
+			today.getMonth(),
+			today.getDate() + 1
+		).toISOString();
+
+		// Fetch today's revenue (Delivered orders)
+		const todayOrders = await locals.pb.collection('orders').getFullList({
+			filter: `${restaurantFilter}status = "Delivered" && created >= "${startOfDay}" && created < "${endOfDay}"`
+		});
+
+		const todayRevenue = todayOrders.reduce(
+			(sum: number, order: any) => sum + (order.orderTotal || order.totalAmount || 0),
+			0
+		);
+
+		// Fetch pending orders count
+		const pendingOrders = await locals.pb.collection('orders').getFullList({
+			filter: `${restaurantFilter}(status = "Pending" || status = "Preparing" || status = "Ready")`
+		});
+		const pendingOrdersCount = pendingOrders.length;
+
+		// Fetch completed orders (all time delivered)
+		const completedOrders = await locals.pb.collection('orders').getFullList({
+			filter: `${restaurantFilter}status = "Delivered"`
+		});
+		const completedOrdersCount = completedOrders.length;
 
 		return {
 			restaurant,
-			restaurantId
+			restaurantId,
+			stats: {
+				todayRevenue,
+				pendingOrdersCount,
+				completedOrdersCount
+			}
 		};
 	} catch (error) {
-		console.error('Error loading restaurant or dishes:', error);
+		console.error('Error loading restaurant or stats:', error);
 		return {
 			dishes: [],
-		
-			error: 'Restaurant not found or failed to load dishes'
+			stats: {
+				todayRevenue: 0,
+				pendingOrdersCount: 0,
+				completedOrdersCount: 0
+			},
+			error: 'Restaurant not found or failed to load data'
 		};
 	}
 };
-
-
 
 export const actions = {
 	createDish: async ({ locals, request }) => {
@@ -60,12 +107,13 @@ export const actions = {
 		}
 
 		const host = request.headers.get('host') || '';
-	const domain = host.split(':')[0];
+		const domain = host.split(':')[0];
 
-	const restaurant = await locals.pb.collection('restaurants').getFirstListItem(`domain = "${domain}"`);
+		const restaurant = await locals.pb
+			.collection('restaurants')
+			.getFirstListItem(`domain = "${domain}"`);
 
 		const restaurantId = restaurant.id;
-		
 
 		if (!restaurantId || typeof restaurantId !== 'string') {
 			return {
@@ -84,9 +132,7 @@ export const actions = {
 				quantity: parseInt(formData.get('quantity')),
 				availability: formData.get('availability'),
 				defaultAmount: parseInt(formData.get('defaultAmount')),
-				promoAmount: formData.get('promoAmount')
-					? parseInt(formData.get('promoAmount'))
-					: null,
+				promoAmount: formData.get('promoAmount') ? parseInt(formData.get('promoAmount')) : null,
 				restaurantId // <-- this links the dish to a restaurant
 			});
 
@@ -103,6 +149,3 @@ export const actions = {
 		}
 	}
 };
-
-
-

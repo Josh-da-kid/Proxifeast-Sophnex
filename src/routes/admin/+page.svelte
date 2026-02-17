@@ -5,6 +5,7 @@
 
 	let { data } = $props();
 	const user = data.user;
+	const stats = data.stats ?? { todayRevenue: 0, pendingOrdersCount: 0, completedOrdersCount: 0 };
 
 	let successAlert = $state(false);
 	let errorAlert = $state(false);
@@ -261,7 +262,9 @@
 						</div>
 						<div>
 							<p class="text-sm text-slate-500">Today's Revenue</p>
-							<p class="text-xl font-bold text-slate-900">₦0.00</p>
+							<p class="text-xl font-bold text-slate-900">
+								₦{(stats.todayRevenue ?? 0).toLocaleString()}
+							</p>
 						</div>
 					</div>
 				</div>
@@ -283,7 +286,7 @@
 						</div>
 						<div>
 							<p class="text-sm text-slate-500">Completed Orders</p>
-							<p class="text-xl font-bold text-slate-900">0</p>
+							<p class="text-xl font-bold text-slate-900">{stats.completedOrdersCount ?? 0}</p>
 						</div>
 					</div>
 				</div>
@@ -305,7 +308,7 @@
 						</div>
 						<div>
 							<p class="text-sm text-slate-500">Pending Orders</p>
-							<p class="text-xl font-bold text-slate-900">0</p>
+							<p class="text-xl font-bold text-slate-900">{stats.pendingOrdersCount ?? 0}</p>
 						</div>
 					</div>
 				</div>
