@@ -34,8 +34,30 @@ export async function subscribeToPushNotifications(userId: string): Promise<bool
 	if (!browser) return false;
 
 	try {
+		// Check if VAPID key is configured
+		if (!PUBLIC_VAPID_KEY) {
+			console.error('VAPID public key not configured');
+			return false;
+		}
+
+		// Check if service worker is supported
+		if (!('serviceWorker' in navigator)) {
+			console.error('Service workers not supported');
+			return false;
+		}
+
 		// Check if service worker is registered
 		const registration = await navigator.serviceWorker.ready;
+		console.log('Service worker registered:', registration.scope);
+
+		// Request notification permission first
+		const permission = await Notification.requestPermission();
+		console.log('Notification permission:', permission);
+
+		if (permission !== 'granted') {
+			console.error('Notification permission not granted');
+			return false;
+		}
 
 		// Subscribe to push notifications
 		const subscription = await registration.pushManager.subscribe({
@@ -43,6 +65,7 @@ export async function subscribeToPushNotifications(userId: string): Promise<bool
 			applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
 		});
 
+		console.log('Push subscription created:', subscription.endpoint);
 		pushSubscription.set(subscription);
 
 		// Send subscription to server
@@ -54,6 +77,9 @@ export async function subscribeToPushNotifications(userId: string): Promise<bool
 				subscription: subscription.toJSON()
 			})
 		});
+
+		const result = await response.json();
+		console.log('Subscribe response:', result);
 
 		if (response.ok) {
 			notificationsEnabled.set(true);
@@ -97,7 +123,12 @@ export async function unsubscribeFromPushNotifications(userId: string): Promise<
 export async function checkNotificationStatus(): Promise<boolean> {
 	if (!browser) return false;
 
-	if (!('Notification' in window)) return false;
+	if (!('Notification' in window)) {
+		console.log('Notifications not supported');
+		return false;
+	}
+
+	console.log('Current notification permission:', Notification.permission);
 
 	if (Notification.permission !== 'granted') return false;
 

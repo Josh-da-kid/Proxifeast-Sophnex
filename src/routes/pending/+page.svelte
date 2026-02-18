@@ -24,6 +24,8 @@
 	const allRestaurants = get(page).data.allRestaurants ?? [];
 	let unsubscribe: (() => void) | null = null;
 	let showNotificationPrompt = $state(false);
+	let notificationError = $state('');
+	let isEnablingNotifications = $state(false);
 
 	const categories = $page.data.categories ?? [];
 
@@ -76,10 +78,13 @@
 		orders = (await fetchPendingOrders()) || [];
 		loading = false;
 
-		// Check if push notifications are enabled
-		const hasNotifications = await checkNotificationStatus();
-		if (!hasNotifications && Notification.permission === 'default') {
-			showNotificationPrompt = true;
+		// Check if push notifications are enabled (only for logged in users)
+		const currentUser = get(user);
+		if (currentUser?.id) {
+			const hasNotifications = await checkNotificationStatus();
+			if (!hasNotifications && Notification.permission === 'default') {
+				showNotificationPrompt = true;
+			}
 		}
 
 		// Subscribe to real-time order updates for this user
@@ -133,13 +138,42 @@
 	});
 
 	async function enableNotifications() {
+		notificationError = '';
+		isEnablingNotifications = true;
+
 		const userId = get(user)?.id;
-		if (userId) {
+
+		if (!userId) {
+			notificationError = 'Please login to enable notifications';
+			isEnablingNotifications = false;
+			return;
+		}
+
+		if (!('Notification' in window)) {
+			notificationError = 'This browser does not support notifications';
+			isEnablingNotifications = false;
+			return;
+		}
+
+		if (Notification.permission === 'denied') {
+			notificationError = 'Notifications are blocked. Please enable in browser settings.';
+			isEnablingNotifications = false;
+			return;
+		}
+
+		try {
 			const success = await subscribeToPushNotifications(userId);
 			if (success) {
 				showNotificationPrompt = false;
+			} else {
+				notificationError = 'Failed to enable notifications. Please try again.';
 			}
+		} catch (error) {
+			console.error('Notification error:', error);
+			notificationError = 'Error enabling notifications. Check console for details.';
 		}
+
+		isEnablingNotifications = false;
 	}
 
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
@@ -194,41 +228,79 @@
 			class="sticky top-0 z-[100] border-b border-slate-200 bg-slate-50"
 			transition:fly={{ y: -20, duration: 300 }}
 		>
-			<div class="container mx-auto flex items-center justify-between px-4 py-3">
-				<div class="flex items-center gap-3">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-5 w-5 text-slate-600"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-						/>
-					</svg>
-					<p class="text-sm text-slate-700">
-						<strong>Stay Updated!</strong> Enable notifications to receive real-time updates on your
-						orders.
-					</p>
+			<div class="container mx-auto flex flex-col gap-2 px-4 py-3">
+				<div class="flex items-center justify-between gap-3">
+					<div class="flex items-center gap-3">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="h-5 w-5 text-slate-600"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+							/>
+						</svg>
+						<p class="text-sm text-slate-700">
+							<strong>Stay Updated!</strong> Enable notifications to receive real-time updates on your
+							orders.
+						</p>
+					</div>
+					<div class="flex gap-2">
+						<button
+							onclick={() => (showNotificationPrompt = false)}
+							class="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+						>
+							Later
+						</button>
+						<button
+							onclick={enableNotifications}
+							disabled={isEnablingNotifications}
+							class="flex items-center gap-2 rounded bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+						>
+							{#if isEnablingNotifications}
+								<svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+									<circle
+										class="opacity-25"
+										cx="12"
+										cy="12"
+										r="10"
+										stroke="currentColor"
+										stroke-width="4"
+										fill="none"
+									></circle>
+									<path
+										class="opacity-75"
+										fill="currentColor"
+										d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+									></path>
+								</svg>
+							{/if}
+							{isEnablingNotifications ? 'Enabling...' : 'Enable'}
+						</button>
+					</div>
 				</div>
-				<div class="flex gap-2">
-					<button
-						onclick={() => (showNotificationPrompt = false)}
-						class="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
-					>
-						Later
-					</button>
-					<button
-						onclick={enableNotifications}
-						class="rounded bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700"
-					>
-						Enable
-					</button>
-				</div>
+				{#if notificationError}
+					<div class="flex items-center gap-2 text-sm text-red-600">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="h-4 w-4"
+							viewBox="0 0 20 20"
+							fill="currentColor"
+						>
+							<path
+								fill-rule="evenodd"
+								d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+								clip-rule="evenodd"
+							/>
+						</svg>
+						{notificationError}
+					</div>
+				{/if}
 			</div>
 		</div>
 	{/if}
