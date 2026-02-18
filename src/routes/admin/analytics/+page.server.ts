@@ -1,5 +1,43 @@
 import type { PageServerLoad } from '../$types';
 
+function calculateStats(orders: any[]) {
+	const uniqueCustomers = new Set(orders.map((o: any) => o.user).filter(Boolean));
+	const totalCustomers = uniqueCustomers.size;
+	const totalRevenue = orders.reduce(
+		(sum: number, order: any) => sum + (order.orderTotal || order.totalAmount || 0),
+		0
+	);
+	const avgOrderValue = orders.length > 0 ? Math.round(totalRevenue / orders.length) : 0;
+
+	const userOrderCounts: Record<string, number> = {};
+	orders.forEach((order: any) => {
+		if (order.user) {
+			userOrderCounts[order.user] = (userOrderCounts[order.user] || 0) + 1;
+		}
+	});
+	const newCustomers = Object.values(userOrderCounts).filter((count: any) => count === 1).length;
+	const returningCustomers = Object.values(userOrderCounts).filter(
+		(count: any) => count > 1
+	).length;
+	const recurringRate =
+		totalCustomers > 0 ? ((returningCustomers / totalCustomers) * 100).toFixed(0) : '0';
+
+	return {
+		customers: totalCustomers,
+		orders: orders.length,
+		revenue: totalRevenue,
+		recurringRate: `${recurringRate}%`,
+		avgOrderValue
+	};
+}
+
+function getOrdersByDateRange(orders: any[], startDate: Date, endDate: Date) {
+	return orders.filter((order: any) => {
+		const orderDate = new Date(order.created);
+		return orderDate >= startDate && orderDate <= endDate;
+	});
+}
+
 export const load: PageServerLoad = async ({ locals, request }) => {
 	const host = request.headers.get('host') || '';
 	const domain = host.split(':')[0];
@@ -10,13 +48,9 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			.getFirstListItem(`domain = "${domain}"`);
 		const restaurantId = restaurant.id;
 
-		// Check if user is admin
 		const isAdmin = locals.user?.isAdmin === true;
-
-		// Build restaurant filter
 		const restaurantFilter = isAdmin ? '' : `restaurantId = "${restaurantId}" && `;
 
-		// Get all delivered orders
 		const deliveredOrders = await locals.pb.collection('orders').getFullList({
 			filter: `${restaurantFilter}status = "Delivered"`,
 			sort: '-created'
@@ -163,18 +197,44 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 				avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(deliveredOrders.find((o: any) => o.user === userId)?.name || 'U')}&background=random`
 			}));
 
-		// Calculate recurring rate
-		const recurringRate =
-			totalCustomers > 0 ? ((returningCustomers / totalCustomers) * 100).toFixed(0) : '0';
+		const currentStats = calculateStats(deliveredOrders);
+
+		const now = new Date();
+		const currentPeriodStart = new Date();
+		currentPeriodStart.setDate(now.getDate() - 30);
+		const previousPeriodStart = new Date();
+		previousPeriodStart.setDate(now.getDate() - 60);
+
+		const prevPeriodOrders = getOrdersByDateRange(
+			deliveredOrders,
+			previousPeriodStart,
+			currentPeriodStart
+		);
+		const prevPeriodStats = calculateStats(prevPeriodOrders);
+
+		function calculateChange(
+			current: number,
+			previous: number
+		): { value: number; isPositive: boolean } {
+			if (previous === 0) return { value: 0, isPositive: true };
+			const change = ((current - previous) / previous) * 100;
+			return { value: Math.abs(change), isPositive: change >= 0 };
+		}
+
+		const comparison = {
+			customers: calculateChange(currentStats.customers, prevPeriodStats.customers),
+			orders: calculateChange(currentStats.orders, prevPeriodStats.orders),
+			revenue: calculateChange(currentStats.revenue, prevPeriodStats.revenue),
+			recurringRate: calculateChange(
+				parseFloat(currentStats.recurringRate),
+				parseFloat(prevPeriodStats.recurringRate)
+			)
+		};
 
 		return {
-			stats: {
-				customers: totalCustomers,
-				orders: deliveredOrders.length,
-				revenue: totalRevenue,
-				recurringRate: `${recurringRate}%`,
-				avgOrderValue
-			},
+			stats: currentStats,
+			prevStats: prevPeriodStats,
+			comparison,
 			charts: {
 				ordersOverTime,
 				orderBreakdown,
@@ -184,7 +244,8 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 				topDishes,
 				topCustomers,
 				recentActivity
-			}
+			},
+			allOrders: deliveredOrders
 		};
 	} catch (error) {
 		console.error('Error loading analytics:', error);
@@ -196,6 +257,19 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 				recurringRate: '0%',
 				avgOrderValue: 0
 			},
+			prevStats: {
+				customers: 0,
+				orders: 0,
+				revenue: 0,
+				recurringRate: '0%',
+				avgOrderValue: 0
+			},
+			comparison: {
+				customers: { value: 0, isPositive: true },
+				orders: { value: 0, isPositive: true },
+				revenue: { value: 0, isPositive: true },
+				recurringRate: { value: 0, isPositive: true }
+			},
 			charts: {
 				ordersOverTime: { labels: [], datasets: [] },
 				orderBreakdown: { labels: [], datasets: [] },
@@ -205,7 +279,8 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 				topDishes: [],
 				topCustomers: [],
 				recentActivity: []
-			}
+			},
+			allOrders: []
 		};
 	}
 };

@@ -5,7 +5,7 @@
 
 	let { data } = $props();
 
-	const stats = data.stats ?? {
+	const defaultStats = {
 		customers: 0,
 		orders: 0,
 		revenue: 0,
@@ -13,27 +13,309 @@
 		avgOrderValue: 0
 	};
 
+	const defaultComparison = {
+		customers: { value: 0, isPositive: true },
+		orders: { value: 0, isPositive: true },
+		revenue: { value: 0, isPositive: true },
+		recurringRate: { value: 0, isPositive: true }
+	};
+
+	const stats = data.stats ?? defaultStats;
+	const comparison = data.comparison ?? defaultComparison;
+	const allOrders = data.allOrders ?? [];
+
 	const charts = data.charts ?? {
 		ordersOverTime: { labels: [], datasets: [] },
 		orderBreakdown: { labels: [], datasets: [] },
 		newVsReturning: { labels: [], datasets: [] }
 	};
 
-	const tables = data.tables ?? {
+	const defaultTables = {
 		topDishes: [],
 		topCustomers: [],
 		recentActivity: []
 	};
+	const tables = data.tables ?? defaultTables;
 
-	const avgOrderValue = stats.avgOrderValue || 0;
+	let selectedPeriod = $state('last30');
+	let customStartDate = $state('');
+	let customEndDate = $state('');
+	let showDatePicker = $state(false);
+
+	const periods = [
+		{ value: 'today', label: 'Today' },
+		{ value: 'yesterday', label: 'Yesterday' },
+		{ value: 'thisWeek', label: 'This Week' },
+		{ value: 'last7', label: 'Last 7 Days' },
+		{ value: 'last30', label: 'Last 30 Days' },
+		{ value: 'custom', label: 'Custom Range' }
+	];
+
+	function getDateRange(period: string): { start: Date; end: Date } {
+		const now = new Date();
+		now.setHours(23, 59, 59, 999);
+		const start = new Date();
+		start.setHours(0, 0, 0, 0);
+
+		switch (period) {
+			case 'today':
+				return { start, end: now };
+			case 'yesterday':
+				const yesterday = new Date();
+				yesterday.setDate(yesterday.getDate() - 1);
+				yesterday.setHours(0, 0, 0, 0);
+				const yesterdayEnd = new Date(yesterday);
+				yesterdayEnd.setHours(23, 59, 59, 999);
+				return { start: yesterday, end: yesterdayEnd };
+			case 'thisWeek': {
+				const weekStart = new Date(now);
+				weekStart.setDate(now.getDate() - now.getDay());
+				weekStart.setHours(0, 0, 0, 0);
+				return { start: weekStart, end: now };
+			}
+			case 'last7':
+				start.setDate(start.getDate() - 6);
+				return { start, end: now };
+			case 'last30':
+				start.setDate(start.getDate() - 29);
+				return { start, end: now };
+			case 'custom':
+				if (customStartDate && customEndDate) {
+					return {
+						start: new Date(customStartDate),
+						end: new Date(customEndDate + 'T23:59:59')
+					};
+				}
+				start.setDate(start.getDate() - 29);
+				return { start, end: now };
+			default:
+				start.setDate(start.getDate() - 29);
+				return { start, end: now };
+		}
+	}
+
+	function filterDataByPeriod(orders: any[], period: string) {
+		const { start, end } = getDateRange(period);
+		return orders.filter((order: any) => {
+			const orderDate = new Date(order.created);
+			return orderDate >= start && orderDate <= end;
+		});
+	}
+
+	function calculateStats(orders: any[]) {
+		const uniqueCustomers = new Set(orders.map((o: any) => o.user).filter(Boolean));
+		const totalCustomers = uniqueCustomers.size;
+		const totalRevenue = orders.reduce(
+			(sum: number, order: any) => sum + (order.orderTotal || order.totalAmount || 0),
+			0
+		);
+		const avgOrderValue = orders.length > 0 ? Math.round(totalRevenue / orders.length) : 0;
+
+		const userOrderCounts: Record<string, number> = {};
+		orders.forEach((order: any) => {
+			if (order.user) {
+				userOrderCounts[order.user] = (userOrderCounts[order.user] || 0) + 1;
+			}
+		});
+		const returningCustomers = Object.values(userOrderCounts).filter(
+			(count: any) => count > 1
+		).length;
+		const recurringRate =
+			totalCustomers > 0 ? ((returningCustomers / totalCustomers) * 100).toFixed(0) : '0';
+
+		return {
+			customers: totalCustomers,
+			orders: orders.length,
+			revenue: totalRevenue,
+			recurringRate: `${recurringRate}%`,
+			avgOrderValue
+		};
+	}
+
+	function getPreviousPeriodRange(period: string): { start: Date; end: Date } {
+		const { start, end } = getDateRange(period);
+		const duration = end.getTime() - start.getTime();
+		const prevEnd = new Date(start.getTime() - 1);
+		const prevStart = new Date(prevEnd.getTime() - duration);
+		return { start: prevStart, end: prevEnd };
+	}
+
+	function filterPreviousPeriod(orders: any[], period: string) {
+		const { start, end } = getPreviousPeriodRange(period);
+		return orders.filter((order: any) => {
+			const orderDate = new Date(order.created);
+			return orderDate >= start && orderDate <= end;
+		});
+	}
+
+	function calculateComparison(current: any, previous: any) {
+		const calc = (curr: number, prev: number) => {
+			if (prev === 0) return { value: 0, isPositive: true };
+			const change = ((curr - prev) / prev) * 100;
+			return { value: Math.abs(change), isPositive: change >= 0 };
+		};
+
+		return {
+			customers: calc(current.customers, previous.customers),
+			orders: calc(current.orders, previous.orders),
+			revenue: calc(current.revenue, previous.revenue),
+			recurringRate: calc(parseFloat(current.recurringRate), parseFloat(previous.recurringRate))
+		};
+	}
+
+	let filteredStats = $derived(calculateStats(filterDataByPeriod(allOrders, selectedPeriod)));
+	let filteredComparison = $derived(
+		calculateComparison(
+			filteredStats,
+			calculateStats(filterPreviousPeriod(allOrders, selectedPeriod))
+		)
+	);
+
+	let filteredRecentActivity = $derived.by(() => {
+		const orders = filterDataByPeriod(allOrders, selectedPeriod);
+		return orders.slice(0, 10).map((order: any) => ({
+			time: formatActivityTime(order.created),
+			text: `${order.name || 'Guest'} placed an order ₦${(order.orderTotal || order.totalAmount || 0).toLocaleString()}`,
+			avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(order.name || 'G')}&background=random`,
+			fullDate: new Date(order.created).toLocaleDateString('en-US', {
+				weekday: 'short',
+				month: 'short',
+				day: 'numeric',
+				year: 'numeric'
+			}),
+			orderId: order.id
+		}));
+	});
+
+	let filteredTopDishes = $derived.by(() => {
+		const orders = filterDataByPeriod(allOrders, selectedPeriod);
+		const dishCounts: Record<string, number> = {};
+		orders.forEach((order: any) => {
+			if (order.dishes && Array.isArray(order.dishes)) {
+				order.dishes.forEach((dish: any) => {
+					const name = dish.name || 'Unknown';
+					dishCounts[name] = (dishCounts[name] || 0) + dish.quantity;
+				});
+			}
+		});
+		return Object.entries(dishCounts)
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 5)
+			.map(([dish, sales]) => ({ dish, sales }));
+	});
+
+	let filteredTopCustomers = $derived.by(() => {
+		const orders = filterDataByPeriod(allOrders, selectedPeriod);
+		const userOrderCounts: Record<string, { count: number; name: string }> = {};
+		orders.forEach((order: any) => {
+			if (order.user) {
+				if (!userOrderCounts[order.user]) {
+					userOrderCounts[order.user] = { count: 0, name: order.name || 'Unknown' };
+				}
+				userOrderCounts[order.user].count++;
+			}
+		});
+		return Object.entries(userOrderCounts)
+			.sort((a, b) => b[1].count - a[1].count)
+			.slice(0, 5)
+			.map(([userId, data]: [string, any]) => ({
+				name: data.name,
+				orders: data.count,
+				avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=random`
+			}));
+	});
+
+	function formatActivityTime(dateStr: string): string {
+		const date = new Date(dateStr);
+		const now = new Date();
+		const diffMs = now.getTime() - date.getTime();
+		const diffMins = Math.floor(diffMs / 60000);
+		const diffHours = Math.floor(diffMs / 3600000);
+		const diffDays = Math.floor(diffMs / 86400000);
+
+		if (diffMins < 1) return 'Just now';
+		if (diffMins < 60) return `${diffMins}m ago`;
+		if (diffHours < 24) return `${diffHours}h ago`;
+		if (diffDays < 7) return `${diffDays}d ago`;
+
+		const isToday = date.toDateString() === now.toDateString();
+		const yesterday = new Date(now);
+		yesterday.setDate(yesterday.getDate() - 1);
+		const isYesterday = date.toDateString() === yesterday.toDateString();
+
+		if (isToday) {
+			return `Today, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+		}
+		if (isYesterday) {
+			return `Yesterday, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+		}
+		return `${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+	}
+
+	function getPeriodLabel(period: string): string {
+		const p = periods.find((p) => p.value === period);
+		if (period === 'custom' && customStartDate && customEndDate) {
+			const start = new Date(customStartDate).toLocaleDateString('en-US', {
+				month: 'short',
+				day: 'numeric'
+			});
+			const end = new Date(customEndDate).toLocaleDateString('en-US', {
+				month: 'short',
+				day: 'numeric'
+			});
+			return `${start} - ${end}`;
+		}
+		return p?.label || 'Last 30 Days';
+	}
+
+	function getChartDataForPeriod(period: string) {
+		const orders = filterDataByPeriod(allOrders, period);
+		const { start, end } = getDateRange(period);
+		const duration = end.getTime() - start.getTime();
+		const dayMs = 86400000;
+		const days = Math.ceil(duration / dayMs);
+
+		const ordersByDate: Record<string, number> = {};
+		orders.forEach((order: any) => {
+			const date = new Date(order.created).toLocaleDateString('en-US', {
+				month: 'short',
+				day: 'numeric'
+			});
+			ordersByDate[date] = (ordersByDate[date] || 0) + 1;
+		});
+
+		const labels: string[] = [];
+		const currentDate = new Date(start);
+		while (currentDate <= end) {
+			labels.push(currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+			currentDate.setDate(currentDate.getDate() + 1);
+		}
+
+		return {
+			labels: labels.slice(-14),
+			datasets: [
+				{
+					label: 'Orders',
+					data: labels.slice(-14).map((date) => ordersByDate[date] || 0),
+					borderColor: '#475569',
+					backgroundColor: 'rgba(71, 85, 105, 0.1)',
+					tension: 0.3,
+					fill: true
+				}
+			]
+		};
+	}
+
+	let chartData = $derived(getChartDataForPeriod(selectedPeriod));
 
 	onMount(() => {
-		// Orders Over Time Chart
 		const lineCtx = document.getElementById('ordersChart')?.getContext('2d');
-		if (lineCtx && charts.ordersOverTime.labels?.length > 0) {
-			new Chart(lineCtx, {
+		let lineChart: Chart | null = null;
+
+		if (lineCtx) {
+			lineChart = new Chart(lineCtx, {
 				type: 'line',
-				data: charts.ordersOverTime,
+				data: chartData,
 				options: {
 					responsive: true,
 					maintainAspectRatio: false,
@@ -45,7 +327,6 @@
 			});
 		}
 
-		// Order Breakdown Chart
 		const pieCtx = document.getElementById('breakdownChart')?.getContext('2d');
 		if (pieCtx && charts.orderBreakdown.labels?.length > 0) {
 			new Chart(pieCtx, {
@@ -58,7 +339,6 @@
 			});
 		}
 
-		// New vs Returning Chart
 		const newReturningCtx = document.getElementById('newReturningChart')?.getContext('2d');
 		if (newReturningCtx && charts.newVsReturning.labels?.length > 0) {
 			new Chart(newReturningCtx, {
@@ -70,6 +350,10 @@
 				}
 			});
 		}
+
+		return () => {
+			lineChart?.destroy();
+		};
 	});
 </script>
 
@@ -78,7 +362,6 @@
 </svelte:head>
 
 <div class="min-h-screen bg-slate-50">
-	<!-- Header -->
 	<section
 		class="bg-gradient-to-b from-slate-900 via-slate-800 to-slate-700 py-6 text-center text-white md:py-8"
 	>
@@ -96,6 +379,51 @@
 	</section>
 
 	<main class="container mx-auto px-3 py-6 md:px-4 md:py-8">
+		<!-- Period Selector -->
+		<div
+			class="mb-6 rounded-xl bg-white p-4 shadow-md md:mb-8"
+			in:fly={{ y: 20, duration: 400, delay: 50 }}
+		>
+			<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+				<div class="flex flex-wrap gap-2">
+					{#each periods as period}
+						<button
+							onclick={() => (selectedPeriod = period.value)}
+							class="rounded-lg px-3 py-1.5 text-xs font-medium transition-all md:px-4 md:py-2 md:text-sm {selectedPeriod ===
+							period.value
+								? 'bg-slate-800 text-white shadow-md'
+								: 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"
+						>
+							{period.label}
+						</button>
+					{/each}
+				</div>
+
+				{#if selectedPeriod === 'custom'}
+					<div class="flex flex-col gap-2 sm:flex-row">
+						<input
+							type="date"
+							bind:value={customStartDate}
+							class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs md:text-sm"
+						/>
+						<span class="self-center text-slate-400">to</span>
+						<input
+							type="date"
+							bind:value={customEndDate}
+							class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs md:text-sm"
+						/>
+					</div>
+				{/if}
+			</div>
+
+			<div class="mt-3 flex items-center gap-2">
+				<span class="text-xs font-medium text-slate-500 md:text-sm">Showing:</span>
+				<span class="text-xs font-semibold text-slate-800 md:text-sm"
+					>{getPeriodLabel(selectedPeriod)}</span
+				>
+			</div>
+		</div>
+
 		<!-- KPI Cards -->
 		<div class="grid grid-cols-2 gap-3 md:gap-4 lg:gap-6">
 			<!-- Customers -->
@@ -122,9 +450,38 @@
 					<div class="min-w-0">
 						<p class="truncate text-xs text-slate-500 md:text-sm">Customers</p>
 						<p class="truncate text-lg font-bold text-slate-900 md:text-xl lg:text-2xl">
-							{stats.customers}
+							{filteredStats.customers}
 						</p>
 					</div>
+				</div>
+				<div class="mt-2 flex items-center gap-1 md:mt-3">
+					<span
+						class="flex items-center text-xs font-medium {filteredComparison.customers.isPositive
+							? 'text-emerald-600'
+							: 'text-red-500'}"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="h-3 w-3"
+							viewBox="0 0 20 20"
+							fill="currentColor"
+						>
+							{#if filteredComparison.customers.isPositive}
+								<path
+									fill-rule="evenodd"
+									d="M12 7l-5 5H4v10h12V12h3l-5-5-2 2zM7.5 5L5 10h4v5h3V10h4L7.5 5z"
+									transform="rotate(180 10 10)"
+								/>
+							{:else}
+								<path
+									fill-rule="evenodd"
+									d="M12 7l-5 5H4v10h12V12h3l-5-5-2 2zM7.5 5L5 10h4v5h3V10h4L7.5 5z"
+								/>
+							{/if}
+						</svg>
+						{filteredComparison.customers.value.toFixed(1)}%
+					</span>
+					<span class="text-xs text-slate-400">vs prev period</span>
 				</div>
 			</div>
 
@@ -152,9 +509,38 @@
 					<div class="min-w-0">
 						<p class="truncate text-xs text-slate-500 md:text-sm">Orders</p>
 						<p class="truncate text-lg font-bold text-slate-900 md:text-xl lg:text-2xl">
-							{stats.orders}
+							{filteredStats.orders}
 						</p>
 					</div>
+				</div>
+				<div class="mt-2 flex items-center gap-1 md:mt-3">
+					<span
+						class="flex items-center text-xs font-medium {filteredComparison.orders.isPositive
+							? 'text-emerald-600'
+							: 'text-red-500'}"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="h-3 w-3"
+							viewBox="0 0 20 20"
+							fill="currentColor"
+						>
+							{#if filteredComparison.orders.isPositive}
+								<path
+									fill-rule="evenodd"
+									d="M12 7l-5 5H4v10h12V12h3l-5-5-2 2zM7.5 5L5 10h4v5h3V10h4L7.5 5z"
+									transform="rotate(180 10 10)"
+								/>
+							{:else}
+								<path
+									fill-rule="evenodd"
+									d="M12 7l-5 5H4v10h12V12h3l-5-5-2 2zM7.5 5L5 10h4v5h3V10h4L7.5 5z"
+								/>
+							{/if}
+						</svg>
+						{filteredComparison.orders.value.toFixed(1)}%
+					</span>
+					<span class="text-xs text-slate-400">vs prev period</span>
 				</div>
 			</div>
 
@@ -181,9 +567,38 @@
 					<div class="min-w-0">
 						<p class="truncate text-xs text-slate-500 md:text-sm">Revenue</p>
 						<p class="truncate text-lg font-bold text-slate-900 md:text-xl lg:text-2xl">
-							₦{stats.revenue.toLocaleString()}
+							₦{filteredStats.revenue.toLocaleString()}
 						</p>
 					</div>
+				</div>
+				<div class="mt-2 flex items-center gap-1 md:mt-3">
+					<span
+						class="flex items-center text-xs font-medium {filteredComparison.revenue.isPositive
+							? 'text-emerald-600'
+							: 'text-red-500'}"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="h-3 w-3"
+							viewBox="0 0 20 20"
+							fill="currentColor"
+						>
+							{#if filteredComparison.revenue.isPositive}
+								<path
+									fill-rule="evenodd"
+									d="M12 7l-5 5H4v10h12V12h3l-5-5-2 2zM7.5 5L5 10h4v5h3V10h4L7.5 5z"
+									transform="rotate(180 10 10)"
+								/>
+							{:else}
+								<path
+									fill-rule="evenodd"
+									d="M12 7l-5 5H4v10h12V12h3l-5-5-2 2zM7.5 5L5 10h4v5h3V10h4L7.5 5z"
+								/>
+							{/if}
+						</svg>
+						{filteredComparison.revenue.value.toFixed(1)}%
+					</span>
+					<span class="text-xs text-slate-400">vs prev period</span>
 				</div>
 			</div>
 
@@ -212,13 +627,43 @@
 					<div class="min-w-0">
 						<p class="truncate text-xs text-slate-500 md:text-sm">Returning</p>
 						<p class="truncate text-lg font-bold text-slate-900 md:text-xl lg:text-2xl">
-							{stats.recurringRate}
+							{filteredStats.recurringRate}
 						</p>
 					</div>
 				</div>
+				<div class="mt-2 flex items-center gap-1 md:mt-3">
+					<span
+						class="flex items-center text-xs font-medium {filteredComparison.recurringRate
+							.isPositive
+							? 'text-emerald-600'
+							: 'text-red-500'}"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="h-3 w-3"
+							viewBox="0 0 20 20"
+							fill="currentColor"
+						>
+							{#if filteredComparison.recurringRate.isPositive}
+								<path
+									fill-rule="evenodd"
+									d="M12 7l-5 5H4v10h12V12h3l-5-5-2 2zM7.5 5L5 10h4v5h3V10h4L7.5 5z"
+									transform="rotate(180 10 10)"
+								/>
+							{:else}
+								<path
+									fill-rule="evenodd"
+									d="M12 7l-5 5H4v10h12V12h3l-5-5-2 2zM7.5 5L5 10h4v5h3V10h4L7.5 5z"
+								/>
+							{/if}
+						</svg>
+						{filteredComparison.recurringRate.value.toFixed(1)}%
+					</span>
+					<span class="text-xs text-slate-400">vs prev period</span>
+				</div>
 			</div>
 
-			<!-- Avg Order (full width on mobile, 1 of 5 on lg) -->
+			<!-- Avg Order -->
 			<div
 				class="col-span-2 rounded-xl bg-white p-3 shadow-md sm:col-span-1 md:rounded-2xl md:p-4 lg:col-span-1 lg:p-6"
 				in:fly={{ y: 20, duration: 400, delay: 300 }}
@@ -240,9 +685,9 @@
 						</svg>
 					</div>
 					<div class="min-w-0">
-						<p class="truncate text-xs text-slate-500 md:text-sm">Avg Order</p>
+						<p class="truncate text-xs text-slate-500 md:text-sm">Avg Order Value</p>
 						<p class="truncate text-lg font-bold text-slate-900 md:text-xl lg:text-2xl">
-							₦{avgOrderValue.toLocaleString()}
+							₦{filteredStats.avgOrderValue.toLocaleString()}
 						</p>
 					</div>
 				</div>
@@ -251,15 +696,14 @@
 
 		<!-- Charts Grid -->
 		<div class="mt-6 grid gap-4 md:mt-8 md:gap-6 lg:grid-cols-2">
-			<!-- Orders Over Time -->
 			<div
 				class="rounded-xl bg-white p-4 shadow-md md:rounded-2xl md:p-6"
 				in:fly={{ y: 20, duration: 400, delay: 350 }}
 			>
 				<h2 class="font-playfair mb-3 text-base font-semibold text-slate-900 md:mb-4 md:text-lg">
-					Orders (Last 7 Days)
+					Orders Over Time
 				</h2>
-				{#if charts.ordersOverTime.labels?.length > 0}
+				{#if chartData.labels?.length > 0}
 					<div class="h-48 md:h-56 lg:h-64">
 						<canvas id="ordersChart"></canvas>
 					</div>
@@ -270,7 +714,6 @@
 				{/if}
 			</div>
 
-			<!-- Customer Types -->
 			<div
 				class="rounded-xl bg-white p-4 shadow-md md:rounded-2xl md:p-6"
 				in:fly={{ y: 20, duration: 400, delay: 400 }}
@@ -291,7 +734,6 @@
 				{/if}
 			</div>
 
-			<!-- Order Types -->
 			<div
 				class="rounded-xl bg-white p-4 shadow-md md:rounded-2xl md:p-6"
 				in:fly={{ y: 20, duration: 400, delay: 450 }}
@@ -318,20 +760,24 @@
 				in:fly={{ y: 20, duration: 400, delay: 500 }}
 			>
 				<h2 class="font-playfair mb-3 text-base font-semibold text-slate-900 md:mb-4 md:text-lg">
-					Recent Activity
+					Recent Sales Activity
 				</h2>
-				{#if tables.recentActivity?.length > 0}
-					<ul class="max-h-48 space-y-2 overflow-y-auto md:max-h-56 md:space-y-3">
-						{#each tables.recentActivity as a}
-							<li class="flex items-center gap-2 md:gap-3">
+				{#if filteredRecentActivity?.length > 0}
+					<ul class="max-h-56 space-y-2 overflow-y-auto md:max-h-64 md:space-y-3">
+						{#each filteredRecentActivity as a}
+							<li class="flex items-start gap-2 rounded-lg bg-slate-50 p-2 md:gap-3 md:p-3">
 								<img
 									src={a.avatar}
 									alt="user"
 									class="h-8 w-8 shrink-0 rounded-full md:h-10 md:w-10"
 								/>
-								<div class="min-w-0">
+								<div class="min-w-0 flex-1">
 									<p class="truncate text-xs font-medium text-slate-700 md:text-sm">{a.text}</p>
-									<span class="text-xs text-slate-400">{a.time}</span>
+									<div class="mt-1 flex flex-wrap items-center gap-1 md:mt-1.5">
+										<span class="text-xs text-slate-500">{a.time}</span>
+										<span class="text-xs text-slate-300">•</span>
+										<span class="text-xs font-medium text-slate-600">{a.fullDate}</span>
+									</div>
 								</div>
 							</li>
 						{/each}
@@ -354,7 +800,7 @@
 				<h2 class="font-playfair mb-3 text-base font-semibold text-slate-900 md:mb-4 md:text-lg">
 					Top Selling Dishes
 				</h2>
-				{#if tables.topDishes?.length > 0}
+				{#if filteredTopDishes?.length > 0}
 					<div class="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
 						<table class="w-full min-w-[200px]">
 							<thead>
@@ -368,12 +814,19 @@
 								</tr>
 							</thead>
 							<tbody>
-								{#each tables.topDishes as d}
+								{#each filteredTopDishes as d, i}
 									<tr class="border-b border-slate-50">
-										<td
-											class="max-w-[150px] truncate py-2 text-xs text-slate-700 md:py-3 md:text-sm"
-											>{d.dish}</td
-										>
+										<td class="py-2 md:py-3">
+											<div class="flex items-center gap-2">
+												<span
+													class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-medium text-slate-600 md:h-6 md:w-6"
+													>{i + 1}</span
+												>
+												<span class="max-w-[150px] truncate text-xs text-slate-700 md:text-sm"
+													>{d.dish}</span
+												>
+											</div>
+										</td>
 										<td class="py-2 text-right md:py-3">
 											<span
 												class="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 md:px-3 md:py-1 md:text-sm"
@@ -400,7 +853,7 @@
 				<h2 class="font-playfair mb-3 text-base font-semibold text-slate-900 md:mb-4 md:text-lg">
 					Top Customers
 				</h2>
-				{#if tables.topCustomers?.length > 0}
+				{#if filteredTopCustomers?.length > 0}
 					<div class="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
 						<table class="w-full min-w-[200px]">
 							<thead>
@@ -414,10 +867,14 @@
 								</tr>
 							</thead>
 							<tbody>
-								{#each tables.topCustomers as customer}
+								{#each filteredTopCustomers as customer, i}
 									<tr class="border-b border-slate-50">
 										<td class="py-2 md:py-3">
 											<div class="flex items-center gap-2 md:gap-3">
+												<span
+													class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-medium text-amber-600 md:h-6 md:w-6"
+													>{i + 1}</span
+												>
 												<img
 													src={customer.avatar}
 													alt={customer.name}
