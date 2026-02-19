@@ -1,108 +1,79 @@
 // src/routes/admin/billing/+page.server.ts
 
-import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import pb from '$lib/pb';
 
-export const load: PageServerLoad = async ({ locals, cookies, url }) => {
-	const token = cookies.get('admin_token');
+export const load: PageServerLoad = async ({ locals, url, parent }) => {
+	// Get base data from layout - user, restaurant, subscription status already checked
+	const layoutData = await parent();
 
-	if (!token) {
-		throw redirect(303, '/admin-login');
-	}
+	const { restaurant, isSuper, subscription, subscriptionStatus } = layoutData;
 
-	pb.authStore.save(token, null);
-
+	// For super restaurants, get all subscriptions and non-super restaurants
+	// For non-super restaurants, just show their own subscription
 	try {
-		const admin = await pb.collection('admins').authRefresh();
-		locals.user = admin;
-	} catch (err) {
-		throw redirect(303, '/admin-login');
-	}
+		let subscriptions: any[] = [];
+		let restaurants: any[] = [];
+		let stats = {
+			total: 0,
+			active: 0,
+			expiringSoon: 0,
+			expired: 0,
+			totalRevenue: 0,
+			monthlyRevenue: 0
+		};
 
-	const restaurantId = locals.restaurant?.id;
-	const isSuper = locals.restaurant?.isSuper === true;
+		if (isSuper) {
+			// Super users can see all subscriptions
+			subscriptions = await locals.pb.collection('subscriptions').getFullList({
+				sort: '-created'
+			});
 
-	if (!restaurantId) {
-		throw redirect(303, '/admin-login');
-	}
+			restaurants = await locals.pb.collection('restaurants').getFullList({
+				filter: 'isSuper = false'
+			});
 
-	// Get subscription status for non-super restaurants
-	let subscriptionStatus = 'active';
-	let subscription: any = null;
-
-	if (!isSuper) {
-		try {
-			const subs = await pb
-				.collection('subscriptions')
-				.getFirstListItem(`restaurantId = "${restaurantId}"`);
-			subscription = subs;
 			const now = new Date();
-			const endDate = new Date(subs.endDate);
+			const thirtyDaysFromNow = new Date();
+			thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-			if (endDate <= now) {
-				subscriptionStatus = 'expired';
-			} else if (subs.status === 'cancelled') {
-				subscriptionStatus = 'cancelled';
-			} else {
-				const thirtyDaysFromNow = new Date();
-				thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-				if (endDate <= thirtyDaysFromNow) {
-					subscriptionStatus = 'expiring_soon';
-				}
-			}
-		} catch (err) {
-			subscriptionStatus = 'not_subscribed';
+			const activeSubscriptions = subscriptions.filter((s: any) => s.status === 'active');
+			const expiringSoon = subscriptions.filter((s: any) => {
+				const endDate = new Date(s.endDate);
+				return s.status === 'active' && endDate <= thirtyDaysFromNow && endDate > now;
+			});
+			const expired = subscriptions.filter((s: any) => {
+				const endDate = new Date(s.endDate);
+				return s.status === 'active' && endDate <= now;
+			});
+
+			const totalRevenue = activeSubscriptions.reduce(
+				(sum: number, s: any) => sum + (s.amount || 0),
+				0
+			);
+
+			stats = {
+				total: subscriptions.length,
+				active: activeSubscriptions.length,
+				expiringSoon: expiringSoon.length,
+				expired: expired.length,
+				totalRevenue,
+				monthlyRevenue: 0
+			};
+		} else if (subscription) {
+			// Non-super users only see their own subscription
+			subscriptions = [subscription];
+			restaurants = [restaurant].filter(Boolean);
 		}
-	}
-
-	try {
-		const subscriptions = await pb.collection('subscriptions').getFullList({
-			sort: '-created'
-		});
-
-		const restaurants = await pb.collection('restaurants').getFullList({
-			filter: 'isSuper = false'
-		});
-
-		const now = new Date();
-		const thirtyDaysFromNow = new Date();
-		thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-
-		const activeSubscriptions = subscriptions.filter((s: any) => s.status === 'active');
-		const expiringSoon = subscriptions.filter((s: any) => {
-			const endDate = new Date(s.endDate);
-			return s.status === 'active' && endDate <= thirtyDaysFromNow && endDate > now;
-		});
-		const expired = subscriptions.filter((s: any) => {
-			const endDate = new Date(s.endDate);
-			return s.status === 'active' && endDate <= now;
-		});
-
-		const totalRevenue = activeSubscriptions.reduce(
-			(sum: number, s: any) => sum + (s.amount || 0),
-			0
-		);
-		const monthlyRevenue = activeSubscriptions
-			.filter((s: any) => s.plan === 'monthly')
-			.reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
 
 		return {
 			subscriptionStatus,
 			subscription,
 			isSuper,
 			expired: url.searchParams.get('expired') === '1',
-			restaurant: isSuper ? null : locals.restaurant,
+			restaurant: isSuper ? null : restaurant,
 			subscriptions,
 			restaurants,
-			stats: {
-				total: subscriptions.length,
-				active: activeSubscriptions.length,
-				expiringSoon: expiringSoon.length,
-				expired: expired.length,
-				totalRevenue,
-				monthlyRevenue
-			}
+			stats
 		};
 	} catch (err) {
 		console.error('Billing load error:', err);

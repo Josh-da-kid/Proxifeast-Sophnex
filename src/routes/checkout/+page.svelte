@@ -5,10 +5,6 @@
 	import pb from '$lib/pb';
 	import { goto } from '$app/navigation';
 	import { fly, slide, fade } from 'svelte/transition';
-
-	export const ssr = false;
-	export const prerender = false;
-
 	// Custom SVG Icons
 	const iconArrowLeft = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`;
 	const iconShoppingBag = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`;
@@ -32,11 +28,7 @@
 	const iconClock = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
 	const iconStore = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2.5"/><path d="M2 17.5a.5.5 0 0 1 .5-.5h19a.5.5 0 0 1 .5.5v1a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 18.5Z"/><path d="m4 7.5 1.6 6.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L20 7.5"/></svg>`;
 
-	const paystackKey = derived(page, ($page) => {
-		const restaurant = $page.data.restaurant;
-		if (!restaurant) return undefined;
-		return restaurant.paystackKey || undefined;
-	});
+	const paystackKey = derived(page, ($page) => $page.data.restaurant?.paystackKey);
 	const allRestaurants = derived(page, ($page) => $page.data.allRestaurants ?? []);
 	export const cart = writable<any[]>([]);
 	export const total = derived(cart, ($cart) =>
@@ -49,7 +41,6 @@
 		}, 0)
 	);
 	export const user = derived(page, ($page) => $page.data.user);
-
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 
 	let deleteModal: HTMLDialogElement;
@@ -113,19 +104,7 @@
 				filter: `user="${userId}"`,
 				expand: 'dish'
 			});
-
-			// Filter by restaurant if not a super restaurant
-			const restaurantId = $page.data.restaurantId;
-			const isSuper = $page.data.isSuper ?? false;
-			if (restaurantId && !isSuper) {
-				const filteredRecords = records.filter((item: any) => {
-					const itemRestaurantId = item.restaurant || item.restaurantId;
-					return itemRestaurantId === restaurantId;
-				});
-				cart.set(filteredRecords);
-			} else {
-				cart.set(records);
-			}
+			cart.set(records);
 		} catch (err) {
 			console.error('Failed to fetch cart:', err);
 		} finally {
@@ -146,19 +125,8 @@
 		const userId = get(user)?.id;
 		if (!userId) return;
 		try {
-			let items = await pb.collection('cart').getFullList({ filter: `user="${userId}"` });
-
-			// Filter by restaurant if not a super restaurant
-			const restaurantId = $page.data.restaurantId;
-			const isSuper = $page.data.isSuper ?? false;
-			if (restaurantId && !isSuper) {
-				items = items.filter((item: any) => {
-					const itemRestaurantId = item.restaurant || item.restaurantId;
-					return itemRestaurantId === restaurantId;
-				});
-			}
-
-			await Promise.all(items.map((item: any) => pb.collection('cart').delete(item.id)));
+			const items = await pb.collection('cart').getFullList({ filter: `user="${userId}"` });
+			await Promise.all(items.map((item) => pb.collection('cart').delete(item.id)));
 			await fetchCart();
 			clearModal?.close();
 		} catch (err) {
@@ -218,219 +186,9 @@
 	let meridian = $state('PM');
 	let pickupTime = $derived(`${hour}:${minutes} ${meridian}`);
 	const formattedPhone = $derived(`${prefix}${phone}`);
-	let email = $state('');
-	let amount = $state(0);
-
-	// Delivery fees state - Map<restaurantId, { fee, distance, restaurantName }>
-	let deliveryFees = $state(
-		new Map<
-			string,
-			{
-				canDeliver: boolean;
-				fees: {
-					deliveryFee: number;
-					deliveryTier: string;
-					serviceFee: number;
-					smallOrderFee: number;
-					total: number;
-				};
-				distance: number;
-				restaurantName: string;
-				customerState: string;
-				restaurantState: string;
-				error?: string;
-			}
-		>()
-	);
-	let calculatingDeliveryFees = $state(false);
-	let deliveryFeeError = $state('');
-	let customerState = $state('');
-	let mixedStateError = $state('');
-
-	// Calculate total fees (delivery + service + small order)
-	const totalDeliveryFee = $derived(() => {
-		let total = 0;
-		deliveryFees.forEach((data) => {
-			if (data.canDeliver && data.fees) {
-				total += data.fees.total;
-			}
-		});
-		return total;
-	});
-
-	// Calculate total food subtotal
-	const foodSubtotal = $derived(() => {
-		return get(total);
-	});
-
-	// Calculate grand total (food + all fees)
-	const grandTotal = $derived(() => {
-		return foodSubtotal() + totalDeliveryFee();
-	});
-
-	// Check if all restaurants are from the same state as customer
-	const hasMixedStates = $derived(() => {
-		const states = new Set<string>();
-		deliveryFees.forEach((data) => {
-			if (data.restaurantState) {
-				states.add(data.restaurantState);
-			}
-		});
-		return states.size > 1;
-	});
-
-	// Check if any restaurant cannot deliver
-	const hasDeliveryRestrictions = $derived(() => {
-		let hasErrors = false;
-		deliveryFees.forEach((data) => {
-			if (!data.canDeliver) {
-				hasErrors = true;
-			}
-		});
-		return hasErrors;
-	});
-
-	// Check if cart has items from multiple restaurants (for table service restriction)
-	const uniqueRestaurantsCount = $derived(() => {
-		const unique = new Set(
-			get(cart).map((item) => item.expand?.dish?.restaurantId || item.restaurantId)
-		);
-		return unique.size;
-	});
-
-	const isMultiRestaurant = $derived(() => uniqueRestaurantsCount() > 1);
-
-	// Auto-switch delivery option if table service selected but multi-restaurant
-	$effect(() => {
-		if (deliveryOption === 'tableService' && isMultiRestaurant()) {
-			deliveryOption = '';
-		}
-	});
-
-	// Address autocomplete state (Glovo/Bolt style with ORS API)
-	interface AddressSuggestion {
-		id: string;
-		label: string;
-		name: string;
-		street: string;
-		locality: string;
-		region: string;
-		confidence: number;
-	}
-
-	let addressSuggestions = $state<AddressSuggestion[]>([]);
-	let showAddressSuggestions = $state(false);
-	let selectedAddressIndex = $state(-1);
-	let isLoadingSuggestions = $state(false);
-	let autocompleteError = $state('');
-
-	// Debounce timer for API calls
-	let debounceTimer: ReturnType<typeof setTimeout>;
-
-	async function fetchAddressSuggestions(query: string) {
-		console.log('Fetching suggestions for:', query);
-		if (!query || query.length < 3) {
-			addressSuggestions = [];
-			showAddressSuggestions = false;
-			return;
-		}
-
-		isLoadingSuggestions = true;
-		autocompleteError = '';
-
-		try {
-			const response = await fetch(`/api/address-autocomplete?q=${encodeURIComponent(query)}`);
-			const data = await response.json();
-			console.log('API response:', data);
-
-			if (data.success) {
-				addressSuggestions = data.suggestions;
-				showAddressSuggestions = addressSuggestions.length > 0;
-				console.log(`Found ${addressSuggestions.length} suggestions`);
-			} else {
-				addressSuggestions = [];
-				showAddressSuggestions = false;
-				if (data.error) {
-					autocompleteError = data.error;
-				}
-			}
-		} catch (err) {
-			console.error('Autocomplete fetch error:', err);
-			addressSuggestions = [];
-			showAddressSuggestions = false;
-		} finally {
-			isLoadingSuggestions = false;
-			selectedAddressIndex = -1;
-		}
-	}
-
-	function debouncedFetchSuggestions(query: string) {
-		clearTimeout(debounceTimer);
-		debounceTimer = setTimeout(() => {
-			fetchAddressSuggestions(query);
-		}, 300); // 300ms debounce like Glovo
-	}
-
-	function selectAddressSuggestion(index: number) {
-		if (index >= 0 && index < addressSuggestions.length) {
-			const suggestion = addressSuggestions[index];
-			homeAddress = suggestion.label;
-			showAddressSuggestions = false;
-			addressSuggestions = [];
-			autocompleteError = '';
-		}
-	}
-
-	function handleAddressInput(event: Event) {
-		const target = event.target as HTMLTextAreaElement;
-		const value = target.value;
-
-		// Clear previous timer
-		clearTimeout(debounceTimer);
-
-		if (value.length >= 3) {
-			// Show loading immediately
-			isLoadingSuggestions = true;
-			// Debounce the API call
-			debouncedFetchSuggestions(value);
-		} else {
-			addressSuggestions = [];
-			showAddressSuggestions = false;
-			isLoadingSuggestions = false;
-		}
-	}
-
-	function handleAddressKeydown(event: KeyboardEvent) {
-		if (!showAddressSuggestions || addressSuggestions.length === 0) return;
-
-		switch (event.key) {
-			case 'ArrowDown':
-				event.preventDefault();
-				selectedAddressIndex = (selectedAddressIndex + 1) % addressSuggestions.length;
-				break;
-			case 'ArrowUp':
-				event.preventDefault();
-				selectedAddressIndex =
-					selectedAddressIndex <= 0 ? addressSuggestions.length - 1 : selectedAddressIndex - 1;
-				break;
-			case 'Enter':
-				event.preventDefault();
-				if (selectedAddressIndex >= 0) {
-					selectAddressSuggestion(selectedAddressIndex);
-				}
-				break;
-			case 'Escape':
-				showAddressSuggestions = false;
-				break;
-		}
-	}
-
-	$effect(() => {
-		const currentUser = get(user);
-		if (currentUser) {
-			email = currentUser.email || '';
-		}
-	});
+	const PaystackPop = (window as any).PaystackPop;
+	let email = get(user)?.email;
+	let amount = get(total);
 
 	function isValidPhone(prefix: string, phone: string): boolean {
 		prefix = prefix.trim();
@@ -440,285 +198,56 @@
 		return phone.length >= 7 && phone.length <= 15;
 	}
 
-	// Calculate delivery fees for all restaurants in cart
-	async function calculateDeliveryFees() {
-		if (!homeAddress || homeAddress.trim().length < 5) {
-			deliveryFeeError = 'Please enter a valid delivery address';
-			return;
-		}
-
-		calculatingDeliveryFees = true;
-		deliveryFeeError = '';
-		mixedStateError = '';
-
-		const newFees = new Map<
-			string,
-			{
-				canDeliver: boolean;
-				fees: {
-					deliveryFee: number;
-					deliveryTier: string;
-					serviceFee: number;
-					smallOrderFee: number;
-					total: number;
-				};
-				distance: number;
-				restaurantName: string;
-				customerState: string;
-				restaurantState: string;
-				error?: string;
-			}
-		>();
-
-		try {
-			// Get unique restaurants from cart
-			const grouped = groupCartByRestaurant(get(cart));
-			let firstRestaurantState = '';
-			let hasStateMismatch = false;
-
-			// Calculate fee for each restaurant
-			for (const [restaurantId, items] of grouped) {
-				const restaurantName = getRestaurantName(restaurantId);
-
-				// Calculate order subtotal for this restaurant
-				const orderSubtotal = items.reduce((acc: number, item: any) => {
-					const price = item.expand?.dish?.promoAmount ?? item.expand?.dish?.defaultAmount ?? 0;
-					return acc + price * item.quantity;
-				}, 0);
-
-				const response = await fetch('/api/delivery-fee', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						restaurantId,
-						address: homeAddress,
-						orderSubtotal
-					})
-				});
-
-				const data = await response.json();
-
-				// Track the first restaurant's state
-				if (data.restaurantState && !firstRestaurantState) {
-					firstRestaurantState = data.restaurantState;
-				}
-
-				// Check for state mismatch
-				if (
-					data.restaurantState &&
-					firstRestaurantState &&
-					data.restaurantState !== firstRestaurantState
-				) {
-					hasStateMismatch = true;
-				}
-
-				if (data.success && data.canDeliver) {
-					newFees.set(restaurantId, {
-						canDeliver: true,
-						fees: data.fees,
-						distance: data.distance,
-						restaurantName: data.restaurantName || restaurantName,
-						customerState: data.customerState,
-						restaurantState: data.restaurantState
-					});
-
-					// Store customer state for validation
-					if (data.customerState) {
-						customerState = data.customerState;
-					}
-				} else {
-					console.error(`Failed to calculate delivery fee for ${restaurantName}:`, data.error);
-					newFees.set(restaurantId, {
-						canDeliver: false,
-						fees: { deliveryFee: 0, deliveryTier: '', serviceFee: 0, smallOrderFee: 0, total: 0 },
-						distance: data.distance || 0,
-						restaurantName: data.restaurantName || restaurantName,
-						customerState: data.customerState || '',
-						restaurantState: data.restaurantState || '',
-						error: data.error || 'Cannot deliver to this location'
-					});
-				}
-			}
-
-			// Check if we're mixing restaurants from different states
-			if (hasStateMismatch) {
-				mixedStateError =
-					'⚠️ You have items from restaurants in different locations. Please order from restaurants in the same city/area only.';
-			}
-
-			deliveryFees = newFees;
-		} catch (err) {
-			console.error('Error calculating delivery fees:', err);
-			deliveryFeeError = 'Failed to calculate delivery fees. Please try again.';
-		} finally {
-			calculatingDeliveryFees = false;
-		}
-	}
-
-	// Clear delivery fees when address changes significantly or delivery option changes
-	$effect(() => {
-		if (deliveryOption !== 'home') {
-			deliveryFees = new Map();
-			deliveryFeeError = '';
-		}
-	});
-
 	function payWithPaystack(e: Event) {
 		e.preventDefault();
-
-		const currentPaystackKey = get(paystackKey);
-		const PaystackPop = (window as any).PaystackPop;
-
-		// Debug: log what's in the page data
-		const pageData = get(page).data;
-		console.log('Page data:', pageData);
-		console.log('Restaurant:', pageData.restaurant);
-		console.log('Restaurant paystackKey:', pageData.restaurant?.paystackKey);
-		console.log('All restaurants:', pageData.allRestaurants);
-		console.log('Paystack Key:', currentPaystackKey);
-		console.log('PaystackPop available:', !!PaystackPop);
-
-		if (!currentPaystackKey) {
-			alert('Payment configuration error. Please contact support.');
-			console.error('Paystack key is missing');
-			return;
-		}
-
-		if (!PaystackPop) {
-			alert('Payment system is loading. Please try again in a moment.');
-			return;
-		}
-
 		if (!isValidPhone(prefix, phone)) {
 			alert('Please enter a valid Nigerian phone number.');
 			return;
 		}
-
-		// For home delivery, ensure delivery fees are calculated
-		if (deliveryOption === 'home') {
-			if (deliveryFees.size === 0) {
-				alert('Please calculate delivery fees first. Click "Calculate Delivery Fees" button.');
-				return;
-			}
-
-			// Check for mixed state error
-			if (mixedStateError) {
-				alert(
-					'You cannot order from restaurants in different locations. Please remove items from restaurants outside your area.'
-				);
-				return;
-			}
-
-			// Check if any restaurant cannot deliver
-			if (hasDeliveryRestrictions()) {
-				alert(
-					'Some restaurants cannot deliver to your location. Please remove those items from your cart.'
-				);
-				return;
-			}
-		}
-
-		amount = grandTotal();
-		const handler = PaystackPop.setup({
-			key: currentPaystackKey,
+		amount = get(total);
+		let handler = PaystackPop.setup({
+			key: $paystackKey,
 			email: email,
 			amount: amount * 100,
 			currency: 'NGN',
 			ref: 'ORD-' + Math.floor(Math.random() * 1000000000 + 1),
 			callback: function (response: any) {
 				alert('Payment complete! Reference: ' + response.reference);
-
-				// Use promise chain instead of async/await for Paystack compatibility
-				const saveOrdersPromise = new Promise<void>((resolve, reject) => {
-					try {
-						// Group cart by restaurant
-						const grouped = groupCartByRestaurant(get(cart));
-						const savePromises: Promise<any>[] = [];
-
-						// Create separate order for each restaurant
-						grouped.forEach((items, restaurantId) => {
-							const restaurantName = getRestaurantName(restaurantId);
-							const deliveryFeeInfo = deliveryFees.get(restaurantId);
-
-							// Get fee details for this restaurant
-							const feeInfo = deliveryOption === 'home' ? deliveryFees.get(restaurantId) : null;
-							const foodSubtotal = items.reduce((acc: number, item: any) => {
-								const price =
-									item.expand?.dish?.promoAmount ?? item.expand?.dish?.defaultAmount ?? 0;
-								return acc + price * item.quantity;
-							}, 0);
-
-							const orderData = {
-								reference: response.reference + '-' + restaurantId.slice(0, 6),
-								mainReference: response.reference,
-								totalAmount: foodSubtotal + (feeInfo?.fees?.total || 0),
-								foodTotal: foodSubtotal,
-								deliveryFee: feeInfo?.fees?.deliveryFee || 0,
-								serviceFee: feeInfo?.fees?.serviceFee || 0,
-								smallOrderFee: feeInfo?.fees?.smallOrderFee || 0,
-								deliveryDistance: feeInfo?.distance || 0,
-								deliveryTier: feeInfo?.fees?.deliveryTier || '',
-								customerState: feeInfo?.customerState || '',
-								restaurantState: feeInfo?.restaurantState || '',
-								type: deliveryOption,
-								user: get(user).id,
-								dishes: items.map((item: any) => ({
-									dish: item.expand?.dish?.id,
-									name: item.expand?.dish?.name,
-									quantity: item.quantity,
-									amount: item.amount
-								})),
-								name: get(user).name,
-								email: get(user).email,
-								quantity: items.length,
-								formattedPhone,
-								tableNumber,
-								homeAddress,
-								pickupTime,
-								restaurantId: restaurantId,
-								restaurantName: restaurantName,
-								isMultiRestaurantOrder: grouped.size > 1,
-								totalRestaurants: grouped.size
-							};
-
-							const savePromise = fetch('/api/save-order', {
-								method: 'POST',
-								headers: { 'Content-Type': 'application/json' },
-								body: JSON.stringify(orderData)
-							}).then((res) => {
-								if (!res.ok) {
-									throw new Error(`Failed to save order for ${restaurantName}`);
-								}
-								return res.json();
-							});
-
-							savePromises.push(savePromise);
-						});
-
-						Promise.all(savePromises)
-							.then(() => {
-								alert('Orders saved successfully!');
-								goto('/pending');
-								clearCart();
-								resolve();
-							})
-							.catch((err) => {
-								console.error('Error saving orders:', err);
-								alert(
-									'Error saving some orders. Please contact support with reference: ' +
-										response.reference
-								);
-								reject(err);
-							});
-					} catch (err) {
-						console.error('Error in save orders:', err);
-						alert(
-							'Error processing orders. Please contact support with reference: ' +
-								response.reference
-						);
-						reject(err);
-					}
-				});
+				const orderedDishes = $cart.map((item) => ({
+					dish: item.expand?.dish?.id,
+					name: item.expand?.dish?.name,
+					quantity: item.quantity,
+					amount: item.amount
+				}));
+				const orderData = {
+					reference: response.reference,
+					totalAmount: get(total),
+					type: deliveryOption,
+					user: get(user).id,
+					dishes: orderedDishes,
+					name: get(user).name,
+					email: get(user).email,
+					quantity: $cart.length,
+					formattedPhone,
+					tableNumber,
+					homeAddress,
+					pickupTime
+				};
+				fetch('/api/save-order', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(orderData)
+				})
+					.then((res) => res.json())
+					.then((data) => {
+						alert('Order saved successfully!');
+						goto('/pending');
+						clearCart();
+					})
+					.catch((err) => {
+						console.error(err);
+						alert('Error saving order.');
+					});
 			},
 			onClose: function () {
 				alert('Transaction was cancelled');
@@ -727,10 +256,6 @@
 		handler.openIframe();
 	}
 </script>
-
-<svelte:head>
-	<title>Checkout - Proxifeast</title>
-</svelte:head>
 
 <!-- Progress Bar -->
 <div class="bg-base-100 border-base-200 sticky top-0 z-4 border-b">
@@ -1021,88 +546,18 @@
 											>₦{$total.toLocaleString()}</span
 										>
 									</div>
-
-									<!-- Delivery Fees Section -->
-									{#if deliveryOption === 'home'}
-										{#if mixedStateError}
-											<div class="bg-error/10 border-error/30 mt-2 rounded-lg border p-3">
-												<p class="text-error text-sm font-medium">{mixedStateError}</p>
-											</div>
-										{/if}
-
-										{#if deliveryFees.size > 0}
-											<div class="border-base-200 mt-2 space-y-3 border-t pt-2">
-												<p class="text-base-content/70 text-xs font-medium">
-													Delivery Fees by Restaurant:
-												</p>
-												{#each Array.from(deliveryFees.entries()) as [restaurantId, feeData]}
-													<div class="bg-base-200/50 flex flex-col gap-2 rounded-lg p-3">
-														<div class="flex items-center justify-between">
-															<span class="text-sm font-medium">{feeData.restaurantName}</span>
-															{#if feeData.canDeliver}
-																<span class="text-success text-xs">✓ Can Deliver</span>
-															{:else}
-																<span class="text-error text-xs">✗ Cannot Deliver</span>
-															{/if}
-														</div>
-
-														{#if feeData.canDeliver}
-															<div class="space-y-1 text-sm">
-																<div class="flex justify-between">
-																	<span class="text-base-content/70">Distance</span>
-																	<span>{feeData.distance}km ({feeData.fees.deliveryTier})</span>
-																</div>
-																<div class="flex justify-between">
-																	<span class="text-base-content/70">Delivery Fee</span>
-																	<span>₦{feeData.fees.deliveryFee.toLocaleString()}</span>
-																</div>
-																<div class="flex justify-between">
-																	<span class="text-base-content/70">Service Fee</span>
-																	<span>₦{feeData.fees.serviceFee.toLocaleString()}</span>
-																</div>
-																{#if feeData.fees.smallOrderFee > 0}
-																	<div class="text-warning flex justify-between">
-																		<span>Small Order Fee</span>
-																		<span>₦{feeData.fees.smallOrderFee.toLocaleString()}</span>
-																	</div>
-																{/if}
-																<div
-																	class="border-base-300 flex justify-between border-t pt-1 font-semibold"
-																>
-																	<span>Total Fees</span>
-																	<span>₦{feeData.fees.total.toLocaleString()}</span>
-																</div>
-															</div>
-														{:else}
-															<div class="bg-error/10 rounded p-2">
-																<p class="text-error text-xs">{feeData.error}</p>
-															</div>
-														{/if}
-													</div>
-												{/each}
-											</div>
-										{:else}
-											<div class="flex justify-between text-sm">
-												<span class="text-base-content/70">Delivery Fee</span>
-												<span class="text-warning font-medium">Click calculate below</span>
-											</div>
-										{/if}
-									{:else}
-										<div class="flex justify-between text-sm">
-											<span class="text-base-content/70">Delivery Fee</span>
-											<span class="text-success font-medium">Free</span>
-										</div>
-									{/if}
-
+									<div class="flex justify-between text-sm">
+										<span class="text-base-content/70">Delivery Fee</span><span
+											class="text-success font-medium">Calculated next</span
+										>
+									</div>
 									<div class="border-base-300 mt-4 border-t-2 pt-4">
 										<div class="flex items-end justify-between">
 											<div>
 												<p class="text-sm font-semibold">Total Amount</p>
-												<p class="text-base-content/60 text-xs">Including all taxes & delivery</p>
+												<p class="text-base-content/60 text-xs">Including all taxes</p>
 											</div>
-											<p class="text-primary text-3xl font-bold">
-												₦{grandTotal().toLocaleString()}
-											</p>
+											<p class="text-primary text-3xl font-bold">₦{$total.toLocaleString()}</p>
 										</div>
 									</div>
 									{#if $cart.length > 0}
@@ -1126,65 +581,34 @@
 										<p class="flex items-center gap-2 text-sm font-semibold">
 											{@html iconPackage} Select Delivery Method
 										</p>
-										<label
-											class="block {isMultiRestaurant()
-												? 'cursor-not-allowed opacity-50'
-												: 'cursor-pointer'}"
-										>
+										<label class="block cursor-pointer">
 											<input
 												type="radio"
 												bind:group={deliveryOption}
 												value="tableService"
 												class="peer sr-only"
 												required
-												disabled={isMultiRestaurant()}
 											/>
 											<div
-												class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 {isMultiRestaurant()
-													? ''
-													: 'hover:border-primary/30'} group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300 {isMultiRestaurant()
-													? 'bg-base-200'
-													: ''}"
+												class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
 											>
 												<div
-													class="bg-primary/10 {isMultiRestaurant()
-														? ''
-														: 'group-hover:bg-primary/20'} flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors {isMultiRestaurant()
-														? 'opacity-50'
-														: ''}"
+													class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
 												>
 													{@html iconUtensilsCrossed}
 												</div>
 												<div class="flex-1">
 													<div class="mb-1 flex items-center justify-between">
-														<p
-															class="font-semibold {isMultiRestaurant()
-																? 'text-base-content/50'
-																: ''}"
-														>
-															Table Service
-														</p>
+														<p class="font-semibold">Table Service</p>
 														<div
-															class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2 {isMultiRestaurant()
-																? 'opacity-50'
-																: ''}"
+															class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
 														>
 															<div class="h-2 w-2 rounded-full bg-white"></div>
 														</div>
 													</div>
-													{#if isMultiRestaurant()}
-														<p class="text-error text-xs font-medium">
-															⚠️ Not available for multi-restaurant orders (DEBUG: {uniqueRestaurantsCount()}
-															restaurants detected)
-														</p>
-														<p class="text-base-content/50 mt-1 text-xs">
-															You have items from {uniqueRestaurantsCount()} different restaurants
-														</p>
-													{:else}
-														<p class="text-base-content/70 text-sm">
-															We'll serve you at your table in the restaurant
-														</p>
-													{/if}
+													<p class="text-base-content/70 text-sm">
+														We'll serve you at your table in the restaurant
+													</p>
 												</div>
 											</div>
 										</label>
@@ -1301,189 +725,24 @@
 													</div>
 												</div>
 											{:else if deliveryOption === 'home'}
-												<div class="space-y-3">
-													<div class="relative space-y-2">
-														<label class="block flex items-center gap-2 text-sm font-medium"
-															>{@html iconMapPin} Delivery Address</label
-														>
-														<div class="relative">
-															<textarea
-																bind:value={homeAddress}
-																oninput={handleAddressInput}
-																onkeydown={handleAddressKeydown}
-																onblur={() =>
-																	setTimeout(() => {
-																		showAddressSuggestions = false;
-																	}, 200)}
-																placeholder="Start typing your address (min. 3 characters)..."
-																rows="3"
-																maxlength="200"
-																class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-full resize-none rounded-xl border-2 px-4 py-3 transition-all outline-none focus:ring-4"
-																required
-															></textarea>
-
-															{#if isLoadingSuggestions}
-																<div
-																	class="border-base-300 bg-base-100 absolute z-50 mt-1 w-full rounded-xl border-2 p-3 shadow-lg"
-																>
-																	<div class="text-base-content/70 flex items-center gap-2 text-sm">
-																		<span class="loading loading-spinner loading-sm"></span>
-																		Searching addresses...
-																	</div>
-																</div>
-															{/if}
-
-															{#if showAddressSuggestions && addressSuggestions.length > 0}
-																<div
-																	class="border-base-300 bg-base-100 absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-xl border-2 shadow-lg"
-																	role="listbox"
-																>
-																	<div
-																		class="border-base-300 bg-base-200 text-base-content/70 sticky top-0 border-b px-4 py-2 text-xs font-medium"
-																	>
-																		Select an address
-																	</div>
-																	{#each addressSuggestions as suggestion, index}
-																		<button
-																			type="button"
-																			class="border-base-200 hover:bg-primary/5 w-full border-b px-4 py-3 text-left text-sm transition-colors last:border-b-0 {index ===
-																			selectedAddressIndex
-																				? 'bg-primary/10'
-																				: ''}"
-																			onclick={() => selectAddressSuggestion(index)}
-																			role="option"
-																			aria-selected={index === selectedAddressIndex}
-																		>
-																			<div class="flex items-start gap-3">
-																				<svg
-																					xmlns="http://www.w3.org/2000/svg"
-																					width="18"
-																					height="18"
-																					viewBox="0 0 24 24"
-																					fill="none"
-																					stroke="currentColor"
-																					stroke-width="2"
-																					stroke-linecap="round"
-																					stroke-linejoin="round"
-																					class="text-primary mt-0.5 flex-shrink-0"
-																				>
-																					<path
-																						d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"
-																					/>
-																					<circle cx="12" cy="10" r="3" />
-																				</svg>
-																				<div class="min-w-0 flex-1">
-																					<div class="text-base-content font-medium">
-																						{suggestion.name || suggestion.label.split(',')[0]}
-																					</div>
-																					{#if suggestion.street || suggestion.locality}
-																						<div
-																							class="text-base-content/60 mt-0.5 truncate text-xs"
-																						>
-																							{#if suggestion.street}{suggestion.street},
-																							{/if}
-																							{#if suggestion.locality}{suggestion.locality}{/if}
-																						</div>
-																					{/if}
-																					<div
-																						class="text-base-content/50 mt-1 flex items-center gap-2 text-xs"
-																					>
-																						<span>{suggestion.region || 'Nigeria'}</span>
-																						{#if suggestion.confidence > 0.8}
-																							<span class="text-success">● High confidence</span>
-																						{/if}
-																					</div>
-																				</div>
-																			</div>
-																		</button>
-																	{/each}
-																</div>
-															{/if}
-														</div>
-														<div class="flex justify-between text-xs">
-															<span class="text-base-content/60 flex items-center gap-1"
-																>{@html iconInfo} Start typing for address suggestions (Nigeria-wide)</span
-															>
-															<span class="text-base-content/40">{homeAddress.length}/200</span>
-														</div>
-														<!-- DEBUG: Show suggestion count -->
-														{#if addressSuggestions.length > 0}
-															<div class="text-success mt-1 text-xs">
-																✓ {addressSuggestions.length} addresses found
-															</div>
-														{/if}
-														{#if autocompleteError}
-															<div class="text-error mt-1 flex items-center gap-1 text-xs">
-																<svg
-																	xmlns="http://www.w3.org/2000/svg"
-																	width="12"
-																	height="12"
-																	viewBox="0 0 24 24"
-																	fill="none"
-																	stroke="currentColor"
-																	stroke-width="2"
-																	stroke-linecap="round"
-																	stroke-linejoin="round"
-																	><circle cx="12" cy="12" r="10" /><line
-																		x1="12"
-																		y1="8"
-																		x2="12"
-																		y2="12"
-																	/><line x1="12" y1="16" x2="12.01" y2="16" /></svg
-																>
-																{autocompleteError}
-															</div>
-														{/if}
-													</div>
-													<button
-														type="button"
-														onclick={calculateDeliveryFees}
-														disabled={calculatingDeliveryFees || homeAddress.length < 10}
-														class="bg-secondary hover:bg-secondary/90 text-secondary-content flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50"
+												<div class="space-y-2">
+													<label class="block flex items-center gap-2 text-sm font-medium"
+														>{@html iconMapPin} Delivery Address</label
 													>
-														{#if calculatingDeliveryFees}
-															<span class="loading loading-spinner loading-sm"></span>
-															Calculating...
-														{:else}
-															<svg
-																xmlns="http://www.w3.org/2000/svg"
-																width="16"
-																height="16"
-																viewBox="0 0 24 24"
-																fill="none"
-																stroke="currentColor"
-																stroke-width="2"
-																stroke-linecap="round"
-																stroke-linejoin="round"
-																><circle cx="12" cy="12" r="10" /><path
-																	d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"
-																/><path d="M2 12h20" /></svg
-															>
-															Calculate Delivery Fees
-														{/if}
-													</button>
-													{#if deliveryFeeError}
-														<div class="text-error flex items-center gap-1 text-sm">
-															<svg
-																xmlns="http://www.w3.org/2000/svg"
-																width="14"
-																height="14"
-																viewBox="0 0 24 24"
-																fill="none"
-																stroke="currentColor"
-																stroke-width="2"
-																stroke-linecap="round"
-																stroke-linejoin="round"
-																><circle cx="12" cy="12" r="10" /><line
-																	x1="12"
-																	y1="8"
-																	x2="12"
-																	y2="12"
-																/><line x1="12" y1="16" x2="12.01" y2="16" /></svg
-															>
-															{deliveryFeeError}
-														</div>
-													{/if}
+													<textarea
+														bind:value={homeAddress}
+														placeholder="Enter your complete address including landmarks..."
+														rows="3"
+														maxlength="200"
+														class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-full resize-none rounded-xl border-2 px-4 py-3 transition-all outline-none focus:ring-4"
+														required
+													></textarea>
+													<div class="flex justify-between text-xs">
+														<span class="text-base-content/60 flex items-center gap-1"
+															>{@html iconInfo} Include landmarks for easier delivery</span
+														>
+														<span class="text-base-content/40">{homeAddress.length}/200</span>
+													</div>
 												</div>
 											{/if}
 										</div>
@@ -1546,7 +805,7 @@
 											class="bg-primary hover:bg-primary/90 text-primary-content shadow-primary/20 flex w-full transform items-center justify-center gap-3 rounded-xl px-6 py-4 text-lg font-bold shadow-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
 											disabled={$cart.length === 0 || !deliveryOption}
 										>
-											{@html iconLock}<span>Pay ₦{grandTotal().toLocaleString()}</span>
+											{@html iconLock}<span>Pay ₦{$total.toLocaleString()}</span>
 										</button>
 										<div
 											class="text-base-content/50 flex items-center justify-center gap-4 text-xs"

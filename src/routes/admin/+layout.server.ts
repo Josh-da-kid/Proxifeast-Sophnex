@@ -66,13 +66,16 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		}
 
 		// Block access if subscription is expired, cancelled, or not subscribed
+		// Only for non-super restaurants, and only if NOT already on billing page
 		if (
-			subscriptionStatus === 'expired' ||
-			subscriptionStatus === 'cancelled' ||
-			subscriptionStatus === 'not_subscribed'
+			!locals.isSuper &&
+			(subscriptionStatus === 'expired' ||
+				subscriptionStatus === 'cancelled' ||
+				subscriptionStatus === 'not_subscribed')
 		) {
-			// Allow access only to billing page
-			if (!pathname.includes('/admin/billing')) {
+			// Allow access to billing page - don't redirect if already there
+			if (pathname !== '/admin/billing' && !pathname.startsWith('/admin/billing?')) {
+				console.log(`Redirecting to billing - subscription status: ${subscriptionStatus}`);
 				throw redirect(307, '/admin/billing?expired=1');
 			}
 		}
