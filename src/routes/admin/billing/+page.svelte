@@ -376,7 +376,7 @@
 
 	<!-- Content -->
 	<main class="container mx-auto px-4 py-8">
-		{#if !data.isSuper && (data.subscriptionStatus === 'not_subscribed' || data.subscriptionStatus === 'expired')}
+		{#if !data.isSuper && (data.subscriptionStatus === 'not_subscribed' || data.subscriptionStatus === 'expired' || data.subscriptionStatus === 'cancelled')}
 			<!-- Subscription plans for non-super restaurants -->
 			<div class="mx-auto max-w-3xl">
 				<div class="rounded-2xl bg-white p-6 shadow-sm">

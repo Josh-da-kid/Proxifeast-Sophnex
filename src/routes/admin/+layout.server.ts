@@ -50,10 +50,10 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			const now = new Date();
 			const endDate = new Date(subs.endDate);
 
-			if (endDate <= now) {
-				subscriptionStatus = 'expired';
-			} else if (subs.status === 'cancelled') {
+			if (subs.status === 'inactive' || subs.status === 'cancelled') {
 				subscriptionStatus = 'cancelled';
+			} else if (endDate <= now) {
+				subscriptionStatus = 'expired';
 			} else {
 				const thirtyDaysFromNow = new Date();
 				thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
@@ -65,17 +65,15 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			subscriptionStatus = 'not_subscribed';
 		}
 
-		// Block access if subscription is expired, cancelled, or not subscribed
-		// Only for non-super restaurants, and only if NOT already on billing page
+		// Block access if subscription is expired, cancelled, not_subscribed, or inactive
+		// Allow access to billing page only
 		if (
-			!locals.isSuper &&
-			(subscriptionStatus === 'expired' ||
-				subscriptionStatus === 'cancelled' ||
-				subscriptionStatus === 'not_subscribed')
+			subscriptionStatus === 'expired' ||
+			subscriptionStatus === 'cancelled' ||
+			subscriptionStatus === 'not_subscribed'
 		) {
-			// Allow access to billing page - don't redirect if already there
+			// Don't redirect if already on billing page
 			if (pathname !== '/admin/billing' && !pathname.startsWith('/admin/billing?')) {
-				console.log(`Redirecting to billing - subscription status: ${subscriptionStatus}`);
 				throw redirect(307, '/admin/billing?expired=1');
 			}
 		}
