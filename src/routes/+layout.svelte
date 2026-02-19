@@ -140,4 +140,4 @@
 {/if}
 
 <!-- Drawer Cart -->
-<Drawer restaurants={data.allRestaurants} />
+<Drawer restaurants={data.allRestaurants} isSuper={data.isSuper} restaurantId={data.restaurantId} />

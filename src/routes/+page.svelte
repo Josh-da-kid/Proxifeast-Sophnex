@@ -480,10 +480,19 @@
 
 	// Derived data for grouped dishes
 	const groupedDishes = $derived.by(() => {
-		// Filter by category if selected
+		// Filter by category and search
 		let sourceDishes = dishes;
+
 		if (selectedCategoryInput !== 'All') {
-			sourceDishes = dishes.filter((d: any) => d.category === selectedCategoryInput);
+			sourceDishes = sourceDishes.filter((d: any) => d.category === selectedCategoryInput);
+		}
+
+		if (searchInput.trim()) {
+			const query = searchInput.toLowerCase();
+			sourceDishes = sourceDishes.filter(
+				(d: any) =>
+					d.name?.toLowerCase().includes(query) || d.description?.toLowerCase().includes(query)
+			);
 		}
 
 		const groups: Record<string, typeof dishes> = {};
@@ -1062,22 +1071,92 @@
 
 		<!-- Menu View -->
 		{#if viewMode === 'menu'}
-			<!-- Restaurant Selector & Category -->
-			<div class="mb-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-				<!-- Restaurant Dropdown - Only for super restaurants -->
-				{#if isSuper}
+			<!-- Search & Filters -->
+			<div class="mx-auto mb-8 max-w-4xl">
+				<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-center">
+					<!-- Dish Search -->
+					<div class="relative flex-1 sm:max-w-xs">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="pointer-events-none absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-slate-400"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<circle cx="11" cy="11" r="8" />
+							<path d="m21 21-4.3-4.3" />
+						</svg>
+						<input
+							type="text"
+							bind:value={searchInput}
+							placeholder="Search dishes..."
+							class="w-full rounded-xl border-0 bg-white py-3 pr-4 pl-12 placeholder-slate-400 shadow-lg shadow-slate-900/10 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+						/>
+						{#if searchInput}
+							<button
+								type="button"
+								onclick={() => (searchInput = '')}
+								class="absolute top-1/2 right-3 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-4 w-4"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path d="M6 18L18 6M6 6l12 12" />
+								</svg>
+							</button>
+						{/if}
+					</div>
+
+					<!-- Restaurant Dropdown - Only for super restaurants -->
+					{#if isSuper}
+						<div class="relative">
+							<select
+								value={menuRestaurantId}
+								onchange={handleMenuRestaurantChange}
+								class="appearance-none rounded-xl border-0 bg-white px-6 py-3 pr-10 text-base font-semibold shadow-lg shadow-slate-900/10 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+							>
+								<option value="">Select Restaurant</option>
+								{#each allRestaurants as restaurant}
+									<option value={restaurant.id}>{restaurant.name}</option>
+								{/each}
+							</select>
+							<div class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2">
+								<svg
+									class="h-5 w-5 text-slate-400"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M19 9l-7 7-7-7"
+									/>
+								</svg>
+							</div>
+						</div>
+					{/if}
+
+					<!-- Category Filter -->
 					<div class="relative">
 						<select
-							value={menuRestaurantId}
-							onchange={handleMenuRestaurantChange}
-							class="appearance-none rounded-xl border-0 bg-white px-6 py-3 pr-12 text-base font-semibold shadow-lg shadow-slate-900/10 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+							bind:value={selectedCategoryInput}
+							onchange={handleCategoryChange}
+							class="appearance-none rounded-xl border-0 bg-white px-6 py-3 pr-10 font-medium shadow-lg shadow-slate-900/10 focus:ring-2 focus:ring-amber-500 focus:outline-none"
 						>
-							<option value="">Select Restaurant</option>
-							{#each allRestaurants as restaurant}
-								<option value={restaurant.id}>{restaurant.name}</option>
+							<option value="All">All Categories</option>
+							{#each categories as category}
+								<option value={category}>{category}</option>
 							{/each}
 						</select>
-						<div class="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2">
+						<div class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2">
 							<svg
 								class="h-5 w-5 text-slate-400"
 								fill="none"
@@ -1093,19 +1172,7 @@
 							</svg>
 						</div>
 					</div>
-				{/if}
-
-				<!-- Category Filter -->
-				<select
-					bind:value={selectedCategoryInput}
-					onchange={handleCategoryChange}
-					class="rounded-xl border-0 bg-white px-6 py-3 shadow-lg shadow-slate-900/10 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-				>
-					<option value="All">All Categories</option>
-					{#each categories as category}
-						<option value={category}>{category}</option>
-					{/each}
-				</select>
+				</div>
 			</div>
 		{:else}
 			<!-- Restaurant Search for List View - Only for super restaurants -->
@@ -1311,16 +1378,24 @@
 					<path stroke-linecap="round" stroke-linejoin="round" d="M12 8v8M8 12h8" />
 				</svg>
 				<p class="mt-4 text-lg text-slate-600">Please select a restaurant to view its menu</p>
-				<button
-					onclick={() => (viewMode = 'list')}
-					class="mt-4 rounded-xl bg-amber-500 px-6 py-2.5 font-semibold text-white"
-				>
-					Browse Restaurants
-				</button>
+				{#if isSuper}
+					<button
+						onclick={() => (viewMode = 'list')}
+						class="mt-4 rounded-xl bg-amber-500 px-6 py-2.5 font-semibold text-white"
+					>
+						Browse Restaurants
+					</button>
+				{/if}
 			</div>
-		{:else if dishes.length === 0}
+		{:else if Object.keys(groupedDishes).length === 0}
 			<p class="mt-6 py-12 text-center text-gray-500">
-				No dishes found in {selectedCategoryInput !== 'All' ? `${selectedCategoryInput}` : 'all'} category.
+				{#if searchInput.trim()}
+					No dishes found matching "{searchInput}"
+				{:else if selectedCategoryInput !== 'All'}
+					No dishes found in {selectedCategoryInput} category.
+				{:else}
+					No dishes available.
+				{/if}
 			</p>
 		{:else}
 			{#each Object.entries(groupedDishes).sort( (a, b) => a[0].localeCompare(b[0]) ) as [category, dishesInCategory]}

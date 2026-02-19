@@ -1,11 +1,18 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { derived } from 'svelte/store';
+	import { derived, get } from 'svelte/store';
 	import { isAdminPage } from './menuItems.svelte';
 	import { cart, clearCart, fetchCart, removeFromCart, total } from './stores/cart';
 	import { onMount } from 'svelte';
 
-	let { restaurants = [] } = $props();
+	let { restaurants = [], isSuper: propIsSuper, restaurantId: propRestaurantId } = $props();
+
+	// Get isSuper from page data or props
+	const isSuper = derived(page, ($page) => propIsSuper ?? $page.data.isSuper ?? false);
+	const currentRestaurantId = derived(
+		page,
+		($page) => propRestaurantId ?? $page.data.restaurantId ?? ''
+	);
 
 	function closeSideBar() {
 		const drawerToggle = document.getElementById('my-drawer-5');
@@ -80,26 +87,31 @@
 					class="flex-1 overflow-y-auto p-6"
 				>
 					<div class="space-y-5">
-						<!-- Restaurant Selection -->
-						<div>
-							<label for="restaurantId" class="mb-1.5 block text-sm font-medium text-slate-700"
-								>Restaurant *</label
-							>
-							<select
-								id="restaurantId"
-								name="restaurantId"
-								class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
-								required
-							>
-								<option value="" disabled selected>Select Restaurant</option>
-								{#each restaurants as restaurant}
-									<option value={restaurant.id}>{restaurant.name}</option>
-								{/each}
-							</select>
-							<p class="mt-1 text-xs text-slate-500">
-								Choose which restaurant this dish belongs to
-							</p>
-						</div>
+						<!-- Restaurant Selection - Only for super restaurants -->
+						{#if $isSuper}
+							<div>
+								<label for="restaurantId" class="mb-1.5 block text-sm font-medium text-slate-700"
+									>Restaurant *</label
+								>
+								<select
+									id="restaurantId"
+									name="restaurantId"
+									class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
+									required
+								>
+									<option value="" disabled selected>Select Restaurant</option>
+									{#each restaurants as restaurant}
+										<option value={restaurant.id}>{restaurant.name}</option>
+									{/each}
+								</select>
+								<p class="mt-1 text-xs text-slate-500">
+									Choose which restaurant this dish belongs to
+								</p>
+							</div>
+						{:else}
+							<!-- Hidden field for non-super restaurants - auto-selects their restaurant -->
+							<input type="hidden" name="restaurantId" value={$currentRestaurantId} />
+						{/if}
 
 						<!-- Name -->
 						<div>

@@ -25,6 +25,9 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 		// Set restaurant in locals
 		locals.restaurant = restaurant;
 
+		// Check if super restaurant
+		const isSuper = restaurant?.isSuper === true;
+
 		// Fetch all restaurants for restaurant lookup
 		const allRestaurants = await pb.collection('restaurants').getFullList({
 			sort: 'name',
@@ -34,7 +37,9 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 		return {
 			user: locals.user ?? null,
 			restaurant,
-			allRestaurants
+			allRestaurants,
+			isSuper,
+			restaurantId: restaurant?.id
 		};
 	} catch (err) {
 		console.error('Layout server error:', err);
@@ -42,7 +47,9 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 		return {
 			user: locals.user ?? null,
 			restaurant: null,
-			allRestaurants: []
+			allRestaurants: [],
+			isSuper: false,
+			restaurantId: null
 		};
 	}
 };

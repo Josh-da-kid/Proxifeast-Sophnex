@@ -39,6 +39,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 	return {
 		user: locals.user,
 		restaurant,
-		isSuper: locals.isSuper
+		isSuper: locals.isSuper,
+		restaurantId: restaurant?.id
 	};
 };
