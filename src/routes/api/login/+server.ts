@@ -52,15 +52,21 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const data = await request.json();
 
 	try {
+		// Normalize email for consistent authentication
+		const normalizedEmail = data.email?.toLowerCase().trim();
+
 		// 🔐 Authenticate user
-		const { record } = await locals.pb
+		const authResult = await locals.pb
 			.collection('users')
-			.authWithPassword(data.email, data.password);
+			.authWithPassword(normalizedEmail, data.password);
+
+		// Fetch fresh user record to ensure we have latest restaurantIds
+		const record = await locals.pb.collection('users').getOne(authResult.record.id);
 
 		// ❌ Email not verified
 		if (!record.verified) {
 			locals.pb.authStore.clear();
-			await locals.pb.collection('users').requestVerification(data.email);
+			await locals.pb.collection('users').requestVerification(normalizedEmail);
 
 			return json(
 				{
@@ -109,6 +115,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			user: record
 		});
 	} catch (err: any) {
+		console.error('Login error:', err);
 		return json(
 			{
 				error: true,

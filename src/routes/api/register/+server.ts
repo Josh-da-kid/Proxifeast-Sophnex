@@ -8,6 +8,9 @@ const pb = new PocketBase('https://playgzero.pb.itcass.net/');
 export const POST: RequestHandler = async ({ request }) => {
 	const data = await request.json();
 
+	// Normalize email to lowercase for consistent lookups
+	const normalizedEmail = data.email?.toLowerCase().trim();
+
 	const host = request.headers.get('host') || '';
 	const domain = host.split(':')[0];
 
@@ -19,14 +22,24 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	try {
-		// Step 1: Check if user already exists
+		// Step 1: Check if user already exists (using normalized email - case-insensitive)
+		// Use ~ (case-insensitive operator) to handle emails stored with different casing
 		const existingUsers = await pb.collection('users').getList(1, 1, {
-			filter: `email = "${data.email}"`,
-			fields: 'id,restaurantIds'
+			filter: `email ~ "${normalizedEmail}"`,
+			fields: 'id,restaurantIds,email,verified'
 		});
 
 		if (existingUsers.totalItems > 0) {
 			const existingUser = existingUsers.items[0];
+
+			// Normalize the stored email if needed (for backward compatibility)
+			const storedEmail = existingUser.email?.toLowerCase().trim();
+			if (storedEmail !== existingUser.email) {
+				// Update email to lowercase for consistency
+				await pb.collection('users').update(existingUser.id, {
+					email: storedEmail
+				});
+			}
 
 			// Get restaurantIds array or create one if it doesn't exist
 			const restaurantIds = existingUser.restaurantIds || [];
@@ -49,7 +62,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 			// Request verification email if not verified
 			if (!existingUser.verified) {
-				await pb.collection('users').requestVerification(data.email);
+				await pb.collection('users').requestVerification(storedEmail || normalizedEmail);
 			}
 
 			return new Response(
@@ -65,7 +78,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Step 2: Create new user with restaurantIds array
 		const newUser = await pb.collection('users').create({
 			name: data.name,
-			email: data.email,
+			email: normalizedEmail,
 			password: data.password,
 			passwordConfirm: data.passwordConfirm,
 			isAdmin: 'False',
@@ -75,10 +88,10 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Step 3: Authenticate user
 		const { token, record } = await pb
 			.collection('users')
-			.authWithPassword(data.email, data.password);
+			.authWithPassword(normalizedEmail, data.password);
 
 		// Step 4: Request email verification
-		await pb.collection('users').requestVerification(data.email);
+		await pb.collection('users').requestVerification(normalizedEmail);
 
 		// Step 5: Clear auth session
 		pb.authStore.clear();
