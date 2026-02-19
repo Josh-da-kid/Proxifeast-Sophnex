@@ -23,46 +23,73 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 		console.error('Could not find restaurant for domain:', domain);
 	}
 
-	// Load restaurant favorites
-	const favorites: string[] = locals.user.favorites || [];
+	// Load restaurant favorites - filtered by current restaurant for non-super
 	let restaurants: any[] = [];
 
-	if (favorites.length > 0) {
-		const filter = favorites.map((id) => `id="${id}"`).join(' || ');
-		restaurants = await locals.pb.collection('restaurants').getFullList({
-			filter,
-			sort: 'name'
-		});
+	if (isSuper) {
+		// Super restaurants see all their saved restaurants
+		const favorites: string[] = locals.user.favorites || [];
+		if (favorites.length > 0) {
+			const filter = favorites.map((id) => `id="${id}"`).join(' || ');
+			restaurants = await locals.pb.collection('restaurants').getFullList({
+				filter,
+				sort: 'name'
+			});
+		}
+	} else if (currentRestaurant) {
+		// Non-super restaurants: only show current restaurant if it's in favorites
+		const favorites: string[] = locals.user.favorites || [];
+		if (favorites.includes(currentRestaurant.id)) {
+			restaurants = [currentRestaurant];
+		}
+		// Otherwise show empty - they can't see other restaurants' favorites
 	}
 
-	// Load dish favorites for super restaurants
+	// Load dish favorites
 	let dishFavorites: any[] = [];
-	if (isSuper && currentRestaurant) {
+
+	if (currentRestaurant) {
 		const userDishFavorites = locals.user.dishFavorites || {};
-		const restaurantDishIds = userDishFavorites[currentRestaurant.id] || [];
 
-		if (restaurantDishIds.length > 0) {
-			const dishFilter = restaurantDishIds.map((id: string) => `id="${id}"`).join(' || ');
-			try {
-				// Fetch all restaurants first to map restaurantId to names
-				const allRestaurants = await locals.pb.collection('restaurants').getFullList({
-					fields: 'id,name'
-				});
-
-				const dishes = await locals.pb.collection('dishes').getFullList({
-					filter: dishFilter
-				});
-
-				// Attach restaurant name to each dish
-				dishFavorites = dishes.map((dish) => {
-					const restaurant = allRestaurants.find((r) => r.id === dish.restaurantId);
-					return {
+		if (isSuper) {
+			// Super restaurants see dish favorites for current restaurant context
+			const restaurantDishIds = userDishFavorites[currentRestaurant.id] || [];
+			if (restaurantDishIds.length > 0) {
+				const dishFilter = restaurantDishIds.map((id: string) => `id="${id}"`).join(' || ');
+				try {
+					const allRestaurants = await locals.pb.collection('restaurants').getFullList({
+						fields: 'id,name'
+					});
+					const dishes = await locals.pb.collection('dishes').getFullList({
+						filter: dishFilter
+					});
+					dishFavorites = dishes.map((dish) => {
+						const restaurant = allRestaurants.find((r) => r.id === dish.restaurantId);
+						return {
+							...dish,
+							restaurantName: restaurant?.name || 'Unknown Restaurant'
+						};
+					});
+				} catch (err) {
+					console.error('Failed to load dish favorites:', err);
+				}
+			}
+		} else {
+			// Non-super restaurants: only show dish favorites for their restaurant
+			const restaurantDishIds = userDishFavorites[currentRestaurant.id] || [];
+			if (restaurantDishIds.length > 0) {
+				const dishFilter = restaurantDishIds.map((id: string) => `id="${id}"`).join(' || ');
+				try {
+					const dishes = await locals.pb.collection('dishes').getFullList({
+						filter: dishFilter
+					});
+					dishFavorites = dishes.map((dish) => ({
 						...dish,
-						restaurantName: restaurant?.name || 'Unknown Restaurant'
-					};
-				});
-			} catch (err) {
-				console.error('Failed to load dish favorites:', err);
+						restaurantName: currentRestaurant.name
+					}));
+				} catch (err) {
+					console.error('Failed to load dish favorites:', err);
+				}
 			}
 		}
 	}
