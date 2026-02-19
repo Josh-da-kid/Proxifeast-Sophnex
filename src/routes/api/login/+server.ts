@@ -66,10 +66,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			);
 			locals.pb.authStore.clear();
 
+			// Return special response to prompt user to register for this restaurant
 			return json(
 				{
 					error: true,
-					message: 'You are not registered for this restaurant.'
+					code: 'NOT_REGISTERED_FOR_RESTAURANT',
+					message: 'You are not registered for this restaurant.',
+					restaurantName: restaurant.name,
+					restaurantId: restaurant.id,
+					email: normalizedEmail
 				},
 				{ status: 403 }
 			);

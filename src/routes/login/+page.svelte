@@ -5,6 +5,15 @@
 	let showSuccess = $state(false);
 	let logoutSuccess = $state(false);
 
+	// Modal state for linking account
+	let showLinkModal = $state(false);
+	let linkRestaurantName = $state('');
+	let linkRestaurantId = $state('');
+	let linkEmail = $state('');
+	let linkError = $state('');
+	let linkSuccess = $state('');
+	let isLinking = $state(false);
+
 	$effect(() => {
 		if ($page.url.searchParams.get('signup') === 'success') {
 			showSuccess = true;
@@ -50,7 +59,14 @@
 			const result = await res.json();
 
 			if (result.error === true || !res.ok) {
-				error = result.message || 'Login failed.';
+				if (result.code === 'NOT_REGISTERED_FOR_RESTAURANT') {
+					linkRestaurantName = result.restaurantName || 'this restaurant';
+					linkRestaurantId = result.restaurantId || '';
+					linkEmail = result.email || email;
+					showLinkModal = true;
+				} else {
+					error = result.message || 'Login failed.';
+				}
 			} else {
 				success = result.message || 'Login successful!';
 				window.location.href = '/';
@@ -60,6 +76,40 @@
 			error = 'Failed to connect to server.';
 		}
 		isLoading = false;
+	}
+
+	async function linkAccount() {
+		linkError = '';
+		linkSuccess = '';
+		isLinking = true;
+
+		try {
+			const res = await fetch('/api/link-restaurant', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					email: linkEmail,
+					restaurantId: linkRestaurantId
+				})
+			});
+
+			const result = await res.json();
+
+			if (result.error) {
+				linkError = result.message || 'Failed to link account.';
+			} else {
+				linkSuccess = result.message || 'Account linked successfully!';
+				setTimeout(() => {
+					showLinkModal = false;
+					// Retry login
+					login(new Event('submit'));
+				}, 1500);
+			}
+		} catch (err) {
+			console.error('Link failed:', err);
+			linkError = 'Failed to connect to server.';
+		}
+		isLinking = false;
 	}
 </script>
 
@@ -110,6 +160,82 @@
 			/>
 		</svg>
 		<span>Logout successful!</span>
+	</div>
+{/if}
+
+<!-- Link Account Modal -->
+{#if showLinkModal}
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+		in:fade={{ duration: 200 }}
+	>
+		<div
+			class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+			in:fly={{ y: 20, duration: 300 }}
+		>
+			<div class="text-center">
+				<div
+					class="bg-primary/10 mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="text-primary h-6 w-6"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					</svg>
+				</div>
+				<h3 class="mb-2 text-xl font-bold text-gray-900">Link to {linkRestaurantName}?</h3>
+				<p class="mb-6 text-gray-600">
+					Your account ({linkEmail}) is not registered for <strong>{linkRestaurantName}</strong>.
+					Would you like to link your existing account to this restaurant?
+				</p>
+
+				{#if linkError}
+					<div class="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+						{linkError}
+					</div>
+				{/if}
+
+				{#if linkSuccess}
+					<div class="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-600">
+						{linkSuccess}
+					</div>
+				{/if}
+
+				<div class="flex gap-3">
+					<button
+						type="button"
+						class="btn btn-ghost flex-1"
+						onclick={() => {
+							showLinkModal = false;
+							linkError = '';
+						}}
+					>
+						Cancel
+					</button>
+					<button
+						type="button"
+						class="btn btn-primary flex-1"
+						disabled={isLinking}
+						onclick={linkAccount}
+					>
+						{#if isLinking}
+							<span class="loading loading-spinner loading-sm"></span>
+						{:else}
+							Link Account
+						{/if}
+					</button>
+				</div>
+			</div>
+		</div>
 	</div>
 {/if}
 
