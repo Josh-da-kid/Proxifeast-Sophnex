@@ -16,6 +16,8 @@
 	let loading = $state(true);
 	const restaurantName = get(page).data.restaurant?.name;
 	const allRestaurants = get(page).data.allRestaurants ?? [];
+	const currentRestaurantId = get(page).data.restaurantId;
+	const isSuper = get(page).data.isSuper ?? false;
 
 	// Client-side filtered orders
 	$effect(() => {
@@ -45,6 +47,11 @@
 
 		let filterParts: string[] = [];
 		filterParts.push(`(status="Delivered" || status="Cancelled")`);
+
+		// Filter by restaurant for non-super restaurants
+		if (!isSuper && currentRestaurantId) {
+			filterParts.push(`restaurantId="${currentRestaurantId}"`);
+		}
 
 		const filter = filterParts.join(' && ');
 		try {

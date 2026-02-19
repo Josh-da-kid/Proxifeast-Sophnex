@@ -7,6 +7,7 @@ declare global {
 			pb: PocketBase;
 			user: Record<string, any> | null; // 👈 Add this line
 			restaurant?: RecordModel | null;
+			isSuper?: boolean;
 		}
 		// interface Error {}
 		// interface Locals {}

@@ -38,6 +38,7 @@
 	});
 
 	const user = derived(page, ($page) => $page.data.user);
+	const isSuper = derived(page, ($page) => $page.data.isSuper ?? false);
 
 	const restaurantName = get(page).data.restaurant?.name;
 
@@ -401,29 +402,31 @@
 							Install App
 						</a>
 					</li>
-					<li>
-						<a
-							onclick={closeSideBar}
-							href="/restaurants"
-							class={$page.url.pathname === '/restaurants' ? 'active' : ''}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><path d="M2 7.5V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2.5" /><path
-									d="M2 17.5a.5.5 0 0 1 .5-.5h19a.5.5 0 0 1 .5.5v1a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 18.5Z"
-								/><path d="m4 7.5 1.6 6.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L20 7.5" /></svg
+					{#if $isSuper}
+						<li>
+							<a
+								onclick={closeSideBar}
+								href="/restaurants"
+								class={$page.url.pathname === '/restaurants' ? 'active' : ''}
 							>
-							Restaurants
-						</a>
-					</li>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="18"
+									height="18"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									><path d="M2 7.5V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2.5" /><path
+										d="M2 17.5a.5.5 0 0 1 .5-.5h19a.5.5 0 0 1 .5.5v1a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 18.5Z"
+									/><path d="m4 7.5 1.6 6.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L20 7.5" /></svg
+								>
+								Restaurants
+							</a>
+						</li>
+					{/if}
 					{#if $user}
 						<li>
 							<a

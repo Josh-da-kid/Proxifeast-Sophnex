@@ -4,6 +4,7 @@
 	let { restaurant } = $props();
 
 	const restaurantData = $derived(restaurant ?? $page.data.restaurant);
+	const isSuper = $derived($page.data.isSuper ?? false);
 </script>
 
 <footer class="bg-base-200 text-base-content">
@@ -73,8 +74,9 @@
 						>
 					</li>
 					<li>
-						<a href="/restaurants" class="link link-hover text-base-content/70 hover:text-primary"
-							>Our Menu</a
+						<a
+							href={isSuper ? '/restaurants' : '/'}
+							class="link link-hover text-base-content/70 hover:text-primary">Our Menu</a
 						>
 					</li>
 					<li>

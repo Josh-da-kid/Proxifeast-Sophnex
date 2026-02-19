@@ -17,6 +17,8 @@
 	let loading = $state(true);
 	const restaurantName = get(page).data.restaurant?.name;
 	const allRestaurants = get(page).data.allRestaurants ?? [];
+	const currentRestaurantId = get(page).data.restaurantId;
+	const isSuper = get(page).data.isSuper ?? false;
 
 	const categories = $page.data.categories ?? [];
 
@@ -48,6 +50,11 @@
 
 		let filterParts: string[] = [];
 		filterParts.push(`(status="Pending" || status="Preparing" || status="Ready")`);
+
+		// Filter by restaurant for non-super restaurants
+		if (!isSuper && currentRestaurantId) {
+			filterParts.push(`restaurantId="${currentRestaurantId}"`);
+		}
 
 		const filter = filterParts.join(' && ');
 

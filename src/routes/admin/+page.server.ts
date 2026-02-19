@@ -1,4 +1,5 @@
 import type { PageServerLoad } from '../$types';
+import { isSuperRestaurant, hasRestaurantAccess } from '$lib/utils/restaurantAccess';
 
 export const load: PageServerLoad = async ({ locals, request }) => {
 	const host = request.headers.get('host') || '';
@@ -9,12 +10,10 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			.collection('restaurants')
 			.getFirstListItem(`domain = "${domain}"`);
 		const restaurantId = restaurant.id;
+		const isSuper = isSuperRestaurant(restaurant);
 
-		// Check if user is admin - if so, show stats for ALL restaurants
-		const isAdmin = locals.user?.isAdmin === true;
-
-		// Build restaurant filter - admin sees all, otherwise just their restaurant
-		const restaurantFilter = isAdmin ? '' : `restaurantId = "${restaurantId}" && `;
+		// Build restaurant filter - super restaurants see all, otherwise just their restaurant
+		const restaurantFilter = isSuper ? '' : `restaurantId = "${restaurantId}" && `;
 
 		// Get today's date range
 		const today = new Date();
@@ -54,6 +53,7 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 		return {
 			restaurant,
 			restaurantId,
+			isSuper,
 			stats: {
 				todayRevenue,
 				pendingOrdersCount,
@@ -112,7 +112,28 @@ export const actions = {
 		}
 
 		// Get restaurantId from form selection
-		const restaurantIdFromForm = formData.get('restaurantId') as string;
+		let restaurantIdFromForm = formData.get('restaurantId') as string;
+
+		// Get current restaurant from domain to validate access
+		const host = request.headers.get('host') || '';
+		const domain = host.split(':')[0];
+		const currentRestaurant = await locals.pb
+			.collection('restaurants')
+			.getFirstListItem(`domain = "${domain}"`);
+		const isSuper = isSuperRestaurant(currentRestaurant);
+
+		// For non-super restaurants, override the restaurantId to their own
+		if (!isSuper) {
+			restaurantIdFromForm = currentRestaurant.id;
+		}
+
+		// Validate restaurant access for super restaurants
+		if (isSuper && !hasRestaurantAccess(currentRestaurant, restaurantIdFromForm)) {
+			return {
+				success: false,
+				error: 'You do not have permission to create dishes for this restaurant.'
+			};
+		}
 
 		// Validate required fields
 		if (

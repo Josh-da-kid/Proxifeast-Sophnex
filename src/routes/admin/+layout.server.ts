@@ -2,7 +2,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
-
 export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) => {
 	const token = cookies.get('pb_auth');
 	const pathname = url.pathname;
@@ -18,7 +17,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		throw redirect(303, `/admin/admin-login?redirectTo=${pathname}&not_admin=1`);
 	}
 
-		const fullHost = request.headers.get('host') || '';
+	const fullHost = request.headers.get('host') || '';
 	const domainOnly = fullHost.split(':')[0]; // Removes :5173 if present
 
 	// 🔎 Find the restaurant by domain
@@ -35,9 +34,11 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 
 	// ✅ Set restaurant in locals
 	locals.restaurant = restaurant;
+	locals.isSuper = restaurant?.isSuper === true;
 
 	return {
 		user: locals.user,
-		restaurant
+		restaurant,
+		isSuper: locals.isSuper
 	};
 };

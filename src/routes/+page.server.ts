@@ -1,21 +1,50 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { isSuperRestaurant, buildRestaurantFilter } from '$lib/utils/restaurantAccess';
 
-export const load: PageServerLoad = async ({ locals, url }) => {
+export const load: PageServerLoad = async ({ locals, url, request }) => {
 	const search = url.searchParams.get('search')?.trim() ?? '';
 	const searchType = url.searchParams.get('type')?.trim() ?? 'restaurant';
 	const selectedRestaurantId = url.searchParams.get('restaurant')?.trim() ?? '';
 
 	try {
-		// Fetch all restaurants (excluding ProxifeastLocal)
-		const allRestaurants = await locals.pb.collection('restaurants').getFullList({
-			sort: 'name',
-			filter: 'name != "ProxifeastLocal"'
-		});
+		// Get current restaurant from domain
+		const host = request.headers.get('host') || '';
+		const domain = host.split(':')[0];
 
-		// Fetch all featured dishes with restaurant info for "Today's Special"
+		let currentRestaurant = null;
+		try {
+			const restaurants = await locals.pb.collection('restaurants').getFullList({
+				filter: `domain="${domain}"`
+			});
+			currentRestaurant = restaurants?.[0] || null;
+		} catch (e) {
+			console.error('Could not find restaurant for domain:', domain);
+		}
+
+		const isSuper = isSuperRestaurant(currentRestaurant);
+
+		// Fetch all restaurants (excluding ProxifeastLocal) - only for super restaurants
+		let allRestaurants: any[] = [];
+		if (isSuper) {
+			allRestaurants = await locals.pb.collection('restaurants').getFullList({
+				sort: 'name',
+				filter: 'name != "ProxifeastLocal"'
+			});
+		} else if (currentRestaurant) {
+			// Non-super restaurants only see themselves
+			allRestaurants = [currentRestaurant];
+		}
+
+		// Fetch featured dishes with restaurant access filter
+		const featuredFilter = buildRestaurantFilter(
+			currentRestaurant,
+			'isFeatured = true && availability = "Available"',
+			'restaurantId'
+		);
+
 		const featuredDishes = await locals.pb.collection('dishes').getFullList({
-			filter: 'isFeatured = true && availability = "Available"',
+			filter: featuredFilter,
 			sort: '-created',
 			expand: 'restaurant'
 		});
@@ -78,7 +107,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			categories,
 			searchQuery: search,
 			searchType,
-			selectedRestaurantId
+			selectedRestaurantId,
+			isSuper,
+			currentRestaurant
 		};
 	} catch (error) {
 		console.error('Error loading data:', error);
@@ -92,7 +123,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			searchQuery: search,
 			searchType,
 			selectedRestaurantId: '',
-			error: 'Failed to load data'
+			error: 'Failed to load data',
+			isSuper: false,
+			currentRestaurant: null
 		};
 	}
 };

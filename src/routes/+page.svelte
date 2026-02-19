@@ -46,6 +46,8 @@
 	const categories = $derived($page.data.categories ?? []);
 	const searchQuery = $derived($page.data.searchQuery ?? '');
 	const searchType = $derived($page.data.searchType ?? 'restaurant');
+	const isSuper = $derived($page.data.isSuper ?? false);
+	const currentRestaurant = $derived($page.data.currentRestaurant);
 
 	// State management
 	let viewMode = $state('list'); // 'list' or 'menu'
@@ -55,6 +57,53 @@
 	let dishQuantities = $state<Record<string, number>>({});
 	let addToCartAlert = $state(false);
 	let cartErrorAlert = $state(false);
+
+	// Dish favorites state (for super restaurants)
+	let dishFavorites = $state<string[]>([]);
+
+	// Load dish favorites on mount (only for super restaurants)
+	$effect(() => {
+		if (isSuper && $isLoggedIn) {
+			loadDishFavorites();
+		}
+	});
+
+	async function loadDishFavorites() {
+		try {
+			const res = await fetch('/api/favorites/dishes');
+			if (res.ok) {
+				const data = await res.json();
+				dishFavorites = data.dishFavorites || [];
+			}
+		} catch (err) {
+			console.error('Failed to load dish favorites:', err);
+		}
+	}
+
+	async function toggleDishFavorite(dishId: string, e: Event) {
+		e.stopPropagation();
+		if (!$isLoggedIn) {
+			window.location.href = '/login';
+			return;
+		}
+
+		const action = dishFavorites.includes(dishId) ? 'remove' : 'add';
+
+		try {
+			const res = await fetch('/api/favorites/dishes', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ dishId, action })
+			});
+
+			if (res.ok) {
+				const data = await res.json();
+				dishFavorites = data.dishFavorites;
+			}
+		} catch (err) {
+			console.error('Failed to toggle dish favorite:', err);
+		}
+	}
 
 	// Client-side filtered data for restaurants (only used in list view)
 	let filteredRestaurants = $derived.by(() => {
@@ -104,8 +153,13 @@
 			viewMode = 'menu';
 			// Clear search when loading directly to menu
 			searchInput = '';
+		} else if (!isSuper && currentRestaurant) {
+			// Non-super restaurants auto-select their own restaurant and show menu
+			viewMode = 'menu';
+			selectRestaurant(currentRestaurant);
+			searchInput = '';
 		} else {
-			// Default to list view
+			// Default to list view (for super restaurants)
 			viewMode = 'list';
 		}
 
@@ -859,24 +913,26 @@
 										class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"
 									></div>
 
-									<!-- Restaurant Tag -->
-									<div class="absolute top-3 left-3">
-										<span
-											class="flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
-										>
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												class="h-3 w-3"
-												viewBox="0 0 24 24"
-												fill="currentColor"
+									<!-- Restaurant Tag - Only show for super restaurants -->
+									{#if isSuper}
+										<div class="absolute top-3 left-3">
+											<span
+												class="flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
 											>
-												<path
-													d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-												/>
-											</svg>
-											{getRestaurantNameForDish(dish)}
-										</span>
-									</div>
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													class="h-3 w-3"
+													viewBox="0 0 24 24"
+													fill="currentColor"
+												>
+													<path
+														d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+													/>
+												</svg>
+												{getRestaurantNameForDish(dish)}
+											</span>
+										</div>
+									{/if}
 
 									<!-- Discount Badge -->
 									{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
@@ -916,15 +972,41 @@
 												</span>
 											{/if}
 										</div>
-										<button
-											class="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 transition-all hover:from-amber-600 hover:to-amber-700 hover:shadow-xl"
-											onclick={(e) => {
-												e.stopPropagation();
-												handleAddToCart(dish);
-											}}
-										>
-											Order
-										</button>
+										<div class="flex items-center gap-2">
+											{#if isSuper}
+												<button
+													class="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-amber-500 text-amber-500 transition-all hover:bg-amber-500 hover:text-white"
+													class:bg-amber-500={dishFavorites.includes(dish.id)}
+													class:text-white={dishFavorites.includes(dish.id)}
+													onclick={(e) => toggleDishFavorite(dish.id, e)}
+													title={dishFavorites.includes(dish.id)
+														? 'Remove from favorites'
+														: 'Add to favorites'}
+												>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														class="h-5 w-5"
+														viewBox="0 0 24 24"
+														fill={dishFavorites.includes(dish.id) ? 'currentColor' : 'none'}
+														stroke="currentColor"
+														stroke-width="2"
+													>
+														<path
+															d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+														/>
+													</svg>
+												</button>
+											{/if}
+											<button
+												class="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 transition-all hover:from-amber-600 hover:to-amber-700 hover:shadow-xl"
+												onclick={(e) => {
+													e.stopPropagation();
+													handleAddToCart(dish);
+												}}
+											>
+												Order
+											</button>
+										</div>
 									</div>
 								</div>
 							</article>
@@ -1063,8 +1145,8 @@
 		{/if}
 	</section>
 
-	<!-- Restaurant List View -->
-	{#if viewMode === 'list'}
+	<!-- Restaurant List View - Only visible for super restaurants -->
+	{#if viewMode === 'list' && isSuper}
 		<section class="px-6">
 			{#if isLoading}
 				<!-- Restaurant List Skeleton -->
@@ -1273,26 +1355,28 @@
 											class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"
 										></div>
 
-										<!-- Restaurant Tag -->
-										<div class="absolute top-3 left-3">
-											<span
-												class="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
-											>
-												<svg
-													xmlns="http://www.w3.org/2000/svg"
-													class="h-3.5 w-3.5"
-													viewBox="0 0 24 24"
-													fill="none"
-													stroke="currentColor"
-													stroke-width="2"
+										<!-- Restaurant Tag - Only show for super restaurants -->
+										{#if isSuper}
+											<div class="absolute top-3 left-3">
+												<span
+													class="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
 												>
-													<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
-													<path d="M7 2v20" />
-													<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
-												</svg>
-												{getRestaurantNameForDish(dish)}
-											</span>
-										</div>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														class="h-3.5 w-3.5"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+													>
+														<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+														<path d="M7 2v20" />
+														<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+													</svg>
+													{getRestaurantNameForDish(dish)}
+												</span>
+											</div>
+										{/if}
 
 										<!-- Discount Badge -->
 										{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
@@ -1402,6 +1486,32 @@
 														</svg>
 													</button>
 												</div>
+
+												<!-- Favorite Button (Super restaurants only) -->
+												{#if isSuper}
+													<button
+														class="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-amber-500 text-amber-500 transition-all hover:bg-amber-500 hover:text-white"
+														class:bg-amber-500={dishFavorites.includes(dish.id)}
+														class:text-white={dishFavorites.includes(dish.id)}
+														onclick={(e) => toggleDishFavorite(dish.id, e)}
+														title={dishFavorites.includes(dish.id)
+															? 'Remove from favorites'
+															: 'Add to favorites'}
+													>
+														<svg
+															xmlns="http://www.w3.org/2000/svg"
+															class="h-5 w-5"
+															viewBox="0 0 24 24"
+															fill={dishFavorites.includes(dish.id) ? 'currentColor' : 'none'}
+															stroke="currentColor"
+															stroke-width="2"
+														>
+															<path
+																d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+															/>
+														</svg>
+													</button>
+												{/if}
 
 												<!-- Add to Cart Button -->
 												<button
