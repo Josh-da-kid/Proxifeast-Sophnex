@@ -957,8 +957,8 @@
 										{dish.description}
 									</p>
 
-									<div class="mt-auto flex items-center justify-between">
-										<div class="flex items-baseline gap-2">
+									<div class="mt-auto flex flex-col gap-3">
+										<div class="flex items-baseline justify-between">
 											{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
 												<span class="text-xl font-bold text-amber-600">
 													₦{Number(dish.promoAmount).toLocaleString()}
@@ -975,7 +975,7 @@
 										<div class="flex items-center gap-2">
 											{#if isSuper}
 												<button
-													class="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-amber-500 text-amber-500 transition-all hover:bg-amber-500 hover:text-white"
+													class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border-2 border-amber-500 text-amber-500 transition-all hover:bg-amber-500 hover:text-white"
 													class:bg-amber-500={dishFavorites.includes(dish.id)}
 													class:text-white={dishFavorites.includes(dish.id)}
 													onclick={(e) => toggleDishFavorite(dish.id, e)}
@@ -998,7 +998,7 @@
 												</button>
 											{/if}
 											<button
-												class="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 transition-all hover:from-amber-600 hover:to-amber-700 hover:shadow-xl"
+												class="flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 transition-all hover:from-amber-600 hover:to-amber-700 hover:shadow-xl"
 												onclick={(e) => {
 													e.stopPropagation();
 													handleAddToCart(dish);
@@ -1440,7 +1440,7 @@
 											</div>
 
 											<!-- Quantity & Add to Cart -->
-											<div class="flex items-center justify-between gap-3">
+											<div class="mt-auto flex flex-wrap items-center justify-between gap-3">
 												<!-- Quantity Selector -->
 												<div class="flex items-center gap-2 rounded-full bg-slate-100 p-1">
 													<button
