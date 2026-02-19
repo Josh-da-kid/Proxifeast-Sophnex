@@ -1064,34 +1064,36 @@
 		{#if viewMode === 'menu'}
 			<!-- Restaurant Selector & Category -->
 			<div class="mb-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-				<!-- Restaurant Dropdown -->
-				<div class="relative">
-					<select
-						value={menuRestaurantId}
-						onchange={handleMenuRestaurantChange}
-						class="appearance-none rounded-xl border-0 bg-white px-6 py-3 pr-12 text-base font-semibold shadow-lg shadow-slate-900/10 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-					>
-						<option value="">Select Restaurant</option>
-						{#each allRestaurants as restaurant}
-							<option value={restaurant.id}>{restaurant.name}</option>
-						{/each}
-					</select>
-					<div class="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2">
-						<svg
-							class="h-5 w-5 text-slate-400"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
+				<!-- Restaurant Dropdown - Only for super restaurants -->
+				{#if isSuper}
+					<div class="relative">
+						<select
+							value={menuRestaurantId}
+							onchange={handleMenuRestaurantChange}
+							class="appearance-none rounded-xl border-0 bg-white px-6 py-3 pr-12 text-base font-semibold shadow-lg shadow-slate-900/10 focus:ring-2 focus:ring-amber-500 focus:outline-none"
 						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M19 9l-7 7-7-7"
-							/>
-						</svg>
+							<option value="">Select Restaurant</option>
+							{#each allRestaurants as restaurant}
+								<option value={restaurant.id}>{restaurant.name}</option>
+							{/each}
+						</select>
+						<div class="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2">
+							<svg
+								class="h-5 w-5 text-slate-400"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M19 9l-7 7-7-7"
+								/>
+							</svg>
+						</div>
 					</div>
-				</div>
+				{/if}
 
 				<!-- Category Filter -->
 				<select
@@ -1106,42 +1108,44 @@
 				</select>
 			</div>
 		{:else}
-			<!-- Restaurant Search for List View -->
-			<div class="mx-auto mb-8 max-w-2xl">
-				<form onsubmit={handleSearchSubmit} class="relative">
-					<div
-						class="flex items-center gap-3 rounded-2xl bg-white px-5 py-3 shadow-lg shadow-slate-900/10"
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-5 w-5 shrink-0 text-slate-400"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							stroke-width="2"
+			<!-- Restaurant Search for List View - Only for super restaurants -->
+			{#if isSuper}
+				<div class="mx-auto mb-8 max-w-2xl">
+					<form onsubmit={handleSearchSubmit} class="relative">
+						<div
+							class="flex items-center gap-3 rounded-2xl bg-white px-5 py-3 shadow-lg shadow-slate-900/10"
 						>
-							<circle cx="11" cy="11" r="8" />
-							<path d="m21 21-4.3-4.3" />
-						</svg>
-						<input
-							type="text"
-							bind:value={searchInput}
-							oninput={() => (viewMode = 'list')}
-							placeholder="Search restaurants by name or location..."
-							class="flex-1 bg-transparent text-slate-700 placeholder-slate-400 focus:outline-none"
-						/>
-						{#if searchInput}
-							<button
-								type="button"
-								onclick={clearSearch}
-								class="text-sm text-slate-500 hover:text-amber-600"
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-5 w-5 shrink-0 text-slate-400"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2"
 							>
-								Clear
-							</button>
-						{/if}
-					</div>
-				</form>
-			</div>
+								<circle cx="11" cy="11" r="8" />
+								<path d="m21 21-4.3-4.3" />
+							</svg>
+							<input
+								type="text"
+								bind:value={searchInput}
+								oninput={() => (viewMode = 'list')}
+								placeholder="Search restaurants by name or location..."
+								class="flex-1 bg-transparent text-slate-700 placeholder-slate-400 focus:outline-none"
+							/>
+							{#if searchInput}
+								<button
+									type="button"
+									onclick={clearSearch}
+									class="text-sm text-slate-500 hover:text-amber-600"
+								>
+									Clear
+								</button>
+							{/if}
+						</div>
+					</form>
+				</div>
+			{/if}
 		{/if}
 	</section>
 
