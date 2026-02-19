@@ -8,6 +8,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import pb from '$lib/pb';
 	import { addToCartPB } from '$lib/addToCart';
+	import Footer from '$lib/Footer.svelte';
 
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 	const user = derived(page, ($page) => $page.data.user);
@@ -2032,6 +2033,10 @@
 		</div>
 	</div>
 {/if}
+
+<div class="bottom-0 z-2">
+	<Footer restaurant={$page.data.restaurant} />
+</div>
 
 <style>
 	@import url('https://fonts.googleapis.com/css2?family=Playfair+Display&family=Roboto&display=swap');

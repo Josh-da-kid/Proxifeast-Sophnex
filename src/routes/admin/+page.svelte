@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import Footer from '$lib/Footer.svelte';
 	import { onMount } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
 
@@ -315,4 +316,8 @@
 			</div>
 		</div>
 	</main>
+</div>
+
+<div class="bottom-0 z-2">
+	<Footer restaurant={$page.data.restaurant} />
 </div>
