@@ -7,7 +7,7 @@
 </script>
 
 <svelte:head>
-	<title>Reservations - Proxifeast Admin</title>
+	<title>Reservations - Proxifeast</title>
 </svelte:head>
 
 <div class="min-h-screen bg-slate-50">

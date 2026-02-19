@@ -296,6 +296,32 @@
 							Reservations
 						</a>
 					</li>
+					<li>
+						<a
+							onclick={closeSideBar}
+							href="/admin/billing"
+							class={$page.url.pathname === '/admin/billing' ? 'active' : ''}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><rect width="20" height="14" x="2" y="5" rx="2" /><line
+									x1="2"
+									x2="22"
+									y1="10"
+									y2="10"
+								/></svg
+							>
+							Billing
+						</a>
+					</li>
 				</ul>
 
 				<!-- Drawer Footer -->

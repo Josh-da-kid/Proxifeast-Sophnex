@@ -206,7 +206,7 @@
 </script>
 
 <svelte:head>
-	<title>Pending Orders - Proxifeast Admin</title>
+	<title>Pending Orders - Proxifeast</title>
 </svelte:head>
 
 {#if successMessage}

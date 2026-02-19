@@ -101,7 +101,7 @@
 </script>
 
 <svelte:head>
-	<title>Order History - Proxifeast Admin</title>
+	<title>Order History - Proxifeast</title>
 </svelte:head>
 
 <div class="min-h-screen bg-slate-50">

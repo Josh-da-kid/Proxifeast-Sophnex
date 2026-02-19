@@ -50,6 +50,37 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 		});
 		const completedOrdersCount = completedOrders.length;
 
+		// Get subscription stats for super restaurants
+		let subscriptionStats = null;
+		if (isSuper) {
+			try {
+				const subscriptions = await locals.pb.collection('subscriptions').getFullList();
+
+				const now = new Date();
+				const thirtyDaysFromNow = new Date();
+				thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+				const activeCount = subscriptions.filter((s: any) => s.status === 'active').length;
+				const expiringSoonCount = subscriptions.filter((s: any) => {
+					const endDate = new Date(s.endDate);
+					return s.status === 'active' && endDate <= thirtyDaysFromNow && endDate > now;
+				}).length;
+
+				const totalRevenue = subscriptions
+					.filter((s: any) => s.status === 'active')
+					.reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
+
+				subscriptionStats = {
+					totalRestaurants: subscriptions.length,
+					activeCount,
+					expiringSoonCount,
+					totalRevenue
+				};
+			} catch (err) {
+				console.error('Error loading subscription stats:', err);
+			}
+		}
+
 		return {
 			restaurant,
 			restaurantId,
@@ -58,7 +89,8 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 				todayRevenue,
 				pendingOrdersCount,
 				completedOrdersCount
-			}
+			},
+			subscriptionStats
 		};
 	} catch (error) {
 		console.error('Error loading restaurant or stats:', error);

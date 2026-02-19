@@ -36,10 +36,54 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 	locals.restaurant = restaurant;
 	locals.isSuper = restaurant?.isSuper === true;
 
+	// Check subscription for non-super restaurants
+	let subscription = null;
+	let subscriptionStatus = 'active';
+
+	if (!locals.isSuper) {
+		try {
+			const subs = await locals.pb
+				.collection('subscriptions')
+				.getFirstListItem(`restaurantId = "${restaurant.id}"`);
+			subscription = subs;
+
+			const now = new Date();
+			const endDate = new Date(subs.endDate);
+
+			if (endDate <= now) {
+				subscriptionStatus = 'expired';
+			} else if (subs.status === 'cancelled') {
+				subscriptionStatus = 'cancelled';
+			} else {
+				const thirtyDaysFromNow = new Date();
+				thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+				if (endDate <= thirtyDaysFromNow) {
+					subscriptionStatus = 'expiring_soon';
+				}
+			}
+		} catch (err) {
+			subscriptionStatus = 'not_subscribed';
+		}
+
+		// Block access if subscription is expired, cancelled, or not subscribed
+		if (
+			subscriptionStatus === 'expired' ||
+			subscriptionStatus === 'cancelled' ||
+			subscriptionStatus === 'not_subscribed'
+		) {
+			// Allow access only to billing page
+			if (!pathname.includes('/admin/billing')) {
+				throw redirect(307, '/admin/billing?expired=1');
+			}
+		}
+	}
+
 	return {
 		user: locals.user,
 		restaurant,
 		isSuper: locals.isSuper,
-		restaurantId: restaurant?.id
+		restaurantId: restaurant?.id,
+		subscription,
+		subscriptionStatus
 	};
 };

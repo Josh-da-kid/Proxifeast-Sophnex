@@ -1,0 +1,168 @@
+// src/routes/api/subscribe/+server.ts
+
+import { json, type RequestHandler } from '@sveltejs/kit';
+
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || 'sk_test_placeholder';
+
+export const POST: RequestHandler = async ({ request, locals }) => {
+	try {
+		const data = await request.json();
+		const { restaurantId, restaurantName, plan, amount, email, recurring, callbackUrl } = data;
+
+		let pricing = {
+			monthly: 15000,
+			quarterly: 40000,
+			yearly: 150000
+		};
+
+		if (plan === 'custom') {
+			pricing = {
+				monthly: amount,
+				quarterly: amount * 3 * 0.9,
+				yearly: amount * 12 * 0.8
+			};
+		}
+
+		const planAmount = pricing[plan as keyof typeof pricing] || pricing.monthly;
+
+		const response = await fetch('https://api.paystack.co/transaction/initialize', {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				email: email,
+				amount: planAmount * 100,
+				currency: 'NGN',
+				callback_url: `${callbackUrl}?success=true&reference={reference}`,
+				metadata: {
+					restaurantId,
+					restaurantName,
+					plan,
+					recurring,
+					type: 'subscription'
+				},
+				custom_fields: [
+					{
+						display_name: 'Restaurant Name',
+						variable_name: 'restaurant_name',
+						value: restaurantName
+					},
+					{
+						display_name: 'Subscription Plan',
+						variable_name: 'plan',
+						value: plan
+					},
+					{
+						display_name: 'Recurring',
+						variable_name: 'recurring',
+						value: recurring ? 'Yes' : 'No'
+					}
+				]
+			})
+		});
+
+		const result = await response.json();
+
+		if (result.status) {
+			// Calculate end date
+			let endDate = new Date();
+			switch (plan) {
+				case 'monthly':
+					endDate.setMonth(endDate.getMonth() + 1);
+					break;
+				case 'quarterly':
+					endDate.setMonth(endDate.getMonth() + 3);
+					break;
+				case 'yearly':
+					endDate.setFullYear(endDate.getFullYear() + 1);
+					break;
+			}
+
+			// Check if subscription exists and update, or create new
+			try {
+				const existing = await locals.pb
+					.collection('subscriptions')
+					.getFirstListItem(`restaurantId = "${restaurantId}"`);
+
+				await locals.pb.collection('subscriptions').update(existing.id, {
+					plan,
+					amount: planAmount,
+					startDate: new Date().toISOString(),
+					endDate: endDate.toISOString(),
+					status: 'pending',
+					paymentReference: result.data.reference,
+					recurring,
+					autoRenew: false
+				});
+			} catch (e) {
+				await locals.pb.collection('subscriptions').create({
+					restaurantId,
+					plan,
+					amount: planAmount,
+					startDate: new Date().toISOString(),
+					endDate: endDate.toISOString(),
+					status: 'pending',
+					paymentReference: result.data.reference,
+					recurring,
+					autoRenew: false
+				});
+			}
+
+			return json({
+				success: true,
+				authorizationUrl: result.data.authorization_url,
+				reference: result.data.reference
+			});
+		} else {
+			return json({ error: result.message }, { status: 400 });
+		}
+	} catch (err: any) {
+		console.error('Subscription error:', err);
+		return json({ error: err.message }, { status: 500 });
+	}
+};
+
+export const PUT: RequestHandler = async ({ request }) => {
+	try {
+		const data = await request.json();
+		const { reference, restaurantId, plan } = data;
+
+		const verifyResponse = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+			headers: {
+				Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`
+			}
+		});
+
+		const verifyResult = await verifyResponse.json();
+
+		if (verifyResult.status && verifyResult.data.status === 'success') {
+			const paidAmount = verifyResult.data.amount / 100;
+
+			let endDate = new Date();
+			switch (plan) {
+				case 'monthly':
+					endDate.setMonth(endDate.getMonth() + 1);
+					break;
+				case 'quarterly':
+					endDate.setMonth(endDate.getMonth() + 3);
+					break;
+				case 'yearly':
+					endDate.setFullYear(endDate.getFullYear() + 1);
+					break;
+			}
+
+			return json({
+				success: true,
+				paidAmount,
+				endDate: endDate.toISOString()
+			});
+		}
+
+		return json({ error: 'Payment verification failed' }, { status: 400 });
+	} catch (err: any) {
+		console.error('Subscription error:', err);
+		return json({ error: err.message }, { status: 500 });
+	}
+};

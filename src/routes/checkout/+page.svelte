@@ -8,6 +8,7 @@
 
 	export const ssr = false;
 	export const prerender = false;
+
 	// Custom SVG Icons
 	const iconArrowLeft = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`;
 	const iconShoppingBag = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`;
@@ -48,6 +49,7 @@
 		}, 0)
 	);
 	export const user = derived(page, ($page) => $page.data.user);
+
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 
 	let deleteModal: HTMLDialogElement;
@@ -725,6 +727,10 @@
 		handler.openIframe();
 	}
 </script>
+
+<svelte:head>
+	<title>Checkout - Proxifeast</title>
+</svelte:head>
 
 <!-- Progress Bar -->
 <div class="bg-base-100 border-base-200 sticky top-0 z-4 border-b">

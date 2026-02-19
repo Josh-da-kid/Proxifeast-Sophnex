@@ -21,7 +21,7 @@
 </script>
 
 <svelte:head>
-	<title>Install Proxifeast App | Installation Guide</title>
+	<title>Install App - Proxifeast</title>
 	<meta
 		name="description"
 		content="Learn how to install the Proxifeast app on your device for the best food ordering experience."

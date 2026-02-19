@@ -358,7 +358,7 @@
 </script>
 
 <svelte:head>
-	<title>Analytics - Proxifeast Admin</title>
+	<title>Analytics - Proxifeast</title>
 </svelte:head>
 
 <div class="min-h-screen bg-slate-50">

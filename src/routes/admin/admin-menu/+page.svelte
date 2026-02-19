@@ -169,7 +169,7 @@
 </script>
 
 <svelte:head>
-	<title>Menu Management - Proxifeast Admin</title>
+	<title>Menu Management - Proxifeast</title>
 </svelte:head>
 
 {#if successAlert}
