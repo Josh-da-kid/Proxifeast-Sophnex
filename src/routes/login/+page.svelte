@@ -9,6 +9,7 @@
 	let showLinkModal = $state(false);
 	let linkRestaurantName = $state('');
 	let linkRestaurantId = $state('');
+	let linkUserId = $state('');
 	let linkEmail = $state('');
 	let linkError = $state('');
 	let linkSuccess = $state('');
@@ -62,6 +63,7 @@
 				if (result.code === 'NOT_REGISTERED_FOR_RESTAURANT') {
 					linkRestaurantName = result.restaurantName || 'this restaurant';
 					linkRestaurantId = result.restaurantId || '';
+					linkUserId = result.userId || '';
 					linkEmail = result.email || email;
 					showLinkModal = true;
 				} else {
@@ -88,7 +90,7 @@
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					email: linkEmail,
+					userId: linkUserId,
 					restaurantId: linkRestaurantId
 				})
 			});

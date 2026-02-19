@@ -6,37 +6,22 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const data = await request.json();
 
 	try {
-		const { email, restaurantId } = data;
+		const { userId, restaurantId } = data;
 
-		if (!email || !restaurantId) {
+		if (!userId || !restaurantId) {
 			return json(
 				{
 					error: true,
-					message: 'Email and restaurant ID are required.'
+					message: 'User ID and restaurant ID are required.'
 				},
 				{ status: 400 }
 			);
 		}
 
-		// Normalize email
-		const normalizedEmail = email.toLowerCase().trim();
+		console.log('Link request - userId:', userId, 'restaurantId:', restaurantId);
 
-		// Find user by email
-		const users = await locals.pb.collection('users').getList(1, 1, {
-			filter: `email = "${normalizedEmail}"`
-		});
-
-		if (users.totalItems === 0) {
-			return json(
-				{
-					error: true,
-					message: 'User not found.'
-				},
-				{ status: 404 }
-			);
-		}
-
-		const user = users.items[0];
+		// Get user directly by ID (requires auth, but we can use the authenticated pb instance)
+		const user = await locals.pb.collection('users').getOne(userId);
 
 		// Get current restaurantIds
 		let restaurantIds = user.restaurantIds || [];

@@ -64,9 +64,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				'Required:',
 				restaurant.id
 			);
-			locals.pb.authStore.clear();
 
 			// Return special response to prompt user to register for this restaurant
+			// NOTE: Don't clear auth store - user needs to stay authenticated for link request
 			return json(
 				{
 					error: true,
@@ -74,7 +74,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 					message: 'You are not registered for this restaurant.',
 					restaurantName: restaurant.name,
 					restaurantId: restaurant.id,
-					email: normalizedEmail
+					email: normalizedEmail,
+					userId: record.id
 				},
 				{ status: 403 }
 			);
