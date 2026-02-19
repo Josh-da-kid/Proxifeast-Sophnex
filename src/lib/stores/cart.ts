@@ -1,7 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import pb from '$lib/pb'; // your PocketBase instance
 
-
 type CartItem = {
 	id: string;
 	quantity: number;
@@ -26,8 +25,7 @@ export const total = derived(cart, ($cart) =>
 	}, 0)
 );
 
-export async function fetchCart() {
-	
+export async function fetchCart(restaurantId?: string) {
 	try {
 		const userId = pb.authStore.model?.id;
 		if (!userId) return cart.set([]);
@@ -37,23 +35,40 @@ export async function fetchCart() {
 			expand: 'dish' // if dish is a relation
 		});
 
-		cart.set(records);
-		
+		// Filter by restaurant if restaurantId is provided
+		let filteredRecords = records;
+		if (restaurantId) {
+			filteredRecords = records.filter((item: any) => {
+				const itemRestaurantId = item.restaurant || item.restaurantId;
+				return itemRestaurantId === restaurantId;
+			});
+		}
+
+		cart.set(filteredRecords);
 	} catch (err) {
 		// console.error('Failed to fetch cart:', err);
 	}
-
-	
 }
 
+export async function clearCart(restaurantId?: string) {
+	const userId = pb.authStore.model?.id;
+	if (!userId) return;
 
-export async function clearCart() {
-			const userId = pb.authStore.model?.id;
-		if (!userId) return;
 	try {
-		const items = await pb.collection('cart').getFullList();
-		await Promise.all(items.map((item) => pb.collection('cart').delete(item.id)));
-		await fetchCart();
+		let items = await pb.collection('cart').getFullList({
+			filter: `user="${userId}"`
+		});
+
+		// Filter by restaurant if restaurantId is provided
+		if (restaurantId) {
+			items = items.filter((item: any) => {
+				const itemRestaurantId = item.restaurant || item.restaurantId;
+				return itemRestaurantId === restaurantId;
+			});
+		}
+
+		await Promise.all(items.map((item: any) => pb.collection('cart').delete(item.id)));
+		await fetchCart(restaurantId);
 	} catch (err) {
 		console.error('Failed to clear cart:', err);
 	}
@@ -67,7 +82,6 @@ export async function removeFromCart(id: string) {
 		console.error('Failed to remove item:', err);
 	}
 }
-
 
 export function clearCartFrontend() {
 	cart.set([]);

@@ -111,7 +111,19 @@
 				filter: `user="${userId}"`,
 				expand: 'dish'
 			});
-			cart.set(records);
+
+			// Filter by restaurant if not a super restaurant
+			const restaurantId = $page.data.restaurantId;
+			const isSuper = $page.data.isSuper ?? false;
+			if (restaurantId && !isSuper) {
+				const filteredRecords = records.filter((item: any) => {
+					const itemRestaurantId = item.restaurant || item.restaurantId;
+					return itemRestaurantId === restaurantId;
+				});
+				cart.set(filteredRecords);
+			} else {
+				cart.set(records);
+			}
 		} catch (err) {
 			console.error('Failed to fetch cart:', err);
 		} finally {
@@ -132,8 +144,19 @@
 		const userId = get(user)?.id;
 		if (!userId) return;
 		try {
-			const items = await pb.collection('cart').getFullList({ filter: `user="${userId}"` });
-			await Promise.all(items.map((item) => pb.collection('cart').delete(item.id)));
+			let items = await pb.collection('cart').getFullList({ filter: `user="${userId}"` });
+
+			// Filter by restaurant if not a super restaurant
+			const restaurantId = $page.data.restaurantId;
+			const isSuper = $page.data.isSuper ?? false;
+			if (restaurantId && !isSuper) {
+				items = items.filter((item: any) => {
+					const itemRestaurantId = item.restaurant || item.restaurantId;
+					return itemRestaurantId === restaurantId;
+				});
+			}
+
+			await Promise.all(items.map((item: any) => pb.collection('cart').delete(item.id)));
 			await fetchCart();
 			clearModal?.close();
 		} catch (err) {

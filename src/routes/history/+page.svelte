@@ -11,10 +11,16 @@
 	export async function fetchPendingOrders() {
 		const userId = get(user)?.id;
 		const restaurantId = get(page).data.restaurant?.id;
+		const isSuper = get(page).data.isSuper ?? false;
 
-		if (!userId || !restaurantId) return;
+		if (!userId) return;
 
-		const filter = `restaurantId="${restaurantId}" && user="${userId}" && (status="Delivered" || status="Cancelled")`;
+		let filter = `user="${userId}" && (status="Delivered" || status="Cancelled")`;
+
+		// Filter by restaurant if not a super restaurant
+		if (restaurantId && !isSuper) {
+			filter += ` && restaurantId="${restaurantId}"`;
+		}
 
 		try {
 			const records = await pb.collection('orders').getFullList({
@@ -34,6 +40,25 @@
 	let searchInput = $state('');
 	let selectedCategoryInput = $state('All');
 	const restaurantName = get(page).data.restaurant?.name;
+
+	// Group orders by mainReference for multi-restaurant orders
+	function getOrderGroups(ordersList: any[]) {
+		const groups: Record<string, any[]> = {};
+		ordersList.forEach((order: any) => {
+			const key = order.mainReference || order.reference;
+			if (!groups[key]) {
+				groups[key] = [];
+			}
+			groups[key].push(order);
+		});
+		return groups;
+	}
+
+	const orderGroups = $derived(getOrderGroups(filteredOrders));
+
+	function isMultiRestaurantOrder(order: any) {
+		return order.isMultiRestaurantOrder === true || order.totalRestaurants > 1;
+	}
 
 	// Client-side filtered orders
 	$effect(() => {
@@ -165,6 +190,20 @@
 									<h3 class="font-playfair text-lg font-semibold text-slate-900">
 										{order.reference}
 									</h3>
+									{#if isMultiRestaurantOrder(order)}
+										<div class="mt-1 flex flex-wrap gap-1">
+											<span
+												class="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+											>
+												Multi-restaurant Order
+											</span>
+											{#if order.totalRestaurants > 1}
+												<span class="rounded bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+													{order.totalRestaurants} restaurants
+												</span>
+											{/if}
+										</div>
+									{/if}
 								</div>
 								<div class="flex flex-col items-end gap-1">
 									<span
@@ -174,9 +213,11 @@
 									>
 										{order.status}
 									</span>
-									{#if order.restaurantName}
-										<span class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-											{order.restaurantName}
+									{#if order.restaurantName || order.expand?.restaurant?.name}
+										<span
+											class="rounded-full bg-slate-800 px-2.5 py-0.5 text-[10px] font-medium text-white"
+										>
+											{order.restaurantName || order.expand?.restaurant?.name}
 										</span>
 									{/if}
 								</div>
@@ -184,6 +225,12 @@
 
 							<!-- Details -->
 							<div class="mb-4 space-y-2 text-sm">
+								<div class="flex justify-between">
+									<span class="text-slate-500">Restaurant</span>
+									<span class="font-semibold text-slate-800"
+										>{order.restaurantName || 'Restaurant'}</span
+									>
+								</div>
 								<div class="flex justify-between">
 									<span class="text-slate-500">Customer</span>
 									<span class="font-medium text-slate-900">{order.name || 'Guest'}</span>
@@ -267,6 +314,76 @@
 										</div>
 									{/each}
 								</div>
+
+								<!-- Multi-restaurant orders paid together -->
+								{#if isMultiRestaurantOrder(order) && orderGroups[order.mainReference || order.reference]?.length > 1}
+									{@const relatedOrders = orderGroups[
+										order.mainReference || order.reference
+									].filter((o: any) => o.id !== order.id)}
+									{@const allOrdersInGroup = orderGroups[order.mainReference || order.reference]}
+									{@const grandTotal = allOrdersInGroup.reduce(
+										(sum: number, o: any) => sum + (o.orderTotal ?? o.totalAmount ?? 0),
+										0
+									)}
+									{#if relatedOrders.length > 0}
+										<div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+											<p class="mb-2 text-xs font-medium text-amber-800">
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													class="mr-1 inline h-3 w-3"
+													viewBox="0 0 20 20"
+													fill="currentColor"
+												>
+													<path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+													<path
+														fill-rule="evenodd"
+														d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"
+														clip-rule="evenodd"
+													/>
+												</svg>
+												Paid together with {relatedOrders.length} other order(s):
+											</p>
+											<div class="space-y-2">
+												{#each relatedOrders as relatedOrder}
+													<div
+														class="flex items-center justify-between rounded bg-white/70 px-2 py-1.5 text-xs"
+													>
+														<div class="flex items-center gap-2">
+															<span class="min-w-[60px] font-medium text-gray-900"
+																>{relatedOrder.reference}</span
+															>
+															<span
+																class="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-700"
+															>
+																{relatedOrder.restaurantName || 'Restaurant'}
+															</span>
+															<span
+																class="rounded-full border px-1.5 py-0.5 text-[10px] {getStatusColor(
+																	relatedOrder.status
+																)}"
+															>
+																{relatedOrder.status}
+															</span>
+														</div>
+														<span class="font-semibold text-slate-700">
+															₦{(
+																relatedOrder.orderTotal ??
+																relatedOrder.totalAmount ??
+																0
+															).toLocaleString()}
+														</span>
+													</div>
+												{/each}
+											</div>
+											<div
+												class="mt-2 flex items-center justify-between rounded bg-amber-100 px-2 py-1.5 text-xs"
+											>
+												<span class="font-semibold text-amber-900">Total Paid:</span>
+												<span class="font-bold text-amber-900">₦{grandTotal.toLocaleString()}</span>
+											</div>
+										</div>
+									{/if}
+								{/if}
 							</div>
 
 							<!-- Footer -->

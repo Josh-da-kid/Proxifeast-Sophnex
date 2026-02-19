@@ -347,7 +347,17 @@
 				expand: 'dish'
 			});
 
-			cart.set(records);
+			// Filter by restaurant if not a super restaurant
+			const currentRestaurantId = $page.data.restaurantId;
+			if (currentRestaurantId && !$page.data.isSuper) {
+				const filteredRecords = records.filter((item: any) => {
+					const itemRestaurantId = item.restaurant || item.restaurantId;
+					return itemRestaurantId === currentRestaurantId;
+				});
+				cart.set(filteredRecords);
+			} else {
+				cart.set(records);
+			}
 		} catch (err) {
 			console.error('Failed to fetch cart:', err);
 		}

@@ -34,7 +34,9 @@
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 
 	onMount(async () => {
-		await fetchCart();
+		const restaurantId = $currentRestaurantId;
+		const superStatus = $isSuper;
+		await fetchCart(superStatus ? undefined : restaurantId);
 	});
 
 	let imageSource = $state('file');
