@@ -45,8 +45,6 @@
 // 	}
 // };
 
-
-
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
@@ -80,7 +78,15 @@ export const POST: RequestHandler = async ({ request, locals, cookies, url }) =>
 			.getFirstListItem(`domain = "${domain}"`);
 
 		// ❌ Admin belongs to a different restaurant
-		if (record.restaurantId !== restaurant.id) {
+		// Support both old (restaurantId) and new (restaurantIds) schema
+		let restaurantIds = record.restaurantIds || [];
+
+		// Backward compatibility: if user has old restaurantId but no restaurantIds
+		if (restaurantIds.length === 0 && record.restaurantId) {
+			restaurantIds = [record.restaurantId];
+		}
+
+		if (!restaurantIds.includes(restaurant.id)) {
 			locals.pb.authStore.clear();
 			return json(
 				{
@@ -100,8 +106,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies, url }) =>
 			secure: process.env.NODE_ENV === 'production'
 		});
 
-		const redirectTo =
-			url.searchParams.get('redirectTo') || '/admin/admin-menu';
+		const redirectTo = url.searchParams.get('redirectTo') || '/admin/admin-menu';
 
 		return json({
 			success: true,

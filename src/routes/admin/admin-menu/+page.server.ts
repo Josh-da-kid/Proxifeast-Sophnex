@@ -1,16 +1,29 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals, url }) => {
+export const load: PageServerLoad = async ({ locals, url, request }) => {
 	if (!locals.user) {
+		return { dishes: [], categories: [] };
+	}
+
+	const host = request.headers.get('host') || '';
+	const domain = host.split(':')[0];
+
+	let restaurantId: string;
+	try {
+		const restaurant = await locals.pb
+			.collection('restaurants')
+			.getFirstListItem(`domain = "${domain}"`);
+		restaurantId = restaurant.id;
+	} catch {
 		return { dishes: [], categories: [] };
 	}
 
 	const search = url.searchParams.get('search')?.trim() ?? '';
 	const category = url.searchParams.get('category')?.trim() ?? 'All';
 
-	const restaurantId = locals.user.restaurantId;
-	if (!restaurantId) {
+	const restaurantIds = locals.user.restaurantIds || [];
+	if (!restaurantIds.includes(restaurantId)) {
 		return { dishes: [], categories: [] };
 	}
 
@@ -38,6 +51,24 @@ export const actions: Actions = {
 			return fail(403, { error: 'Forbidden. You must be an admin.' });
 		}
 
+		const host = request.headers.get('host') || '';
+		const domain = host.split(':')[0];
+
+		let restaurantId: string;
+		try {
+			const restaurant = await locals.pb
+				.collection('restaurants')
+				.getFirstListItem(`domain = "${domain}"`);
+			restaurantId = restaurant.id;
+		} catch {
+			return fail(400, { error: 'Restaurant not found.' });
+		}
+
+		const restaurantIds = locals.user.restaurantIds || [];
+		if (!restaurantIds.includes(restaurantId)) {
+			return fail(403, { error: 'Forbidden: You can only modify dishes from your restaurant.' });
+		}
+
 		const formData = await request.formData();
 		const dishId = formData.get('dishId') as string;
 		const isFeatured = formData.get('isFeatured') === 'true';
@@ -47,11 +78,9 @@ export const actions: Actions = {
 		}
 
 		try {
-			// To ensure an admin can only feature dishes from their own restaurant,
-			// we first fetch the dish to verify ownership.
 			const dish = await locals.pb.collection('dishes').getOne(dishId);
 
-			if (dish.restaurantId !== locals.user.restaurantId) {
+			if (dish.restaurantId !== restaurantId) {
 				return fail(403, { error: 'Forbidden: You can only modify dishes from your restaurant.' });
 			}
 
@@ -71,6 +100,24 @@ export const actions: Actions = {
 			return fail(403, { error: 'Forbidden. You must be an admin.' });
 		}
 
+		const host = request.headers.get('host') || '';
+		const domain = host.split(':')[0];
+
+		let restaurantId: string;
+		try {
+			const restaurant = await locals.pb
+				.collection('restaurants')
+				.getFirstListItem(`domain = "${domain}"`);
+			restaurantId = restaurant.id;
+		} catch {
+			return fail(400, { error: 'Restaurant not found.' });
+		}
+
+		const restaurantIds = locals.user.restaurantIds || [];
+		if (!restaurantIds.includes(restaurantId)) {
+			return fail(403, { error: 'Forbidden: You can only create dishes for your restaurant.' });
+		}
+
 		const formData = await request.formData();
 		const name = formData.get('name') as string;
 		const description = formData.get('description') as string;
@@ -86,11 +133,6 @@ export const actions: Actions = {
 
 		if (!name || !description || !category || !availability || !defaultAmount) {
 			return fail(400, { error: 'Please fill in all required fields.' });
-		}
-
-		const restaurantId = locals.user.restaurantId;
-		if (!restaurantId) {
-			return fail(400, { error: 'No restaurant associated with this account.' });
 		}
 
 		try {
@@ -119,6 +161,24 @@ export const actions: Actions = {
 			return fail(403, { error: 'Forbidden. You must be an admin.' });
 		}
 
+		const host = request.headers.get('host') || '';
+		const domain = host.split(':')[0];
+
+		let restaurantId: string;
+		try {
+			const restaurant = await locals.pb
+				.collection('restaurants')
+				.getFirstListItem(`domain = "${domain}"`);
+			restaurantId = restaurant.id;
+		} catch {
+			return fail(400, { error: 'Restaurant not found.' });
+		}
+
+		const restaurantIds = locals.user.restaurantIds || [];
+		if (!restaurantIds.includes(restaurantId)) {
+			return fail(403, { error: 'Forbidden: You can only modify dishes from your restaurant.' });
+		}
+
 		const formData = await request.formData();
 		const dishId = formData.get('id') as string;
 		const name = formData.get('name') as string;
@@ -139,7 +199,7 @@ export const actions: Actions = {
 		try {
 			const dish = await locals.pb.collection('dishes').getOne(dishId);
 
-			if (dish.restaurantId !== locals.user.restaurantId) {
+			if (dish.restaurantId !== restaurantId) {
 				return fail(403, { error: 'Forbidden: You can only modify dishes from your restaurant.' });
 			}
 

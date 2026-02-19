@@ -8,7 +8,6 @@ const pb = new PocketBase('https://playgzero.pb.itcass.net/');
 export const POST: RequestHandler = async ({ request }) => {
 	const data = await request.json();
 
-
 	const host = request.headers.get('host') || '';
 	const domain = host.split(':')[0];
 
@@ -20,26 +19,71 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	try {
-		// Step 1: Create new user
+		// Step 1: Check if user already exists
+		const existingUsers = await pb.collection('users').getList(1, 1, {
+			filter: `email = "${data.email}"`,
+			fields: 'id,restaurantIds'
+		});
+
+		if (existingUsers.totalItems > 0) {
+			const existingUser = existingUsers.items[0];
+
+			// Get restaurantIds array or create one if it doesn't exist
+			const restaurantIds = existingUser.restaurantIds || [];
+
+			// Check if user already has access to this restaurant
+			if (restaurantIds.includes(restaurant.id)) {
+				return json(
+					{
+						success: false,
+						message: 'This email is already registered for this restaurant. Please login.'
+					},
+					{ status: 400 }
+				);
+			}
+
+			// Add this restaurant to user's restaurantIds
+			await pb.collection('users').update(existingUser.id, {
+				restaurantIds: [...restaurantIds, restaurant.id]
+			});
+
+			// Request verification email if not verified
+			if (!existingUser.verified) {
+				await pb.collection('users').requestVerification(data.email);
+			}
+
+			return new Response(
+				JSON.stringify({
+					success: true,
+					message:
+						'Account linked to this restaurant. Please check your email to verify your account.'
+				}),
+				{ status: 200, headers: { 'Content-Type': 'application/json' } }
+			);
+		}
+
+		// Step 2: Create new user with restaurantIds array
 		const newUser = await pb.collection('users').create({
 			name: data.name,
 			email: data.email,
 			password: data.password,
 			passwordConfirm: data.passwordConfirm,
 			isAdmin: 'False',
-			restaurantId: restaurant.id
+			restaurantIds: [restaurant.id]
 		});
 
-		// Step 2: Authenticate user
-		const { token, record } = await pb.collection('users').authWithPassword(data.email, data.password);
+		// Step 3: Authenticate user
+		const { token, record } = await pb
+			.collection('users')
+			.authWithPassword(data.email, data.password);
 
-		// Step 3: Request email verification
+		// Step 4: Request email verification
 		await pb.collection('users').requestVerification(data.email);
 
-		// Step 4: Clear auth session
+		// Step 5: Clear auth session
 		pb.authStore.clear();
 
-		// Step 5: Send success response
+		// Step 6: Send success response
 		return new Response(
 			JSON.stringify({
 				success: true,
@@ -49,13 +93,18 @@ export const POST: RequestHandler = async ({ request }) => {
 			{ status: 200, headers: { 'Content-Type': 'application/json' } }
 		);
 	} catch (err: any) {
-	 const emailError = err?.response?.data?.email;
-  
-  if (emailError && emailError.code === 'validation_not_unique') {
-    return json({ success: false, message: 'This email has already been registered, proceed to login.' }, { status: 400 });
-  }
+		const emailError = err?.response?.data?.email;
 
-  return json({ success: false, message: 'Registration failed.', error: err?.response?.data }, { status: 400 });
-}
+		if (emailError && emailError.code === 'validation_not_unique') {
+			return json(
+				{ success: false, message: 'This email has already been registered, proceed to login.' },
+				{ status: 400 }
+			);
+		}
 
+		return json(
+			{ success: false, message: 'Registration failed.', error: err?.response?.data },
+			{ status: 400 }
+		);
+	}
 };
