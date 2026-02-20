@@ -63,6 +63,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			return json({ success: true, subscription: updated });
 		}
 
+		if (action === 'toggleAutoRenew') {
+			const subscription = await locals.pb.collection('subscriptions').getOne(subscriptionData.id);
+			const updated = await locals.pb.collection('subscriptions').update(subscriptionData.id, {
+				autoRenew: !subscription.autoRenew
+			});
+			return json({ success: true, subscription: updated });
+		}
+
 		if (action === 'renew') {
 			const current = await locals.pb.collection('subscriptions').getOne(subscriptionData.id);
 			const newEndDate = new Date(current.endDate);

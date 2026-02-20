@@ -11,6 +11,7 @@
 	let showHistoryModal = $state(false);
 	let selectedRestaurant = $state<any>(null);
 	let selectedPlan = $state('monthly');
+	let autoRenew = $state(false);
 	let isProcessing = $state(false);
 	let paymentSuccess = $state(false);
 	let paymentError = $state('');
@@ -171,16 +172,22 @@
 			return;
 		}
 
-		// Get restaurant from subscription or layout
-		const restaurant =
-			data.restaurant ||
-			(data.subscription
-				? {
-						id: data.subscription.restaurantId,
-						name: 'Restaurant',
-						email: 'admin@restaurant.com'
-					}
-				: null);
+		// Get restaurant from subscription, layout, or selected restaurant (for super users)
+		let restaurant = data.restaurant;
+
+		// For super users adding subscriptions, use selectedRestaurant
+		if (data.isSuper && activeTab === 'add' && selectedRestaurant) {
+			restaurant = selectedRestaurant;
+		}
+
+		// Fallback for non-super users with existing subscription
+		if (!restaurant && data.subscription) {
+			restaurant = {
+				id: data.subscription.restaurantId,
+				name: 'Restaurant',
+				email: 'admin@restaurant.com'
+			};
+		}
 
 		if (!restaurant) {
 			paymentError = 'Restaurant not found';
@@ -220,7 +227,7 @@
 							status: 'active',
 							paymentReference: response.reference,
 							recurring: false,
-							autoRenew: false,
+							autoRenew: autoRenew,
 							id: data.subscription?.id || null
 						})
 					})
@@ -288,7 +295,9 @@
 		isProcessing = true;
 		paymentError = '';
 
-		const email = data.restaurant?.email || 'admin@restaurant.com';
+		// Get restaurant from subscription's restaurantId (works for both super and non-super)
+		const restaurant = data.restaurants?.find((r: any) => r.id === subscription.restaurantId);
+		const email = restaurant?.email || data.restaurant?.email || 'admin@restaurant.com';
 
 		try {
 			let handler = PaystackPop.setup({
@@ -333,6 +342,36 @@
 		} catch (err) {
 			console.error('Paystack error:', err);
 			paymentError = 'Failed to initialize payment';
+			isProcessing = false;
+		}
+	}
+
+	async function toggleAutoRenew(subscription: any) {
+		isProcessing = true;
+		paymentError = '';
+
+		try {
+			const response = await fetch('/api/subscriptions', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					action: 'toggleAutoRenew',
+					id: subscription.id
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.success) {
+				paymentSuccess = true;
+				window.location.reload();
+			} else {
+				paymentError = 'Failed to toggle auto-renew: ' + (result.error || '');
+			}
+		} catch (err) {
+			console.error('Toggle auto-renew error:', err);
+			paymentError = 'Failed to toggle auto-renew';
+		} finally {
 			isProcessing = false;
 		}
 	}
@@ -635,6 +674,20 @@
 									>₦{plans.find((p) => p.id === selectedPlan)?.price.toLocaleString()}</span
 								>
 							</div>
+							<div class="mt-2 flex items-center justify-between text-sm">
+								<span class="text-slate-600">Auto Renew:</span>
+								<label class="relative inline-flex cursor-pointer items-center">
+									<input type="checkbox" bind:checked={autoRenew} class="peer sr-only" />
+									<div
+										class="peer peer-checked:bg-primary h-6 w-11 rounded-full bg-slate-200 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
+									></div>
+									<span
+										class="ml-2 text-sm font-medium {autoRenew ? 'text-primary' : 'text-slate-500'}"
+									>
+										{autoRenew ? 'Enabled' : 'Disabled'}
+									</span>
+								</label>
+							</div>
 						</div>
 
 						{#if paymentError}
@@ -886,9 +939,22 @@
 							</div>
 							<div class="flex justify-between border-b border-slate-100 pb-3">
 								<span class="text-slate-600">Auto Renew</span>
-								<span class="font-medium text-slate-800"
-									>{data.subscription.autoRenew ? 'Enabled' : 'Disabled'}</span
-								>
+								<div class="flex items-center gap-2">
+									<span
+										class="font-medium {data.subscription.autoRenew
+											? 'text-emerald-600'
+											: 'text-slate-800'}"
+									>
+										{data.subscription.autoRenew ? 'Enabled' : 'Disabled'}
+									</span>
+									<button
+										class="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200"
+										onclick={() => toggleAutoRenew(data.subscription)}
+										disabled={isProcessing}
+									>
+										{isProcessing ? '...' : data.subscription.autoRenew ? 'Disable' : 'Enable'}
+									</button>
+								</div>
 							</div>
 							<div class="flex justify-between">
 								<span class="text-slate-600">Recurring</span>
@@ -1072,6 +1138,11 @@
 									<p class="text-xs text-slate-500">
 										{subscription.plan} - ₦{(subscription.amount || 0).toLocaleString()}
 									</p>
+									<p
+										class="text-xs {subscription.autoRenew ? 'text-emerald-600' : 'text-slate-400'}"
+									>
+										Auto Renew: {subscription.autoRenew ? 'Enabled' : 'Disabled'}
+									</p>
 								</div>
 								<div class="text-right">
 									<span
@@ -1081,6 +1152,13 @@
 									>
 										{subscription.status}
 									</span>
+									<button
+										class="mt-1 block rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200"
+										onclick={() => toggleAutoRenew(subscription)}
+										disabled={isProcessing}
+									>
+										{isProcessing ? '...' : subscription.autoRenew ? 'Disable' : 'Enable'}
+									</button>
 									{#if isExpiringSoon(subscription.endDate)}
 										<p class="mt-1 text-xs text-amber-600">
 											{getDaysUntilExpiry(subscription.endDate)} days left
@@ -1110,13 +1188,27 @@
 									<p class="text-xs text-slate-500">
 										Expires: {new Date(subscription.endDate).toLocaleDateString()}
 									</p>
+									<p
+										class="text-xs {subscription.autoRenew ? 'text-emerald-600' : 'text-slate-400'}"
+									>
+										Auto Renew: {subscription.autoRenew ? 'Enabled' : 'Disabled'}
+									</p>
 								</div>
-								<button
-									class="rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-600"
-									onclick={() => renewSubscription(subscription)}
-								>
-									Renew
-								</button>
+								<div class="flex flex-col items-end gap-2">
+									<button
+										class="rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-600"
+										onclick={() => renewSubscription(subscription)}
+									>
+										Renew
+									</button>
+									<button
+										class="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200"
+										onclick={() => toggleAutoRenew(subscription)}
+										disabled={isProcessing}
+									>
+										{isProcessing ? '...' : subscription.autoRenew ? 'Disable Auto' : 'Enable Auto'}
+									</button>
+								</div>
 							</div>
 						{:else}
 							<p class="text-sm text-slate-500">No subscriptions expiring soon</p>
@@ -1143,6 +1235,9 @@
 							>
 							<th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase"
 								>End Date</th
+							>
+							<th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase"
+								>Auto Renew</th
 							>
 							<th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase"
 								>Status</th
@@ -1172,6 +1267,17 @@
 									>{new Date(subscription.endDate).toLocaleDateString()}</td
 								>
 								<td class="px-4 py-3">
+									<button
+										class="rounded-lg px-2 py-1 text-xs font-medium {subscription.autoRenew
+											? 'bg-emerald-100 text-emerald-700'
+											: 'bg-slate-100 text-slate-600'}"
+										onclick={() => toggleAutoRenew(subscription)}
+										disabled={isProcessing}
+									>
+										{subscription.autoRenew ? 'Enabled' : 'Disabled'}
+									</button>
+								</td>
+								<td class="px-4 py-3">
 									<span
 										class="rounded-full border px-2 py-1 text-xs font-medium {getStatusColor(
 											subscription.status
@@ -1193,7 +1299,7 @@
 							</tr>
 						{:else}
 							<tr>
-								<td colspan="7" class="px-4 py-8 text-center text-slate-500"
+								<td colspan="8" class="px-4 py-8 text-center text-slate-500"
 									>No subscriptions found</td
 								>
 							</tr>
@@ -1252,6 +1358,22 @@
 									<span class="text-primary font-bold"
 										>₦{plans.find((p) => p.id === selectedPlan)?.price.toLocaleString()}</span
 									>
+								</div>
+								<div class="mt-2 flex items-center justify-between text-sm">
+									<span class="text-slate-600">Auto Renew:</span>
+									<label class="relative inline-flex cursor-pointer items-center">
+										<input type="checkbox" bind:checked={autoRenew} class="peer sr-only" />
+										<div
+											class="peer peer-checked:bg-primary h-6 w-11 rounded-full bg-slate-200 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
+										></div>
+										<span
+											class="ml-2 text-sm font-medium {autoRenew
+												? 'text-primary'
+												: 'text-slate-500'}"
+										>
+											{autoRenew ? 'Enabled' : 'Disabled'}
+										</span>
+									</label>
 								</div>
 							</div>
 

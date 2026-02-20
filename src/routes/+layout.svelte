@@ -58,8 +58,8 @@
 		loading = false;
 	});
 
-	const restaurantName = $page.data.restaurant.name;
-	const restaurantLogo = $page.data.restaurant.faviconUrl;
+	const restaurantName = $page.data.restaurant?.name || 'Proxifeast';
+	const restaurantLogo = $page.data.restaurant?.faviconUrl || '/favicon.png';
 </script>
 
 <svelte:head>
