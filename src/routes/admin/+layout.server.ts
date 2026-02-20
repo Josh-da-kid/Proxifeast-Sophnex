@@ -50,15 +50,30 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			const now = new Date();
 			const endDate = new Date(subs.endDate);
 
+			console.log(
+				'Subscription check - status:',
+				subs.status,
+				'endDate:',
+				subs.endDate,
+				'now:',
+				now,
+				'endDate<=now:',
+				endDate <= now
+			);
+
 			if (subs.status === 'inactive' || subs.status === 'cancelled') {
 				subscriptionStatus = 'cancelled';
+			} else if (subs.status === 'pending') {
+				subscriptionStatus = 'pending';
 			} else if (endDate <= now) {
 				subscriptionStatus = 'expired';
 			} else {
-				const thirtyDaysFromNow = new Date();
-				thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-				if (endDate <= thirtyDaysFromNow) {
+				const sevenDaysFromNow = new Date();
+				sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+				if (endDate <= sevenDaysFromNow) {
 					subscriptionStatus = 'expiring_soon';
+				} else {
+					subscriptionStatus = 'active';
 				}
 			}
 		} catch (err) {

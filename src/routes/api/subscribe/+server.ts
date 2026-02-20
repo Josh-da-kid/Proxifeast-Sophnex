@@ -76,17 +76,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const result = await response.json();
 
 		if (result.status) {
-			// Calculate end date
+			// Calculate end date using fixed average days
 			let endDate = new Date();
 			switch (plan) {
 				case 'monthly':
-					endDate.setMonth(endDate.getMonth() + 1);
+					endDate.setDate(endDate.getDate() + 30);
 					break;
 				case 'quarterly':
-					endDate.setMonth(endDate.getMonth() + 3);
+					endDate.setDate(endDate.getDate() + 90);
 					break;
 				case 'yearly':
-					endDate.setFullYear(endDate.getFullYear() + 1);
+					endDate.setDate(endDate.getDate() + 365);
 					break;
 			}
 
@@ -165,13 +165,13 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
 			let endDate = new Date();
 			switch (plan) {
 				case 'monthly':
-					endDate.setMonth(endDate.getMonth() + 1);
+					endDate.setDate(endDate.getDate() + 30);
 					break;
 				case 'quarterly':
-					endDate.setMonth(endDate.getMonth() + 3);
+					endDate.setDate(endDate.getDate() + 90);
 					break;
 				case 'yearly':
-					endDate.setFullYear(endDate.getFullYear() + 1);
+					endDate.setDate(endDate.getDate() + 365);
 					break;
 			}
 

@@ -26,9 +26,9 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 		console.error('Error getting super restaurant paystackKey:', err);
 	}
 
-	// Fetch fresh subscription data for non-super restaurants
-	let subscription = layoutSubscription;
-	let subscriptionStatus = layoutStatus;
+	// Fetch fresh subscription data for non-super restaurants - ALWAYS recalculate
+	let subscription: any = null;
+	let subscriptionStatus = 'not_subscribed';
 	let previousSubscriptions: any[] = [];
 
 	if (!isSuper && restaurant) {
@@ -41,18 +41,28 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 			const now = new Date();
 			const endDate = new Date(subs.endDate);
 
-			if (subs.status === 'inactive' || subs.status === 'cancelled') {
-				subscriptionStatus = 'cancelled';
-			} else if (endDate <= now) {
-				subscriptionStatus = 'expired';
-			} else {
-				const thirtyDaysFromNow = new Date();
-				thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-				if (endDate <= thirtyDaysFromNow) {
-					subscriptionStatus = 'expiring_soon';
+			console.log('Billing page - Subscription:', subs);
+
+			// If subscription has valid status and not expired, mark as active
+			if (subs.status === 'active') {
+				if (endDate > now) {
+					const sevenDaysFromNow = new Date();
+					sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+					if (endDate <= sevenDaysFromNow) {
+						subscriptionStatus = 'expiring_soon';
+					} else {
+						subscriptionStatus = 'active';
+					}
 				} else {
-					subscriptionStatus = 'active';
+					subscriptionStatus = 'expired';
 				}
+			} else if (subs.status === 'pending') {
+				subscriptionStatus = 'pending';
+			} else if (subs.status === 'cancelled' || subs.status === 'inactive') {
+				subscriptionStatus = 'cancelled';
+			} else {
+				// Default to active if status is something else but endDate is in future
+				subscriptionStatus = endDate > now ? 'active' : 'expired';
 			}
 
 			// Get all previous subscriptions for this restaurant
