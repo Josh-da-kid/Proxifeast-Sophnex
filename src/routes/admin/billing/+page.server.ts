@@ -59,8 +59,21 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 
 				const now = new Date();
 				const endDate = new Date(subscription.endDate);
+				const sevenDays = new Date();
+				sevenDays.setDate(sevenDays.getDate() + 7);
 
-				subscriptionStatus = endDate > now ? 'active' : 'expired';
+				// Check subscription status based on endDate and status field
+				if (subscription.status === 'pending') {
+					subscriptionStatus = 'pending';
+				} else if (subscription.status === 'cancelled' || subscription.status === 'inactive') {
+					subscriptionStatus = endDate > now ? 'active' : 'cancelled';
+				} else if (endDate <= now) {
+					subscriptionStatus = 'expired';
+				} else if (endDate <= sevenDays) {
+					subscriptionStatus = 'expiring_soon';
+				} else {
+					subscriptionStatus = 'active';
+				}
 			}
 
 			// Get all previous subscriptions
@@ -85,12 +98,24 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 	}
 
 	const now = new Date();
+	const sevenDaysFromNow = new Date();
+	sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+
+	const activeSubs = subscriptions.filter((s: any) => new Date(s.endDate) > now);
+	const expiringSoonSubs = subscriptions.filter((s: any) => {
+		const endDate = new Date(s.endDate);
+		return endDate > now && endDate <= sevenDaysFromNow;
+	});
+	const expiredSubs = subscriptions.filter((s: any) => new Date(s.endDate) <= now);
+
+	const totalRevenue = activeSubs.reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
+
 	const stats = {
 		total: subscriptions.length,
-		active: subscriptions.filter((s: any) => new Date(s.endDate) > now).length,
-		expiringSoon: 0,
-		expired: subscriptions.filter((s: any) => new Date(s.endDate) <= now).length,
-		totalRevenue: 0,
+		active: activeSubs.length,
+		expiringSoon: expiringSoonSubs.length,
+		expired: expiredSubs.length,
+		totalRevenue,
 		monthlyRevenue: 0
 	};
 

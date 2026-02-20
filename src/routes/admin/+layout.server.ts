@@ -7,6 +7,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		const token = cookies.get('pb_auth');
 		const pathname = url.pathname;
 		const isAdminLoginPage = pathname === '/admin/admin-login';
+		const isBillingPage = pathname.startsWith('/admin/billing');
 
 		if (!token && !isAdminLoginPage) {
 			throw redirect(302, `/admin/admin-login?redirectTo=${pathname}`);
@@ -47,54 +48,58 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		locals.restaurant = restaurant;
 		locals.isSuper = restaurant?.isSuper === true;
 
+		// For super restaurants, skip all subscription checks
+		if (locals.isSuper) {
+			return {
+				user: locals.user,
+				restaurant,
+				isSuper: locals.isSuper,
+				restaurantId: restaurant?.id,
+				subscription: null,
+				subscriptionStatus: 'active'
+			};
+		}
+
 		// Check subscription for non-super restaurants
 		let subscription = null;
-		let subscriptionStatus = 'active';
+		let subscriptionStatus = 'not_subscribed';
 
-		// Skip subscription check for billing page or super restaurants
-		if (!locals.isSuper && !pathname.startsWith('/admin/billing')) {
-			try {
-				const subs = await locals.pb
-					.collection('subscriptions')
-					.getFirstListItem(`restaurantId = "${restaurant.id}"`);
-				subscription = subs;
+		try {
+			const subs = await locals.pb
+				.collection('subscriptions')
+				.getFirstListItem(`restaurantId = "${restaurant.id}"`);
+			subscription = subs;
 
-				const now = new Date();
-				const endDate = new Date(subs.endDate);
+			const now = new Date();
+			const endDate = new Date(subs.endDate);
+			const sevenDaysFromNow = new Date();
+			sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
-				if (subs.status === 'inactive' || subs.status === 'cancelled') {
-					if (endDate <= now) {
-						subscriptionStatus = 'cancelled';
-					} else {
-						const sevenDaysFromNow = new Date();
-						sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-						subscriptionStatus = endDate <= sevenDaysFromNow ? 'expiring_soon' : 'active';
-					}
-				} else if (subs.status === 'pending') {
-					subscriptionStatus = 'pending';
-				} else if (endDate <= now) {
-					subscriptionStatus = 'expired';
-				} else {
-					const sevenDaysFromNow = new Date();
-					sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-					subscriptionStatus = endDate <= sevenDaysFromNow ? 'expiring_soon' : 'active';
-				}
-
-				// Block access if subscription is expired, cancelled, or not_subscribed
-				if (
-					subscriptionStatus === 'expired' ||
-					subscriptionStatus === 'cancelled' ||
-					subscriptionStatus === 'not_subscribed'
-				) {
-					if (!pathname.startsWith('/admin/billing')) {
-						throw redirect(307, '/admin/billing?expired=1');
-					}
-				}
-			} catch (err: any) {
-				// If it's a redirect, rethrow it
-				if (err.status === 307) throw err;
-				subscriptionStatus = 'not_subscribed';
+			// Determine subscription status
+			if (subs.status === 'pending') {
+				subscriptionStatus = 'pending';
+			} else if (subs.status === 'cancelled' || subs.status === 'inactive') {
+				subscriptionStatus = endDate > now ? 'active' : 'cancelled';
+			} else if (endDate <= now) {
+				subscriptionStatus = 'expired';
+			} else if (endDate <= sevenDaysFromNow) {
+				subscriptionStatus = 'expiring_soon';
+			} else {
+				subscriptionStatus = 'active';
 			}
+		} catch (err) {
+			subscriptionStatus = 'not_subscribed';
+			subscription = null;
+		}
+
+		// Block access if subscription is not active
+		// Only allow access to billing page
+		const isSubscriptionActive =
+			subscriptionStatus === 'active' || subscriptionStatus === 'expiring_soon';
+
+		if (!isSubscriptionActive && !isBillingPage) {
+			// Not on billing page and subscription is not active - redirect to billing
+			throw redirect(307, '/admin/billing?expired=1');
 		}
 
 		return {
