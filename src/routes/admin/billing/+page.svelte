@@ -8,11 +8,97 @@
 
 	let activeTab = $state('overview');
 	let showPaymentModal = $state(false);
+	let showHistoryModal = $state(false);
 	let selectedRestaurant = $state<any>(null);
 	let selectedPlan = $state('monthly');
 	let isProcessing = $state(false);
 	let paymentSuccess = $state(false);
 	let paymentError = $state('');
+	let renewalMessage = $state('');
+
+	// Real-time updates for progress and days remaining
+	let currentTime = $state(Date.now());
+
+	$effect(() => {
+		// Update every second
+		const interval = setInterval(() => {
+			currentTime = Date.now();
+		}, 1000);
+
+		return () => clearInterval(interval);
+	});
+
+	// Force reactivity when currentTime changes
+	let _forceUpdate = $derived(currentTime);
+
+	function getDaysUntilExpiry(endDate: string) {
+		if (!endDate) return 0;
+		const now = new Date(currentTime);
+		const end = new Date(endDate);
+		const diffMs = end.getTime() - now.getTime();
+		const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+		return Math.max(0, diffDays);
+	}
+
+	function isExpiringSoon(endDate: string) {
+		const days = getDaysUntilExpiry(endDate);
+		return days <= 30 && days > 0;
+	}
+
+	function getSubscriptionProgress(startDate: string, endDate: string): number {
+		if (!startDate || !endDate) return 0;
+		const start = new Date(startDate).getTime();
+		const end = new Date(endDate).getTime();
+		const now = currentTime;
+
+		if (now >= end) return 100;
+		if (now <= start) return 0;
+
+		const total = end - start;
+		const elapsed = now - start;
+		return Math.round((elapsed / total) * 100);
+	}
+
+	function getDaysRemaining(endDate: string): number {
+		if (!endDate) return 0;
+		const now = new Date(currentTime);
+		const end = new Date(endDate);
+		const diffMs = end.getTime() - now.getTime();
+		const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+		return Math.max(0, diffDays);
+	}
+
+	function handleRenewClick() {
+		const daysRemaining = data.subscription?.endDate
+			? getDaysRemaining(data.subscription.endDate)
+			: 0;
+
+		if (daysRemaining > 7) {
+			renewalMessage = `You still have ${daysRemaining} days remaining on your current subscription. You can renew early, but your new subscription will start after your current one expires.`;
+		} else if (daysRemaining > 0) {
+			renewalMessage = `Your subscription expires in ${daysRemaining} days. Would you like to renew now?`;
+		} else {
+			renewalMessage = '';
+		}
+
+		selectedPlan = data.subscription?.plan || 'monthly';
+	}
+
+	function handleContactSupport() {
+		const email = data.supportEmail || 'support@proxifeast.com';
+		const subject = `Support Request - ${data.restaurant?.name || 'Restaurant'}`;
+		const body = `Hello Proxifeast Support,\n\nI need help with my subscription.\n\nRestaurant: ${data.restaurant?.name || 'N/A'}\nCurrent Plan: ${data.subscription?.plan || 'N/A'}\nSubscription Status: ${data.subscriptionStatus}\n\nPlease assist me.`;
+		window.open(
+			`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+			'_blank'
+		);
+	}
+
+	// Initialize PaystackPop (client-side only)
+	function getPaystackPop() {
+		if (typeof window === 'undefined') return null;
+		return (window as any).PaystackPop;
+	}
 
 	// Handle URL params
 	$effect(() => {
@@ -41,14 +127,14 @@
 	});
 
 	const plans = [
-		{ id: 'monthly', name: 'Monthly', price: 15000, description: 'Billed monthly' },
+		{ id: 'monthly', name: 'Monthly', price: 25000, description: 'Billed monthly' },
 		{
 			id: 'quarterly',
 			name: 'Quarterly',
-			price: 40000,
-			description: 'Billed quarterly (Save 11%)'
+			price: 65000,
+			description: 'Billed quarterly (Save 6%)'
 		},
-		{ id: 'yearly', name: 'Yearly', price: 150000, description: 'Billed yearly (Save 17%)' }
+		{ id: 'yearly', name: 'Yearly', price: 250000, description: 'Billed yearly (Save 17%)' }
 	];
 
 	function getStatusColor(status: string) {
@@ -64,76 +150,191 @@
 		}
 	}
 
-	function getDaysUntilExpiry(endDate: string) {
-		const now = new Date();
-		const end = new Date(endDate);
-		const diff = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-		return diff;
-	}
+	function handleSubscribe() {
+		const PaystackPop = getPaystackPop();
 
-	function isExpiringSoon(endDate: string) {
-		return getDaysUntilExpiry(endDate) <= 30 && getDaysUntilExpiry(endDate) > 0;
-	}
+		if (!PaystackPop) {
+			paymentError = 'Payment system not loaded. Please refresh the page.';
+			isProcessing = false;
+			return;
+		}
 
-	async function handleSubscribe() {
-		if (!selectedRestaurant) return;
+		if (!data.paystackKey) {
+			paymentError = 'Payment configuration not found. Please contact support.';
+			isProcessing = false;
+			return;
+		}
+
+		const plan = plans.find((p) => p.id === selectedPlan);
+		if (!plan) {
+			paymentError = 'Please select a plan';
+			return;
+		}
+
+		// Get restaurant from subscription or layout
+		const restaurant =
+			data.restaurant ||
+			(data.subscription
+				? {
+						id: data.subscription.restaurantId,
+						name: 'Restaurant',
+						email: 'admin@restaurant.com'
+					}
+				: null);
+
+		if (!restaurant) {
+			paymentError = 'Restaurant not found';
+			return;
+		}
 
 		isProcessing = true;
 		paymentError = '';
 
+		const email = restaurant.email || 'admin@restaurant.com';
+
 		try {
-			const plan = plans.find((p) => p.id === selectedPlan);
-
-			const res = await fetch('/api/subscribe', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					restaurantId: selectedRestaurant.id,
-					restaurantName: selectedRestaurant.name,
+			let handler = PaystackPop.setup({
+				key: data.paystackKey,
+				email: email,
+				amount: plan.price * 100,
+				currency: 'NGN',
+				ref: 'SUB-' + Math.floor(Math.random() * 1000000000 + 1),
+				metadata: {
+					restaurantId: restaurant.id,
+					restaurantName: restaurant.name,
 					plan: selectedPlan,
-					amount: plan?.price,
-					email: selectedRestaurant.email || 'admin@restaurant.com',
-					recurring: false,
-					callbackUrl: window.location.origin + '/api/payment-callback'
-				})
+					type: 'subscription'
+				},
+				callback: function (response: any) {
+					// Payment complete - update or create subscription
+					fetch('/api/subscriptions', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							action: data.subscription?.id ? 'update' : 'create',
+							restaurantId: restaurant.id,
+							plan: selectedPlan,
+							amount: plan.price,
+							startDate: new Date().toISOString(),
+							endDate: getEndDate(selectedPlan).toISOString(),
+							status: 'active',
+							paymentReference: response.reference,
+							recurring: false,
+							autoRenew: false,
+							id: data.subscription?.id || null
+						})
+					})
+						.then((res) => res.json())
+						.then((result) => {
+							if (result.success) {
+								paymentSuccess = true;
+								window.location.reload();
+							} else {
+								paymentError = 'Failed to save subscription: ' + (result.error || '');
+							}
+						})
+						.catch((err) => {
+							console.error('Subscription error:', err);
+							paymentError = 'Failed to save subscription';
+						})
+						.finally(() => {
+							isProcessing = false;
+						});
+				},
+				onClose: function () {
+					isProcessing = false;
+				}
 			});
-
-			const result = await res.json();
-
-			if (result.authorizationUrl) {
-				window.location.href = result.authorizationUrl;
-			} else {
-				paymentError = result.error || 'Payment initialization failed';
-			}
-		} catch (err: any) {
-			paymentError = err.message || 'Failed to process payment';
+			handler.openIframe();
+		} catch (err) {
+			console.error('Paystack error:', err);
+			paymentError = 'Failed to initialize payment';
+			isProcessing = false;
 		}
-
-		isProcessing = false;
 	}
 
-	async function renewSubscription(subscription: any) {
-		isProcessing = true;
+	function getEndDate(plan: string): Date {
+		const endDate = new Date();
+		switch (plan) {
+			case 'monthly':
+				endDate.setMonth(endDate.getMonth() + 1);
+				break;
+			case 'quarterly':
+				endDate.setMonth(endDate.getMonth() + 3);
+				break;
+			case 'yearly':
+				endDate.setFullYear(endDate.getFullYear() + 1);
+				break;
+		}
+		return endDate;
+	}
 
-		try {
-			const res = await fetch('/api/subscriptions', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					action: 'renew',
-					id: subscription.id
-				})
-			});
+	function renewSubscription(subscription: any) {
+		const PaystackPop = getPaystackPop();
 
-			const result = await res.json();
-			if (result.success) {
-				window.location.reload();
-			}
-		} catch (err) {
-			console.error('Renew error:', err);
+		if (!PaystackPop) {
+			paymentError = 'Payment system not loaded. Please refresh the page.';
+			return;
 		}
 
-		isProcessing = false;
+		if (!data.paystackKey) {
+			paymentError = 'Payment configuration not found';
+			return;
+		}
+
+		const plan = subscription.plan || 'monthly';
+		const amount = subscription.amount || 15000;
+
+		isProcessing = true;
+		paymentError = '';
+
+		const email = data.restaurant?.email || 'admin@restaurant.com';
+
+		try {
+			let handler = PaystackPop.setup({
+				key: data.paystackKey,
+				email: email,
+				amount: amount * 100,
+				currency: 'NGN',
+				ref: 'REN-' + Math.floor(Math.random() * 1000000000 + 1),
+				callback: function (response: any) {
+					// Payment complete - renew subscription
+					fetch('/api/subscriptions', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							action: 'renew',
+							id: subscription.id,
+							paymentReference: response.reference
+						})
+					})
+						.then((res) => res.json())
+						.then((result) => {
+							if (result.success) {
+								paymentSuccess = true;
+								window.location.reload();
+							} else {
+								paymentError = 'Failed to renew subscription';
+							}
+						})
+						.catch((err) => {
+							console.error('Renew error:', err);
+							paymentError = 'Failed to renew subscription';
+						})
+						.finally(() => {
+							isProcessing = false;
+						});
+				},
+				onClose: function () {
+					isProcessing = false;
+				}
+			});
+			handler.openIframe();
+		} catch (err) {
+			console.error('Paystack error:', err);
+			paymentError = 'Failed to initialize payment';
+			isProcessing = false;
+		}
 	}
 </script>
 
@@ -429,14 +630,7 @@
 							</div>
 						{/if}
 
-						<button
-							class="btn btn-primary mt-6 w-full rounded-xl py-3"
-							disabled={isProcessing}
-							onclick={() => {
-								selectedRestaurant = data.restaurant;
-								handleSubscribe();
-							}}
-						>
+						<button class="btn btn-primary mt-6 w-full rounded-xl py-3" onclick={handleSubscribe}>
 							{#if isProcessing}
 								<span class="loading loading-spinner loading-sm"></span>
 							{:else}
@@ -446,7 +640,410 @@
 					</div>
 				</div>
 			</div>
-		{:else if activeTab === 'overview'}
+		{:else if !data.isSuper && data.subscription && (data.subscriptionStatus === 'active' || data.subscriptionStatus === 'expiring_soon')}
+			<!-- Active Subscription Dashboard for Non-Super Restaurants -->
+			<div class="mx-auto max-w-4xl">
+				<!-- Header Card -->
+				{#if data.subscriptionStatus === 'expiring_soon'}
+					<div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-6 py-4">
+						<div class="flex items-center gap-3">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-5 w-5 text-amber-600"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path
+									d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+								/>
+								<line x1="12" y1="9" x2="12" y2="13" />
+								<line x1="12" y1="17" x2="12.01" y2="17" />
+							</svg>
+							<div>
+								<h3 class="font-semibold text-amber-800">Subscription Expiring Soon</h3>
+								<p class="text-sm text-amber-700">
+									Your subscription expires in {data.subscription.endDate
+										? getDaysRemaining(data.subscription.endDate)
+										: 0} days. Consider renewing to avoid interruption.
+								</p>
+							</div>
+						</div>
+					</div>
+				{/if}
+
+				<div class="mb-6 overflow-hidden rounded-2xl bg-white shadow-md">
+					<div class="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-8">
+						<div class="flex items-center justify-between">
+							<div>
+								<p class="text-sm font-medium text-slate-300">Current Plan</p>
+								<h2 class="font-playfair mt-1 text-3xl font-bold text-white capitalize">
+									{data.subscription.plan}
+								</h2>
+							</div>
+							<div class="text-right">
+								<span
+									class="rounded-full border border-emerald-400 bg-emerald-500/20 px-4 py-1.5 text-sm font-semibold text-emerald-300"
+								>
+									Active
+								</span>
+							</div>
+						</div>
+					</div>
+
+					<!-- Progress Section -->
+					<div class="px-6 py-6">
+						<div class="mb-2 flex items-center justify-between">
+							<span class="text-sm font-medium text-slate-600">Subscription Progress</span>
+							<span class="text-sm font-bold text-slate-800">
+								{data.subscription.startDate
+									? getSubscriptionProgress(data.subscription.startDate, data.subscription.endDate)
+									: 0}%
+							</span>
+						</div>
+						<div class="h-3 w-full overflow-hidden rounded-full bg-slate-100">
+							<div
+								class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
+								style="width: {data.subscription.startDate
+									? getSubscriptionProgress(data.subscription.startDate, data.subscription.endDate)
+									: 0}%"
+							></div>
+						</div>
+						<p class="mt-2 text-xs text-slate-500">
+							{data.subscription.startDate ? getDaysRemaining(data.subscription.endDate) : 0} days remaining
+							until renewal
+						</p>
+					</div>
+				</div>
+
+				<!-- Details Grid -->
+				<div class="grid gap-4 md:grid-cols-2">
+					<!-- Plan Details -->
+					<div class="rounded-xl bg-white p-6 shadow-sm">
+						<h3
+							class="mb-4 flex items-center gap-2 text-sm font-semibold tracking-wider text-slate-500 uppercase"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-4 w-4"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<rect width="20" height="14" x="2" y="5" rx="2" />
+								<line x1="2" x2="22" y1="10" y2="10" />
+							</svg>
+							Plan Details
+						</h3>
+						<div class="space-y-4">
+							<div class="flex justify-between border-b border-slate-100 pb-3">
+								<span class="text-slate-600">Plan Type</span>
+								<span class="font-medium text-slate-800 capitalize">{data.subscription.plan}</span>
+							</div>
+							<div class="flex justify-between border-b border-slate-100 pb-3">
+								<span class="text-slate-600">Amount</span>
+								<span class="font-medium text-slate-800"
+									>₦{data.subscription.amount?.toLocaleString()}</span
+								>
+							</div>
+							<div class="flex justify-between border-b border-slate-100 pb-3">
+								<span class="text-slate-600">Billing Cycle</span>
+								<span class="font-medium text-slate-800 capitalize"
+									>{data.subscription.plan === 'monthly'
+										? 'Monthly'
+										: data.subscription.plan === 'quarterly'
+											? 'Quarterly'
+											: 'Yearly'}</span
+								>
+							</div>
+							<div class="flex justify-between">
+								<span class="text-slate-600">Next Renewal</span>
+								<span class="font-medium text-slate-800"
+									>{data.subscription.endDate
+										? new Date(data.subscription.endDate).toLocaleDateString('en-US', {
+												year: 'numeric',
+												month: 'long',
+												day: 'numeric'
+											})
+										: 'N/A'}</span
+								>
+							</div>
+						</div>
+					</div>
+
+					<!-- Subscription Period -->
+					<div class="rounded-xl bg-white p-6 shadow-sm">
+						<h3
+							class="mb-4 flex items-center gap-2 text-sm font-semibold tracking-wider text-slate-500 uppercase"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-4 w-4"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+								<line x1="16" y1="2" x2="16" y2="6" />
+								<line x1="8" y1="2" x2="8" y2="6" />
+								<line x1="3" y1="10" x2="21" y2="10" />
+							</svg>
+							Subscription Period
+						</h3>
+						<div class="space-y-4">
+							<div class="flex justify-between border-b border-slate-100 pb-3">
+								<span class="text-slate-600">Start Date</span>
+								<span class="font-medium text-slate-800"
+									>{data.subscription.startDate
+										? new Date(data.subscription.startDate).toLocaleDateString('en-US', {
+												year: 'numeric',
+												month: 'long',
+												day: 'numeric'
+											})
+										: 'N/A'}</span
+								>
+							</div>
+							<div class="flex justify-between border-b border-slate-100 pb-3">
+								<span class="text-slate-600">End Date</span>
+								<span class="font-medium text-slate-800"
+									>{data.subscription.endDate
+										? new Date(data.subscription.endDate).toLocaleDateString('en-US', {
+												year: 'numeric',
+												month: 'long',
+												day: 'numeric'
+											})
+										: 'N/A'}</span
+								>
+							</div>
+							<div class="flex justify-between border-b border-slate-100 pb-3">
+								<span class="text-slate-600">Duration</span>
+								<span class="font-medium text-slate-800">
+									{#if data.subscription.plan === 'monthly'}
+										30 Days
+									{:else if data.subscription.plan === 'quarterly'}
+										90 Days
+									{:else if data.subscription.plan === 'yearly'}
+										365 Days
+									{/if}
+								</span>
+							</div>
+							<div class="flex justify-between">
+								<span class="text-slate-600">Days Remaining</span>
+								<span class="font-medium text-emerald-600"
+									>{data.subscription.endDate ? getDaysRemaining(data.subscription.endDate) : 0} days</span
+								>
+							</div>
+						</div>
+					</div>
+
+					<!-- Payment Info -->
+					<div class="rounded-xl bg-white p-6 shadow-sm">
+						<h3
+							class="mb-4 flex items-center gap-2 text-sm font-semibold tracking-wider text-slate-500 uppercase"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-4 w-4"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+							</svg>
+							Payment Information
+						</h3>
+						<div class="space-y-4">
+							<div class="flex justify-between border-b border-slate-100 pb-3">
+								<span class="text-slate-600">Payment Status</span>
+								<span class="font-medium text-emerald-600 capitalize"
+									>{data.subscription.status}</span
+								>
+							</div>
+							<div class="flex justify-between border-b border-slate-100 pb-3">
+								<span class="text-slate-600">Transaction Ref</span>
+								<span class="font-mono text-xs text-slate-800"
+									>{data.subscription?.paymentReference ||
+										data.subscription?.payment_reference ||
+										'N/A'}</span
+								>
+							</div>
+							<div class="flex justify-between border-b border-slate-100 pb-3">
+								<span class="text-slate-600">Auto Renew</span>
+								<span class="font-medium text-slate-800"
+									>{data.subscription.autoRenew ? 'Enabled' : 'Disabled'}</span
+								>
+							</div>
+							<div class="flex justify-between">
+								<span class="text-slate-600">Recurring</span>
+								<span class="font-medium text-slate-800"
+									>{data.subscription.recurring ? 'Yes' : 'No'}</span
+								>
+							</div>
+						</div>
+					</div>
+
+					<!-- Quick Actions -->
+					<div class="rounded-xl bg-white p-6 shadow-sm">
+						<h3
+							class="mb-4 flex items-center gap-2 text-sm font-semibold tracking-wider text-slate-500 uppercase"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-4 w-4"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+							</svg>
+							Quick Actions
+						</h3>
+
+						{#if renewalMessage}
+							<div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
+								<p class="text-sm text-amber-800">{renewalMessage}</p>
+							</div>
+						{/if}
+
+						<div class="space-y-3">
+							<button
+								class="border-primary bg-primary/5 text-primary hover:bg-primary w-full rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors hover:text-white"
+								onclick={handleRenewClick}
+							>
+								Renew Subscription
+							</button>
+							<button
+								class="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+								onclick={() => (showHistoryModal = true)}
+							>
+								View Payment History
+							</button>
+							<button
+								class="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+								onclick={handleContactSupport}
+							>
+								Contact Support
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Payment History Modal -->
+		{#if showHistoryModal}
+			<div
+				class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+				onclick={() => (showHistoryModal = false)}
+			>
+				<div
+					class="m-4 max-h-[80vh] w-full max-w-2xl overflow-auto rounded-2xl bg-white p-6"
+					onclick={(e) => e.stopPropagation()}
+				>
+					<div class="mb-4 flex items-center justify-between">
+						<h3 class="font-playfair text-xl font-bold text-slate-800">Payment History</h3>
+						<button
+							onclick={() => (showHistoryModal = false)}
+							class="text-slate-400 hover:text-slate-600"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-6 w-6"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<line x1="18" y1="6" x2="6" y2="18" />
+								<line x1="6" y1="6" x2="18" y2="18" />
+							</svg>
+						</button>
+					</div>
+
+					{#if data.subscription}
+						<div class="space-y-4">
+							<div class="rounded-lg border border-slate-200 p-4">
+								<div class="flex items-center justify-between">
+									<div>
+										<p class="font-medium text-slate-800 capitalize">
+											{data.subscription.plan} Plan
+										</p>
+										<p class="text-sm text-slate-500">
+											₦{data.subscription.amount?.toLocaleString()}
+										</p>
+									</div>
+									<span
+										class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-800 capitalize"
+									>
+										{data.subscription.status}
+									</span>
+								</div>
+								<div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+									<div>
+										<p class="text-slate-500">Start Date</p>
+										<p class="font-medium text-slate-800">
+											{data.subscription.startDate
+												? new Date(data.subscription.startDate).toLocaleDateString()
+												: 'N/A'}
+										</p>
+									</div>
+									<div>
+										<p class="text-slate-500">End Date</p>
+										<p class="font-medium text-slate-800">
+											{data.subscription.endDate
+												? new Date(data.subscription.endDate).toLocaleDateString()
+												: 'N/A'}
+										</p>
+									</div>
+									<div class="col-span-2">
+										<p class="text-slate-500">Transaction Reference</p>
+										<p class="font-mono text-xs text-slate-800">
+											{data.subscription?.paymentReference ||
+												data.subscription?.payment_reference ||
+												'N/A'}
+										</p>
+									</div>
+								</div>
+							</div>
+
+							{#if data.previousSubscriptions?.length > 0}
+								<h4 class="font-semibold text-slate-700">Previous Subscriptions</h4>
+								{#each data.previousSubscriptions as prevSub}
+									<div class="rounded-lg border border-slate-200 p-4 opacity-75">
+										<div class="flex items-center justify-between">
+											<div>
+												<p class="font-medium text-slate-800 capitalize">{prevSub.plan} Plan</p>
+												<p class="text-sm text-slate-500">₦{prevSub.amount?.toLocaleString()}</p>
+											</div>
+											<span
+												class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 capitalize"
+											>
+												{prevSub.status}
+											</span>
+										</div>
+										<p class="mt-2 text-sm text-slate-500">
+											{prevSub.startDate ? new Date(prevSub.startDate).toLocaleDateString() : 'N/A'}
+											- {prevSub.endDate ? new Date(prevSub.endDate).toLocaleDateString() : 'N/A'}
+										</p>
+									</div>
+								{/each}
+							{/if}
+
+							{#if !data.previousSubscriptions?.length}
+								<p class="text-center text-slate-500">No previous subscription records found.</p>
+							{/if}
+						</div>
+					{:else}
+						<p class="text-center text-slate-500">No subscription history available.</p>
+					{/if}
+				</div>
+			</div>
+		{:else if data.isSuper && activeTab === 'overview'}
 			<div class="grid gap-6 md:grid-cols-2">
 				<!-- Active Subscriptions -->
 				<div class="rounded-2xl bg-white p-6 shadow-sm">
@@ -514,7 +1111,7 @@
 					</div>
 				</div>
 			</div>
-		{:else if activeTab === 'subscriptions'}
+		{:else if data.isSuper && activeTab === 'subscriptions'}
 			<div class="overflow-x-auto rounded-2xl bg-white shadow-sm">
 				<table class="w-full">
 					<thead class="bg-slate-50">
@@ -591,7 +1188,7 @@
 					</tbody>
 				</table>
 			</div>
-		{:else if activeTab === 'add'}
+		{:else if data.isSuper && activeTab === 'add'}
 			<div class="mx-auto max-w-2xl">
 				<div class="rounded-2xl bg-white p-6 shadow-sm">
 					<h3 class="mb-6 text-lg font-semibold text-slate-800">Create New Subscription</h3>

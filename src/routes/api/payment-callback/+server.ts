@@ -1,8 +1,6 @@
 // src/routes/api/payment-callback/+server.ts
 
-import { json, redirect, type RequestHandler } from '@sveltejs/kit';
-
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || 'sk_test_placeholder';
+import { redirect, type RequestHandler } from '@sveltejs/kit';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
 	const reference = url.searchParams.get('reference');
@@ -17,6 +15,18 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 	}
 
 	try {
+		// Get Paystack secret key from super restaurant
+		const superRestaurants = await locals.pb.collection('restaurants').getFullList({
+			filter: 'isSuper = true'
+		});
+
+		const superRestaurant = superRestaurants?.[0];
+		const PAYSTACK_SECRET_KEY = superRestaurant?.paystackKey || process.env.PAYSTACK_SECRET_KEY;
+
+		if (!PAYSTACK_SECRET_KEY) {
+			throw redirect(303, '/admin/billing?error=payment_config_missing');
+		}
+
 		const verifyResponse = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
 			headers: {
 				Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`

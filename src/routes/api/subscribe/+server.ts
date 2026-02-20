@@ -2,12 +2,22 @@
 
 import { json, type RequestHandler } from '@sveltejs/kit';
 
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || 'sk_test_placeholder';
-
 export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
 		const data = await request.json();
 		const { restaurantId, restaurantName, plan, amount, email, recurring, callbackUrl } = data;
+
+		// Get Paystack secret key from super restaurant
+		const superRestaurants = await locals.pb.collection('restaurants').getFullList({
+			filter: 'isSuper = true'
+		});
+
+		const superRestaurant = superRestaurants?.[0];
+		const PAYSTACK_SECRET_KEY = superRestaurant?.paystackKey || process.env.PAYSTACK_SECRET_KEY;
+
+		if (!PAYSTACK_SECRET_KEY) {
+			return json({ error: 'Payment configuration not found' }, { status: 500 });
+		}
 
 		let pricing = {
 			monthly: 15000,
@@ -124,10 +134,22 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 };
 
-export const PUT: RequestHandler = async ({ request }) => {
+export const PUT: RequestHandler = async ({ request, locals }) => {
 	try {
 		const data = await request.json();
 		const { reference, restaurantId, plan } = data;
+
+		// Get Paystack secret key from super restaurant
+		const superRestaurants = await locals.pb.collection('restaurants').getFullList({
+			filter: 'isSuper = true'
+		});
+
+		const superRestaurant = superRestaurants?.[0];
+		const PAYSTACK_SECRET_KEY = superRestaurant?.paystackKey || process.env.PAYSTACK_SECRET_KEY;
+
+		if (!PAYSTACK_SECRET_KEY) {
+			return json({ error: 'Payment configuration not found' }, { status: 500 });
+		}
 
 		const verifyResponse = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
 			headers: {
