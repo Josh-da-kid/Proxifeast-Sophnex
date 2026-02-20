@@ -23,14 +23,18 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		const domainOnly = fullHost.split(':')[0];
 
 		// Find the restaurant by domain
-		let restaurant = null;
+		let restaurant: any = null;
+		let restaurants: any[] = [];
 		try {
-			const restaurants = await locals.pb.collection('restaurants').getFullList({
-				filter: `domain="${domainOnly}"`
-			});
-			restaurant = restaurants?.[0];
+			restaurants = await locals.pb.collection('restaurants').getFullList();
+			restaurant = restaurants?.find((r: any) => r.domain === domainOnly);
 		} catch (err) {
 			console.error('Error fetching restaurant:', err);
+		}
+
+		if (!restaurant && restaurants.length > 0) {
+			// Try to find by isSuper if domain lookup failed
+			restaurant = restaurants.find((r: any) => r.isSuper === true);
 		}
 
 		if (!restaurant) {

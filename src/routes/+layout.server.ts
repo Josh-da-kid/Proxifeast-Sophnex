@@ -10,12 +10,17 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 		const fullHost = request.headers.get('host') || '';
 		const domainOnly = fullHost.split(':')[0];
 
-		// Find restaurant by domain
-		const restaurants = await pb.collection('restaurants').getFullList({
-			filter: `domain="${domainOnly}"`
-		});
+		// Find restaurant by domain - use getFullList for reliability
+		const allRestaurants = await pb.collection('restaurants').getFullList();
+		let restaurant = allRestaurants.find((r: any) => r.domain === domainOnly);
 
-		const restaurant = restaurants?.[0];
+		// If not found by domain, check if this is a super restaurant domain
+		if (!restaurant) {
+			const superRest = allRestaurants.find((r: any) => r.isSuper === true);
+			if (superRest?.domain === domainOnly) {
+				restaurant = superRest;
+			}
+		}
 
 		if (!restaurant) {
 			console.error(`Restaurant not found for domain: ${domainOnly}`);
@@ -28,16 +33,13 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 		// Check if super restaurant
 		const isSuper = restaurant?.isSuper === true;
 
-		// Fetch all restaurants for restaurant lookup
-		const allRestaurants = await pb.collection('restaurants').getFullList({
-			sort: 'name',
-			filter: 'name != "ProxifeastLocal"'
-		});
+		// Filter allRestaurants for non-super restaurants
+		const filteredRestaurants = allRestaurants.filter((r: any) => r.isSuper !== true);
 
 		return {
 			user: locals.user ?? null,
 			restaurant,
-			allRestaurants,
+			allRestaurants: filteredRestaurants,
 			isSuper,
 			restaurantId: restaurant?.id
 		};
