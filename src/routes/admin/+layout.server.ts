@@ -76,11 +76,16 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
 			// Determine subscription status
+			// IMPORTANT: Database status takes precedence - if not 'active' in DB, treat as not active
 			if (subs.status === 'pending') {
 				subscriptionStatus = 'pending';
 			} else if (subs.status === 'cancelled' || subs.status === 'inactive') {
-				subscriptionStatus = endDate > now ? 'active' : 'cancelled';
+				subscriptionStatus = 'cancelled';
+			} else if (subs.status !== 'active') {
+				// Any other status that's not 'active'
+				subscriptionStatus = 'not_subscribed';
 			} else if (endDate <= now) {
+				// Only check endDate if status is 'active'
 				subscriptionStatus = 'expired';
 			} else if (endDate <= sevenDaysFromNow) {
 				subscriptionStatus = 'expiring_soon';

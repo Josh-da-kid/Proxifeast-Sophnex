@@ -389,8 +389,8 @@
 		</div>
 	{/if}
 
-	<!-- Expired Alert -->
-	{#if data.expired || data.subscriptionStatus === 'expired' || data.subscriptionStatus === 'not_subscribed'}
+	<!-- Expired/Cancelled/Pending/Not Subscribed Alert -->
+	{#if data.expired || data.subscriptionStatus === 'expired' || data.subscriptionStatus === 'not_subscribed' || data.subscriptionStatus === 'cancelled' || data.subscriptionStatus === 'pending'}
 		<div class="container mx-auto mt-6 px-4">
 			<div class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
 				<svg
@@ -409,6 +409,10 @@
 					<h3 class="font-semibold text-red-800">
 						{#if data.subscriptionStatus === 'not_subscribed'}
 							Subscription Required
+						{:else if data.subscriptionStatus === 'pending'}
+							Subscription Pending
+						{:else if data.subscriptionStatus === 'cancelled'}
+							Subscription Cancelled
 						{:else}
 							Subscription Expired
 						{/if}
@@ -417,6 +421,11 @@
 						{#if data.subscriptionStatus === 'not_subscribed'}
 							Your restaurant does not have an active subscription. Please subscribe to continue
 							using Proxifeast.
+						{:else if data.subscriptionStatus === 'pending'}
+							Your subscription is currently pending. Please complete payment to activate your
+							subscription.
+						{:else if data.subscriptionStatus === 'cancelled'}
+							Your subscription has been cancelled. Please renew to continue using Proxifeast.
 						{:else}
 							Your subscription has expired. Please renew to continue using Proxifeast.
 						{/if}
@@ -505,7 +514,11 @@
 							? 'Not Subscribed'
 							: data.subscriptionStatus === 'expiring_soon'
 								? 'Expiring Soon'
-								: data.subscriptionStatus}
+								: data.subscriptionStatus === 'cancelled'
+									? 'Cancelled'
+									: data.subscriptionStatus === 'pending'
+										? 'Pending'
+										: data.subscriptionStatus}
 					</span>
 				</div>
 				{#if data.subscription}
@@ -577,15 +590,15 @@
 
 	<!-- Content -->
 	<main class="container mx-auto px-4 py-8">
-		{#if !data.isSuper && (data.subscriptionStatus === 'not_subscribed' || data.subscriptionStatus === 'expired' || data.subscriptionStatus === 'cancelled')}
+		{#if !data.isSuper && (data.subscriptionStatus === 'not_subscribed' || data.subscriptionStatus === 'expired' || data.subscriptionStatus === 'cancelled' || data.subscriptionStatus === 'pending')}
 			<!-- Subscription plans for non-super restaurants -->
 			<div class="mx-auto max-w-3xl">
 				<div class="rounded-2xl bg-white p-6 shadow-sm">
 					<h3 class="mb-6 text-lg font-semibold text-slate-800">
-						{#if data.subscriptionStatus === 'not_subscribed'}
+						{#if data.subscriptionStatus === 'not_subscribed' || data.subscriptionStatus === 'cancelled' || data.subscriptionStatus === 'expired'}
 							Choose a Plan to Get Started
 						{:else}
-							Renew Your Subscription
+							Complete Your Subscription
 						{/if}
 					</h3>
 
