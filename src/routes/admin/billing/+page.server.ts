@@ -2,170 +2,109 @@
 
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals, url, parent }) => {
-	// Get base data from layout
-	const layoutData = await parent();
+export const load: PageServerLoad = async ({ locals, url, request }) => {
+	// Get restaurant from domain
+	const host = request.headers.get('host') || '';
+	const domainOnly = host.split(':')[0];
 
-	const {
-		restaurant,
-		isSuper,
-		subscription: layoutSubscription,
-		subscriptionStatus: layoutStatus
-	} = layoutData;
+	let restaurant = null;
+	let isSuperUser = false;
 
-	// Get super restaurant's paystackKey and support email for payment
+	try {
+		const restaurants = await locals.pb.collection('restaurants').getFullList({
+			filter: `domain="${domainOnly}"`
+		});
+
+		if (restaurants.length > 0) {
+			restaurant = restaurants[0];
+			isSuperUser = restaurant.isSuper === true;
+		}
+	} catch (err) {
+		console.error('Error fetching restaurant:', err);
+	}
+
+	// Get super restaurant settings
 	let paystackKey = '';
 	let supportEmail = 'support@proxifeast.com';
+
 	try {
 		const superRestaurants = await locals.pb.collection('restaurants').getFullList({
 			filter: 'isSuper = true'
 		});
-		paystackKey = superRestaurants?.[0]?.paystackKey || '';
-		supportEmail = superRestaurants?.[0]?.supportEmail || 'support@proxifeast.com';
+
+		if (superRestaurants.length > 0) {
+			paystackKey = superRestaurants[0].paystackKey || '';
+			supportEmail = superRestaurants[0].supportEmail || 'support@proxifeast.com';
+		}
 	} catch (err) {
-		console.error('Error getting super restaurant paystackKey:', err);
+		console.error('Error getting super restaurant:', err);
 	}
 
-	// Fetch fresh subscription data for non-super restaurants - ALWAYS recalculate
+	// Get subscription data
 	let subscription: any = null;
-	let subscriptionStatus = 'not_subscribed';
+	let subscriptionStatus = isSuperUser ? 'active' : 'not_subscribed';
 	let previousSubscriptions: any[] = [];
+	let subscriptions: any[] = [];
+	let restaurants: any[] = [];
 
-	if (!isSuper && restaurant) {
-		try {
-			const subs = await locals.pb
-				.collection('subscriptions')
-				.getFirstListItem(`restaurantId = "${restaurant.id}"`);
-			subscription = subs;
+	try {
+		if (!isSuperUser && restaurant?.id) {
+			const subs = await locals.pb.collection('subscriptions').getList(1, 1, {
+				filter: `restaurantId = "${restaurant.id}"`,
+				sort: '-created'
+			});
 
-			const now = new Date();
-			const endDate = new Date(subs.endDate);
+			if (subs.items.length > 0) {
+				subscription = subs.items[0];
 
-			console.log('Billing page - Subscription:', subs);
+				const now = new Date();
+				const endDate = new Date(subscription.endDate);
 
-			// If subscription has valid status and not expired, mark as active
-			if (subs.status === 'active') {
-				if (endDate > now) {
-					const sevenDaysFromNow = new Date();
-					sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-					if (endDate <= sevenDaysFromNow) {
-						subscriptionStatus = 'expiring_soon';
-					} else {
-						subscriptionStatus = 'active';
-					}
-				} else {
-					subscriptionStatus = 'expired';
-				}
-			} else if (subs.status === 'pending') {
-				subscriptionStatus = 'pending';
-			} else if (subs.status === 'cancelled' || subs.status === 'inactive') {
-				subscriptionStatus = 'cancelled';
-			} else {
-				// Default to active if status is something else but endDate is in future
 				subscriptionStatus = endDate > now ? 'active' : 'expired';
 			}
 
-			// Get all previous subscriptions for this restaurant
+			// Get all previous subscriptions
 			const allSubs = await locals.pb.collection('subscriptions').getList(1, 50, {
 				filter: `restaurantId = "${restaurant.id}"`,
 				sort: '-created'
 			});
-			previousSubscriptions = allSubs.items.filter((s: any) => s.id !== subscription?.id);
-		} catch (err) {
-			subscriptionStatus = 'not_subscribed';
-			subscription = null;
+			previousSubscriptions = allSubs.items;
 		}
-	}
 
-	// For super restaurants, get all subscriptions and non-super restaurants
-	try {
-		let subscriptions: any[] = [];
-		let restaurants: any[] = [];
-		let stats = {
-			total: 0,
-			active: 0,
-			expiringSoon: 0,
-			expired: 0,
-			totalRevenue: 0,
-			monthlyRevenue: 0
-		};
-
-		if (isSuper) {
-			// Super users can see all subscriptions
+		// Get all subscriptions for super admin
+		if (isSuperUser) {
 			subscriptions = await locals.pb.collection('subscriptions').getFullList({
 				sort: '-created'
 			});
-
 			restaurants = await locals.pb.collection('restaurants').getFullList({
 				filter: 'isSuper = false'
 			});
-
-			const now = new Date();
-			const thirtyDaysFromNow = new Date();
-			thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-
-			const activeSubscriptions = subscriptions.filter((s: any) => s.status === 'active');
-			const expiringSoon = subscriptions.filter((s: any) => {
-				const endDate = new Date(s.endDate);
-				return s.status === 'active' && endDate <= thirtyDaysFromNow && endDate > now;
-			});
-			const expired = subscriptions.filter((s: any) => {
-				const endDate = new Date(s.endDate);
-				return s.status === 'active' && endDate <= now;
-			});
-
-			const totalRevenue = activeSubscriptions.reduce(
-				(sum: number, s: any) => sum + (s.amount || 0),
-				0
-			);
-
-			stats = {
-				total: subscriptions.length,
-				active: activeSubscriptions.length,
-				expiringSoon: expiringSoon.length,
-				expired: expired.length,
-				totalRevenue,
-				monthlyRevenue: 0
-			};
-		} else if (subscription) {
-			// Non-super users only see their own subscription
-			subscriptions = [subscription];
-			restaurants = restaurant ? [restaurant] : [];
 		}
-
-		return {
-			subscriptionStatus,
-			subscription,
-			previousSubscriptions,
-			isSuper,
-			paystackKey,
-			supportEmail,
-			expired: url.searchParams.get('expired') === '1',
-			restaurant: isSuper ? null : restaurant,
-			subscriptions,
-			restaurants,
-			stats
-		};
 	} catch (err) {
-		console.error('Billing load error:', err);
-		return {
-			subscriptionStatus,
-			subscription,
-			previousSubscriptions,
-			isSuper,
-			paystackKey,
-			supportEmail,
-			expired: false,
-			subscriptions: [],
-			restaurants: [],
-			stats: {
-				total: 0,
-				active: 0,
-				expiringSoon: 0,
-				expired: 0,
-				totalRevenue: 0,
-				monthlyRevenue: 0
-			}
-		};
+		console.error('Subscription error:', err);
 	}
+
+	const now = new Date();
+	const stats = {
+		total: subscriptions.length,
+		active: subscriptions.filter((s: any) => new Date(s.endDate) > now).length,
+		expiringSoon: 0,
+		expired: subscriptions.filter((s: any) => new Date(s.endDate) <= now).length,
+		totalRevenue: 0,
+		monthlyRevenue: 0
+	};
+
+	return {
+		subscriptionStatus,
+		subscription,
+		previousSubscriptions,
+		isSuper: isSuperUser,
+		paystackKey,
+		supportEmail,
+		expired: url.searchParams.get('expired') === '1',
+		restaurant: isSuperUser ? null : restaurant,
+		subscriptions,
+		restaurants,
+		stats
+	};
 };
