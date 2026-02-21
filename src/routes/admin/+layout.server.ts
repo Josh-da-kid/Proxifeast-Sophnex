@@ -94,7 +94,16 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 
 			// Determine subscription status
 			// IMPORTANT: Database status takes precedence - if not 'active' in DB, treat as not active
-			if (subs.status === 'pending') {
+			if (subs.status === 'test') {
+				// Test subscriptions (free trial) - check if expired
+				if (endDate <= now) {
+					subscriptionStatus = 'expired';
+				} else if (endDate <= sevenDaysFromNow) {
+					subscriptionStatus = 'expiring_soon';
+				} else {
+					subscriptionStatus = 'test';
+				}
+			} else if (subs.status === 'pending') {
 				subscriptionStatus = 'pending';
 			} else if (subs.status === 'cancelled' || subs.status === 'inactive') {
 				subscriptionStatus = 'cancelled';
