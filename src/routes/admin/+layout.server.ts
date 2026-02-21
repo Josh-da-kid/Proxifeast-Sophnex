@@ -69,6 +69,13 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		locals.restaurant = restaurant;
 		locals.isSuper = !!restaurant?.isSuper;
 
+		console.log('=== ADMIN LAYOUT DEBUG ===');
+		console.log('Domain:', domainOnly);
+		console.log('Restaurant found:', restaurant?.name, restaurant?.id);
+		console.log('isSuper raw:', restaurant?.isSuper);
+		console.log('isSuper converted:', locals.isSuper);
+		console.log('===========================');
+
 		// Check if user is admin for this specific restaurant
 		// Use adminRestaurantIds if available (granular admin), fall back to global isAdmin + restaurantIds for backward compatibility
 		const adminRestaurantIds = locals.user?.adminRestaurantIds || [];

@@ -28,7 +28,7 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 
 	try {
 		const host = request.headers.get('host') || '';
-		const domainOnly = host.split(':')[0];
+		const domainOnly = host.split(':')[0].replace('www.', '');
 
 		const allRestaurants: any[] = await locals.pb.collection('restaurants').getFullList();
 
@@ -36,10 +36,26 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			return defaults;
 		}
 
-		const superRest = allRestaurants.find((r: any) => r.isSuper === true);
-		const currentRest = allRestaurants.find((r: any) => r.domain === domainOnly);
+		// Find current restaurant by domain (same logic as layout)
+		let currentRest = allRestaurants.find((r: any) => {
+			const rDomain = (r.domain || '').replace('www.', '').toLowerCase();
+			return rDomain === domainOnly.toLowerCase();
+		});
 
-		const isSuperUser = superRest ? superRest.domain === domainOnly : false;
+		// If not found, try partial match
+		if (!currentRest) {
+			currentRest = allRestaurants.find((r: any) => {
+				const rDomain = (r.domain || '').replace('www.', '').toLowerCase();
+				const checkDomain = domainOnly.toLowerCase();
+				return checkDomain.includes(rDomain) || rDomain.includes(checkDomain);
+			});
+		}
+
+		// Fall back to any super restaurant
+		const superRest =
+			currentRest?.isSuper === true ? currentRest : allRestaurants.find((r: any) => !!r.isSuper);
+
+		const isSuperUser = superRest ? !!superRest.isSuper : false;
 
 		const paystackKey = superRest?.paystackKey || '';
 		const supportEmail = superRest?.supportEmail || 'support@proxifeast.com';
