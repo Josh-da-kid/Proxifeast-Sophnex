@@ -125,8 +125,11 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		// Only allow access to billing page
 		// Test subscriptions are treated as active
 		const isSubscriptionActive =
-			subscriptionStatus === 'active' || subscriptionStatus === 'expiring_soon';
+			subscriptionStatus === 'active' ||
+			subscriptionStatus === 'expiring_soon' ||
+			subscriptionStatus === 'test';
 
+		// Always allow access to billing page - never redirect from there
 		if (!isSubscriptionActive && !isBillingPage) {
 			// Not on billing page and subscription is not active - redirect to billing
 			throw redirect(307, '/admin/billing?expired=1');
