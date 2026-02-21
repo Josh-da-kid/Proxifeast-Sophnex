@@ -27,25 +27,29 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		let restaurants: any[] = [];
 		try {
 			restaurants = await locals.pb.collection('restaurants').getFullList();
+
+			// First, try to find by exact domain match
 			restaurant = restaurants?.find((r: any) => {
-				const rDomain = (r.domain || '').replace('www.', '');
-				return (
-					rDomain === domainOnly || domainOnly.includes(rDomain) || rDomain.includes(domainOnly)
-				);
+				const rDomain = (r.domain || '').replace('www.', '').toLowerCase();
+				const checkDomain = domainOnly.toLowerCase();
+				return rDomain === checkDomain;
 			});
+
+			// If not found, try partial match (subdomain support)
+			if (!restaurant) {
+				restaurant = restaurants?.find((r: any) => {
+					const rDomain = (r.domain || '').replace('www.', '').toLowerCase();
+					const checkDomain = domainOnly.toLowerCase();
+					return checkDomain.includes(rDomain) || rDomain.includes(checkDomain);
+				});
+			}
 		} catch (err) {
 			console.error('Error fetching restaurant:', err);
 		}
 
+		// If still not found, try to find any super restaurant as fallback
 		if (!restaurant && restaurants.length > 0) {
-			// Try to find by isSuper if domain lookup failed
-			restaurant = restaurants.find((r: any) => {
-				const rDomain = (r.domain || '').replace('www.', '');
-				return (
-					r.isSuper === true &&
-					(rDomain === domainOnly || domainOnly.includes(rDomain) || rDomain.includes(domainOnly))
-				);
-			});
+			restaurant = restaurants.find((r: any) => r.isSuper === true);
 		}
 
 		if (!restaurant) {
