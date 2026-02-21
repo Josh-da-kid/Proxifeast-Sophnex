@@ -67,7 +67,12 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 				const endDate = new Date(subscription.endDate);
 
 				if (subscription.status === 'test') {
-					subscriptionStatus = 'test';
+					// Test subscriptions are treated as active for display purposes
+					if (endDate <= now) {
+						subscriptionStatus = 'expired';
+					} else {
+						subscriptionStatus = 'active'; // Treat as active for UI
+					}
 				} else if (subscription.status === 'pending') {
 					subscriptionStatus = 'pending';
 				} else if (subscription.status === 'cancelled' || subscription.status === 'inactive') {

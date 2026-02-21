@@ -95,13 +95,11 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			// Determine subscription status
 			// IMPORTANT: Database status takes precedence - if not 'active' in DB, treat as not active
 			if (subs.status === 'test') {
-				// Test subscriptions (free trial) - check if expired
+				// Test subscriptions (free trial) - treat as active for access
 				if (endDate <= now) {
 					subscriptionStatus = 'expired';
-				} else if (endDate <= sevenDaysFromNow) {
-					subscriptionStatus = 'expiring_soon';
 				} else {
-					subscriptionStatus = 'test';
+					subscriptionStatus = 'active'; // Treat as active for access
 				}
 			} else if (subs.status === 'pending') {
 				subscriptionStatus = 'pending';
@@ -125,11 +123,9 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 
 		// Block access if subscription is not active
 		// Only allow access to billing page
-		// Test subscriptions are also allowed (free trial)
+		// Test subscriptions are treated as active
 		const isSubscriptionActive =
-			subscriptionStatus === 'active' ||
-			subscriptionStatus === 'expiring_soon' ||
-			subscriptionStatus === 'test';
+			subscriptionStatus === 'active' || subscriptionStatus === 'expiring_soon';
 
 		if (!isSubscriptionActive && !isBillingPage) {
 			// Not on billing page and subscription is not active - redirect to billing
