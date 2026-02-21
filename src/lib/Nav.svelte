@@ -162,9 +162,10 @@
 						d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
 					/>
 				</svg>
-				{#if $cart.length > 0}
+				<!-- This is shrinking the svg icon on mobile view -->
+				<!-- {#if $cart.length > 0}
 					<span class="indicator-item badge badge-sm badge-primary font-bold">{$cart.length}</span>
-				{/if}
+				{/if} -->
 			</a>
 		{/if}
 		<label for="my-drawer" class="btn btn-ghost btn-circle drawer-button">
