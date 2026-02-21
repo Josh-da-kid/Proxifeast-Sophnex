@@ -14,6 +14,27 @@
 		($page) => propRestaurantId ?? $page.data.restaurantId ?? ''
 	);
 
+	// Find the super restaurant from the restaurants list
+	const superRestaurantId = $derived(
+		restaurants.find((r: any) => r.isSuper === true || r.isSuper === 'true')?.id || ''
+	);
+
+	// Sort restaurants - put super restaurant first
+	const sortedRestaurants = $derived(
+		[...restaurants].sort((a: any, b: any) => {
+			const aIsSuper = a.isSuper === true || a.isSuper === 'true';
+			const bIsSuper = b.isSuper === true || b.isSuper === 'true';
+			if (aIsSuper && !bIsSuper) return -1;
+			if (!aIsSuper && bIsSuper) return 1;
+			return 0;
+		})
+	);
+
+	// Default to super restaurant if isSuper, otherwise use current restaurant
+	const defaultRestaurantId = $derived(
+		$isSuper && superRestaurantId ? superRestaurantId : $currentRestaurantId
+	);
+
 	function closeSideBar() {
 		const drawerToggle = document.getElementById('my-drawer-5');
 		if (drawerToggle instanceof HTMLInputElement) {
@@ -101,9 +122,18 @@
 									class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
 									required
 								>
-									<option value="" disabled selected>Select Restaurant</option>
+									{#if $isSuper}
+										<option value={defaultRestaurantId} selected>
+											{restaurants.find((r: any) => r.id === defaultRestaurantId)?.name ||
+												'Select Restaurant'}
+										</option>
+									{:else}
+										<option value="" disabled>Select Restaurant</option>
+									{/if}
 									{#each restaurants as restaurant}
-										<option value={restaurant.id}>{restaurant.name}</option>
+										{#if !$isSuper || restaurant.id !== defaultRestaurantId}
+											<option value={restaurant.id}>{restaurant.name}</option>
+										{/if}
 									{/each}
 								</select>
 								<p class="mt-1 text-xs text-slate-500">
@@ -279,14 +309,24 @@
 								>Availability *</label
 							>
 							<select
-								id="availability"
-								name="availability"
+								id="restaurantId"
+								name="restaurantId"
 								class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
 								required
 							>
-								<option value="" disabled selected>Select Availability</option>
-								<option value="Available">Available</option>
-								<option value="Unavailable">Unavailable</option>
+								{#if $isSuper}
+									<option value={defaultRestaurantId} selected>
+										{sortedRestaurants.find((r: any) => r.id === defaultRestaurantId)?.name ||
+											'Select Restaurant'}
+									</option>
+								{:else}
+									<option value="" disabled>Select Restaurant</option>
+								{/if}
+								{#each sortedRestaurants as restaurant}
+									{#if !$isSuper || restaurant.id !== defaultRestaurantId}
+										<option value={restaurant.id}>{restaurant.name}</option>
+									{/if}
+								{/each}
 							</select>
 						</div>
 					</div>

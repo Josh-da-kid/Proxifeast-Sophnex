@@ -86,7 +86,7 @@
 	</div>
 {/if}
 
-{#if $isAdminPage}
+{#if $isAdminPage && $page.url.pathname === '/admin/admin-menu'}
 	<!-- Add Dish -->
 	<label for="my-drawer-5">
 		<div
@@ -111,4 +111,8 @@
 {/if}
 
 <!-- Drawer Cart -->
-<Drawer restaurants={data.allRestaurants} isSuper={data.isSuper} restaurantId={data.restaurantId} />
+<Drawer
+	restaurants={data.allRestaurantsIncludingSuper}
+	isSuper={data.isSuper}
+	restaurantId={data.restaurantId}
+/>
