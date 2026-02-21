@@ -51,11 +51,11 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			});
 		}
 
-		// Fall back to any super restaurant
-		const superRest =
-			currentRest?.isSuper === true ? currentRest : allRestaurants.find((r: any) => !!r.isSuper);
+		// isSuperUser is true only if current restaurant is super
+		const isSuperUser = currentRest ? !!currentRest.isSuper : false;
 
-		const isSuperUser = superRest ? !!superRest.isSuper : false;
+		// Get super restaurant for settings (if current is super, use it; otherwise find one)
+		const superRest = isSuperUser ? currentRest : allRestaurants.find((r: any) => !!r.isSuper);
 
 		const paystackKey = superRest?.paystackKey || '';
 		const supportEmail = superRest?.supportEmail || 'support@proxifeast.com';
