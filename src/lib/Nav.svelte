@@ -4,6 +4,8 @@
 	import { page } from '$app/stores';
 	import { onMount, onDestroy } from 'svelte';
 	import { get } from 'svelte/store';
+	import pb from './pb';
+	import { writable } from 'svelte/store';
 
 	let isAdmin = false;
 
@@ -17,6 +19,30 @@
 
 	let previousScrollY = 0;
 	let showHeader = $state(true);
+
+	// Cart store for mobile
+	const cart = writable<any[]>([]);
+
+	async function fetchCart() {
+		const currentUser = get(page).data.user;
+		if (!currentUser?.id) return;
+		try {
+			const records = await pb.collection('cart').getFullList({
+				filter: `user="${currentUser.id}"`
+			});
+			cart.set(records);
+		} catch (err) {
+			console.error('Failed to fetch cart:', err);
+		}
+	}
+
+	// Reactively fetch cart when user changes
+	$effect(() => {
+		const currentUser = get(page).data.user;
+		if (currentUser?.id) {
+			fetchCart();
+		}
+	});
 
 	function handleScroll() {
 		const currentScrollY = window.scrollY;
@@ -116,7 +142,30 @@
 	</div>
 
 	<!-- Mobile Menu Button -->
-	<div class="flex items-center gap-2">
+	<div class="flex items-center gap-1">
+		<!-- Cart Button for Mobile - Links to checkout page (only visible on smaller screens) -->
+		{#if $user}
+			<a href="/checkout" class="btn btn-ghost btn-circle relative lg:hidden">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="24"
+					height="24"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path
+						d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+					/>
+				</svg>
+				{#if $cart.length > 0}
+					<span class="indicator-item badge badge-sm badge-primary font-bold">{$cart.length}</span>
+				{/if}
+			</a>
+		{/if}
 		<label for="my-drawer" class="btn btn-ghost btn-circle drawer-button">
 			<svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24"
 				><path

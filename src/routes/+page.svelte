@@ -536,7 +536,7 @@
 </script>
 
 <!-- Cart FAB Icon -->
-{#if viewMode === 'menu' && selectedRestaurant}
+{#if $cart.length > 0}
 	<label for="my-drawer-5">
 		<div
 			class="tooltip indicator bg-secondary fixed right-4 bottom-22 z-10 cursor-pointer rounded-full p-4 text-white shadow-xl transition-transform duration-300 hover:scale-105"
@@ -1642,7 +1642,7 @@
 </div>
 
 <!-- Cart Drawer -->
-{#if viewMode === 'menu' && selectedRestaurant && $isLoggedIn}
+{#if $cart.length > 0 || (viewMode === 'menu' && selectedRestaurant && $isLoggedIn)}
 	<div class="drawer drawer-end z-[9999]">
 		<input id="my-drawer-5" type="checkbox" class="drawer-toggle" />
 		<div class="drawer-content"></div>
@@ -1964,7 +1964,7 @@
 			</div>
 		</div>
 	</dialog>
-{:else if viewMode === 'menu' && selectedRestaurant}
+{:else if $cart.length > 0 || (viewMode === 'menu' && selectedRestaurant)}
 	<!-- Not Logged In Drawer -->
 	<div class="drawer drawer-end z-[9999]">
 		<input id="my-drawer-5" type="checkbox" class="drawer-toggle" />

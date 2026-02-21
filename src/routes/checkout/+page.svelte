@@ -29,7 +29,10 @@
 	const iconStore = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2.5"/><path d="M2 17.5a.5.5 0 0 1 .5-.5h19a.5.5 0 0 1 .5.5v1a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 18.5Z"/><path d="m4 7.5 1.6 6.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L20 7.5"/></svg>`;
 
 	const paystackKey = derived(page, ($page) => $page.data.restaurant?.paystackKey);
-	const allRestaurants = derived(page, ($page) => $page.data.allRestaurants ?? []);
+	const allRestaurants = derived(
+		page,
+		($page) => $page.data.allRestaurantsIncludingSuper ?? $page.data.allRestaurants ?? []
+	);
 	export const cart = writable<any[]>([]);
 	export const total = derived(cart, ($cart) =>
 		$cart.reduce((acc, item) => {
