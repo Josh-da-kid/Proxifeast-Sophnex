@@ -128,6 +128,13 @@
 	});
 
 	const plans = [
+		{
+			id: 'weekly',
+			name: '7-Day Free Trial',
+			price: 0,
+			description: 'Free for 7 days',
+			isFree: true
+		},
 		{ id: 'monthly', name: 'Monthly', price: 25000, description: 'Billed monthly' },
 		{
 			id: 'quarterly',
@@ -138,6 +145,24 @@
 		{ id: 'yearly', name: 'Yearly', price: 250000, description: 'Billed yearly (Save 17%)' }
 	];
 
+	function hasFreeTrialUsed(restaurant: any): boolean {
+		if (!restaurant?.id) return data.hasUsedFreeTrial;
+		const restaurantSubs =
+			data.subscriptions?.filter((s: any) => s.restaurantId === restaurant.id) || [];
+		return restaurantSubs.some((s: any) => s.plan === 'weekly');
+	}
+
+	function getAvailablePlans(restaurant: any): typeof plans {
+		if (data.isSuper) {
+			const used = hasFreeTrialUsed(restaurant);
+			if (used) {
+				return plans.filter((p) => p.id !== 'weekly');
+			}
+			return plans;
+		}
+		return data.hasUsedFreeTrial ? plans.filter((p) => p.id !== 'weekly') : plans;
+	}
+
 	function getStatusColor(status: string) {
 		switch (status) {
 			case 'active':
@@ -146,8 +171,29 @@
 				return 'bg-red-100 text-red-800 border-red-200';
 			case 'cancelled':
 				return 'bg-gray-100 text-gray-800 border-gray-200';
+			case 'test':
+				return 'bg-blue-100 text-blue-800 border-blue-200';
 			default:
 				return 'bg-amber-100 text-amber-800 border-amber-200';
+		}
+	}
+
+	function getStatusDisplay(status: string) {
+		switch (status) {
+			case 'test':
+				return 'Test (Free Trial)';
+			case 'active':
+				return 'Active';
+			case 'expired':
+				return 'Expired';
+			case 'cancelled':
+				return 'Cancelled';
+			case 'pending':
+				return 'Pending';
+			case 'inactive':
+				return 'Inactive';
+			default:
+				return status;
 		}
 	}
 
@@ -175,9 +221,9 @@
 		// Get restaurant from subscription, layout, or selected restaurant (for super users)
 		let restaurant = data.restaurant;
 
-		// For super users adding subscriptions, use selectedRestaurant
+		// For super users adding subscriptions, use selectedRestaurant (find full object from ID)
 		if (data.isSuper && activeTab === 'add' && selectedRestaurant) {
-			restaurant = selectedRestaurant;
+			restaurant = data.restaurants.find((r: any) => r.id === selectedRestaurant);
 		}
 
 		// Fallback for non-super users with existing subscription
@@ -191,6 +237,45 @@
 
 		if (!restaurant) {
 			paymentError = 'Restaurant not found';
+			return;
+		}
+
+		// Handle free trial subscription (no payment required)
+		if (plan.isFree || plan.price === 0) {
+			isProcessing = true;
+			paymentError = '';
+
+			fetch('/api/subscriptions', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					action: 'createFreeTrial',
+					restaurantId: restaurant.id,
+					plan: 'weekly',
+					amount: 0,
+					startDate: new Date().toISOString(),
+					endDate: getEndDate('weekly').toISOString(),
+					status: 'active',
+					autoRenew: false
+				})
+			})
+				.then((res) => res.json())
+				.then((result) => {
+					console.log('Free trial result:', result);
+					if (result.success) {
+						paymentSuccess = true;
+						window.location.reload();
+					} else {
+						paymentError = result.error || result.details || 'Failed to create free trial';
+					}
+				})
+				.catch((err) => {
+					console.error('Free trial error:', err);
+					paymentError = 'Failed to create free trial';
+				})
+				.finally(() => {
+					isProcessing = false;
+				});
 			return;
 		}
 
@@ -263,6 +348,9 @@
 	function getEndDate(plan: string): Date {
 		const endDate = new Date();
 		switch (plan) {
+			case 'weekly':
+				endDate.setDate(endDate.getDate() + 7);
+				break;
 			case 'monthly':
 				endDate.setMonth(endDate.getMonth() + 1);
 				break;
@@ -510,7 +598,7 @@
 	<!-- Stats Cards -->
 	<section class="container mx-auto -mt-6 px-4">
 		{#if data.isSuper}
-			<div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+			<div class="grid grid-cols-2 gap-4 md:grid-cols-5">
 				<div class="rounded-xl bg-white p-4 shadow-lg shadow-slate-200">
 					<div class="text-2xl font-bold text-slate-800">{data.stats.total}</div>
 					<div class="text-sm text-slate-500">Total Restaurants</div>
@@ -518,6 +606,10 @@
 				<div class="rounded-xl bg-white p-4 shadow-lg shadow-slate-200">
 					<div class="text-2xl font-bold text-emerald-600">{data.stats.active}</div>
 					<div class="text-sm text-slate-500">Active Subscriptions</div>
+				</div>
+				<div class="rounded-xl bg-white p-4 shadow-lg shadow-slate-200">
+					<div class="text-2xl font-bold text-blue-600">{data.stats.testCount}</div>
+					<div class="text-sm text-slate-500">Test Subscriptions</div>
 				</div>
 				<div class="rounded-xl bg-white p-4 shadow-lg shadow-slate-200">
 					<div class="text-2xl font-bold text-amber-600">{data.stats.expiringSoon}</div>
@@ -644,18 +736,24 @@
 					<div class="space-y-4">
 						<div>
 							<label class="mb-2 block text-sm font-medium text-slate-700">Select Plan</label>
-							<div class="grid gap-4 md:grid-cols-3">
-								{#each plans as plan}
+							<div class="grid gap-4 md:grid-cols-{getAvailablePlans(data.restaurant).length}">
+								{#each getAvailablePlans(data.restaurant) as plan}
 									<button
-										class="rounded-xl border-2 p-4 text-left transition-all {selectedPlan ===
+										class="relative rounded-xl border-2 p-4 text-left transition-all {selectedPlan ===
 										plan.id
 											? 'border-primary bg-primary/5'
 											: 'border-slate-200 hover:border-slate-300'}"
 										onclick={() => (selectedPlan = plan.id)}
 									>
+										{#if plan.isFree}
+											<span
+												class="absolute -top-2 -right-2 rounded-full bg-emerald-500 px-2 py-0.5 text-xs font-bold text-white"
+												>FREE</span
+											>
+										{/if}
 										<p class="font-semibold text-slate-800">{plan.name}</p>
 										<p class="text-primary mt-1 text-lg font-bold">
-											₦{plan.price.toLocaleString()}
+											{plan.isFree ? 'FREE' : `₦${plan.price.toLocaleString()}`}
 										</p>
 										<p class="text-xs text-slate-500">{plan.description}</p>
 									</button>
@@ -671,23 +769,29 @@
 							<div class="mt-2 flex justify-between text-sm">
 								<span class="text-slate-600">Amount:</span>
 								<span class="text-primary font-bold"
-									>₦{plans.find((p) => p.id === selectedPlan)?.price.toLocaleString()}</span
+									>{plans.find((p) => p.id === selectedPlan)?.isFree
+										? 'FREE'
+										: `₦${plans.find((p) => p.id === selectedPlan)?.price.toLocaleString()}`}</span
 								>
 							</div>
-							<div class="mt-2 flex items-center justify-between text-sm">
-								<span class="text-slate-600">Auto Renew:</span>
-								<label class="relative inline-flex cursor-pointer items-center">
-									<input type="checkbox" bind:checked={autoRenew} class="peer sr-only" />
-									<div
-										class="peer peer-checked:bg-primary h-6 w-11 rounded-full bg-slate-200 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
-									></div>
-									<span
-										class="ml-2 text-sm font-medium {autoRenew ? 'text-primary' : 'text-slate-500'}"
-									>
-										{autoRenew ? 'Enabled' : 'Disabled'}
-									</span>
-								</label>
-							</div>
+							{#if selectedPlan !== 'weekly'}
+								<div class="mt-2 flex items-center justify-between text-sm">
+									<span class="text-slate-600">Auto Renew:</span>
+									<label class="relative inline-flex cursor-pointer items-center">
+										<input type="checkbox" bind:checked={autoRenew} class="peer sr-only" />
+										<div
+											class="peer peer-checked:bg-primary h-6 w-11 rounded-full bg-slate-200 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
+										></div>
+										<span
+											class="ml-2 text-sm font-medium {autoRenew
+												? 'text-primary'
+												: 'text-slate-500'}"
+										>
+											{autoRenew ? 'Enabled' : 'Disabled'}
+										</span>
+									</label>
+								</div>
+							{/if}
 						</div>
 
 						{#if paymentError}
@@ -700,7 +804,10 @@
 							{#if isProcessing}
 								<span class="loading loading-spinner loading-sm"></span>
 							{:else}
-								Subscribe Now - ₦{plans.find((p) => p.id === selectedPlan)?.price.toLocaleString()}
+								{@const planBtn = plans.find((p) => p.id === selectedPlan)}
+								Subscribe Now {planBtn?.isFree
+									? '(Free Trial)'
+									: `- ₦${planBtn?.price.toLocaleString()}`}
 							{/if}
 						</button>
 					</div>
@@ -925,8 +1032,11 @@
 						<div class="space-y-4">
 							<div class="flex justify-between border-b border-slate-100 pb-3">
 								<span class="text-slate-600">Payment Status</span>
-								<span class="font-medium text-emerald-600 capitalize"
-									>{data.subscription.status}</span
+								<span
+									class="font-medium {data.subscription.status === 'test'
+										? 'text-blue-600'
+										: 'text-emerald-600'} capitalize"
+									>{getStatusDisplay(data.subscription.status)}</span
 								>
 							</div>
 							<div class="flex justify-between border-b border-slate-100 pb-3">
@@ -947,13 +1057,15 @@
 									>
 										{data.subscription.autoRenew ? 'Enabled' : 'Disabled'}
 									</span>
-									<button
-										class="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200"
-										onclick={() => toggleAutoRenew(data.subscription)}
-										disabled={isProcessing}
-									>
-										{isProcessing ? '...' : data.subscription.autoRenew ? 'Disable' : 'Enable'}
-									</button>
+									{#if data.subscription?.plan !== 'weekly'}
+										<button
+											class="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200"
+											onclick={() => toggleAutoRenew(data.subscription)}
+											disabled={isProcessing}
+										>
+											{isProcessing ? '...' : data.subscription.autoRenew ? 'Disable' : 'Enable'}
+										</button>
+									{/if}
 								</div>
 							</div>
 							<div class="flex justify-between">
@@ -1050,16 +1162,20 @@
 								<div class="flex items-center justify-between">
 									<div>
 										<p class="font-medium text-slate-800 capitalize">
-											{data.subscription.plan} Plan
+											{data.subscription.plan === 'weekly'
+												? '7-Day Free Trial'
+												: `${data.subscription.plan} Plan`}
 										</p>
 										<p class="text-sm text-slate-500">
 											₦{data.subscription.amount?.toLocaleString()}
 										</p>
 									</div>
 									<span
-										class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-800 capitalize"
+										class="rounded-full px-3 py-1 text-xs font-medium capitalize {getStatusColor(
+											data.subscription.status
+										)}"
 									>
-										{data.subscription.status}
+										{getStatusDisplay(data.subscription.status)}
 									</span>
 								</div>
 								<div class="mt-3 grid grid-cols-2 gap-2 text-sm">
@@ -1128,7 +1244,7 @@
 				<div class="rounded-2xl bg-white p-6 shadow-sm">
 					<h3 class="mb-4 text-lg font-semibold text-slate-800">Active Subscriptions</h3>
 					<div class="space-y-3">
-						{#each data.subscriptions.filter((s: any) => s.status === 'active') as subscription}
+						{#each data.subscriptions.filter((s: any) => s.status === 'active' || s.status === 'test') as subscription}
 							{@const restaurant = data.restaurants.find(
 								(r: any) => r.id === subscription.restaurantId
 							)}
@@ -1150,15 +1266,17 @@
 											subscription.status
 										)}"
 									>
-										{subscription.status}
+										{getStatusDisplay(subscription.status)}
 									</span>
-									<button
-										class="mt-1 block rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200"
-										onclick={() => toggleAutoRenew(subscription)}
-										disabled={isProcessing}
-									>
-										{isProcessing ? '...' : subscription.autoRenew ? 'Disable' : 'Enable'}
-									</button>
+									{#if subscription.plan !== 'weekly' && subscription.status !== 'test'}
+										<button
+											class="mt-1 block rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200"
+											onclick={() => toggleAutoRenew(subscription)}
+											disabled={isProcessing}
+										>
+											{isProcessing ? '...' : subscription.autoRenew ? 'Disable' : 'Enable'}
+										</button>
+									{/if}
 									{#if isExpiringSoon(subscription.endDate)}
 										<p class="mt-1 text-xs text-amber-600">
 											{getDaysUntilExpiry(subscription.endDate)} days left
@@ -1201,13 +1319,19 @@
 									>
 										Renew
 									</button>
-									<button
-										class="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200"
-										onclick={() => toggleAutoRenew(subscription)}
-										disabled={isProcessing}
-									>
-										{isProcessing ? '...' : subscription.autoRenew ? 'Disable Auto' : 'Enable Auto'}
-									</button>
+									{#if subscription.plan !== 'weekly' && subscription.status !== 'test'}
+										<button
+											class="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200"
+											onclick={() => toggleAutoRenew(subscription)}
+											disabled={isProcessing}
+										>
+											{isProcessing
+												? '...'
+												: subscription.autoRenew
+													? 'Disable Auto'
+													: 'Enable Auto'}
+										</button>
+									{/if}
 								</div>
 							</div>
 						{:else}
@@ -1256,7 +1380,9 @@
 								<td class="px-4 py-3 font-medium text-slate-800"
 									>{restaurant?.name || 'Restaurant'}</td
 								>
-								<td class="px-4 py-3 text-slate-600 capitalize">{subscription.plan}</td>
+								<td class="px-4 py-3 text-slate-600 capitalize"
+									>{subscription.plan === 'weekly' ? '7-Day Free Trial' : subscription.plan}</td
+								>
 								<td class="px-4 py-3 text-slate-600"
 									>₦{(subscription.amount || 0).toLocaleString()}</td
 								>
@@ -1267,15 +1393,19 @@
 									>{new Date(subscription.endDate).toLocaleDateString()}</td
 								>
 								<td class="px-4 py-3">
-									<button
-										class="rounded-lg px-2 py-1 text-xs font-medium {subscription.autoRenew
-											? 'bg-emerald-100 text-emerald-700'
-											: 'bg-slate-100 text-slate-600'}"
-										onclick={() => toggleAutoRenew(subscription)}
-										disabled={isProcessing}
-									>
-										{subscription.autoRenew ? 'Enabled' : 'Disabled'}
-									</button>
+									{#if subscription.plan !== 'weekly' && subscription.status !== 'test'}
+										<button
+											class="rounded-lg px-2 py-1 text-xs font-medium {subscription.autoRenew
+												? 'bg-emerald-100 text-emerald-700'
+												: 'bg-slate-100 text-slate-600'}"
+											onclick={() => toggleAutoRenew(subscription)}
+											disabled={isProcessing}
+										>
+											{subscription.autoRenew ? 'Enabled' : 'Disabled'}
+										</button>
+									{:else}
+										<span class="text-xs text-slate-400">N/A</span>
+									{/if}
 								</td>
 								<td class="px-4 py-3">
 									<span
@@ -1283,7 +1413,7 @@
 											subscription.status
 										)}"
 									>
-										{subscription.status}
+										{getStatusDisplay(subscription.status)}
 									</span>
 								</td>
 								<td class="px-4 py-3">
@@ -1321,7 +1451,7 @@
 							>
 								<option value={null}>Choose a restaurant...</option>
 								{#each data.restaurants as restaurant}
-									<option value={restaurant}>{restaurant.name}</option>
+									<option value={restaurant.id}>{restaurant.name}</option>
 								{/each}
 							</select>
 						</div>
@@ -1329,18 +1459,24 @@
 						{#if selectedRestaurant}
 							<div>
 								<label class="mb-2 block text-sm font-medium text-slate-700">Select Plan</label>
-								<div class="grid gap-4 md:grid-cols-3">
-									{#each plans as plan}
+								<div class="grid gap-4 md:grid-cols-{getAvailablePlans(selectedRestaurant).length}">
+									{#each getAvailablePlans(selectedRestaurant) as plan}
 										<button
-											class="rounded-xl border-2 p-4 text-left transition-all {selectedPlan ===
+											class="relative rounded-xl border-2 p-4 text-left transition-all {selectedPlan ===
 											plan.id
 												? 'border-primary bg-primary/5'
 												: 'border-slate-200 hover:border-slate-300'}"
 											onclick={() => (selectedPlan = plan.id)}
 										>
+											{#if plan.isFree}
+												<span
+													class="absolute -top-2 -right-2 rounded-full bg-emerald-500 px-2 py-0.5 text-xs font-bold text-white"
+													>FREE</span
+												>
+											{/if}
 											<p class="font-semibold text-slate-800">{plan.name}</p>
 											<p class="text-primary mt-1 text-lg font-bold">
-												₦{plan.price.toLocaleString()}
+												{plan.isFree ? 'FREE' : `₦${plan.price.toLocaleString()}`}
 											</p>
 											<p class="text-xs text-slate-500">{plan.description}</p>
 										</button>
@@ -1356,25 +1492,29 @@
 								<div class="mt-2 flex justify-between text-sm">
 									<span class="text-slate-600">Amount:</span>
 									<span class="text-primary font-bold"
-										>₦{plans.find((p) => p.id === selectedPlan)?.price.toLocaleString()}</span
+										>{plans.find((p) => p.id === selectedPlan)?.isFree
+											? 'FREE'
+											: `₦${plans.find((p) => p.id === selectedPlan)?.price.toLocaleString()}`}</span
 									>
 								</div>
-								<div class="mt-2 flex items-center justify-between text-sm">
-									<span class="text-slate-600">Auto Renew:</span>
-									<label class="relative inline-flex cursor-pointer items-center">
-										<input type="checkbox" bind:checked={autoRenew} class="peer sr-only" />
-										<div
-											class="peer peer-checked:bg-primary h-6 w-11 rounded-full bg-slate-200 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
-										></div>
-										<span
-											class="ml-2 text-sm font-medium {autoRenew
-												? 'text-primary'
-												: 'text-slate-500'}"
-										>
-											{autoRenew ? 'Enabled' : 'Disabled'}
-										</span>
-									</label>
-								</div>
+								{#if selectedPlan !== 'weekly'}
+									<div class="mt-2 flex items-center justify-between text-sm">
+										<span class="text-slate-600">Auto Renew:</span>
+										<label class="relative inline-flex cursor-pointer items-center">
+											<input type="checkbox" bind:checked={autoRenew} class="peer sr-only" />
+											<div
+												class="peer peer-checked:bg-primary h-6 w-11 rounded-full bg-slate-200 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
+											></div>
+											<span
+												class="ml-2 text-sm font-medium {autoRenew
+													? 'text-primary'
+													: 'text-slate-500'}"
+											>
+												{autoRenew ? 'Enabled' : 'Disabled'}
+											</span>
+										</label>
+									</div>
+								{/if}
 							</div>
 
 							{#if paymentError}
@@ -1391,9 +1531,10 @@
 								{#if isProcessing}
 									<span class="loading loading-spinner loading-sm"></span>
 								{:else}
-									Subscribe Now - ₦{plans
-										.find((p) => p.id === selectedPlan)
-										?.price.toLocaleString()}
+									{@const planBtn = plans.find((p) => p.id === selectedPlan)}
+									Subscribe Now {planBtn?.isFree
+										? '(Free Trial)'
+										: `- ₦${planBtn?.price.toLocaleString()}`}
 								{/if}
 							</button>
 						{/if}

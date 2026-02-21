@@ -8,22 +8,31 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 
 		// Get domain from request
 		const fullHost = request.headers.get('host') || '';
-		const domainOnly = fullHost.split(':')[0];
+		const domainOnly = fullHost.split(':')[0].replace('www.', '');
 
 		// Find restaurant by domain - use getFullList for reliability
 		const allRestaurants = await pb.collection('restaurants').getFullList();
-		let restaurant = allRestaurants.find((r: any) => r.domain === domainOnly);
+		let restaurant = allRestaurants.find((r: any) => {
+			const rDomain = (r.domain || '').replace('www.', '');
+			return rDomain === domainOnly || domainOnly.includes(rDomain) || rDomain.includes(domainOnly);
+		});
 
 		// If not found by domain, check if this is a super restaurant domain
 		if (!restaurant) {
-			const superRest = allRestaurants.find((r: any) => r.isSuper === true);
-			if (superRest?.domain === domainOnly) {
+			const superRest = allRestaurants.find((r: any) => {
+				const rDomain = (r.domain || '').replace('www.', '');
+				return (
+					r.isSuper === true &&
+					(rDomain === domainOnly || domainOnly.includes(rDomain) || rDomain.includes(domainOnly))
+				);
+			});
+			if (superRest) {
 				restaurant = superRest;
 			}
 		}
 
 		if (!restaurant) {
-			console.error(`Restaurant not found for domain: ${domainOnly}`);
+			console.error(`Restaurant not found for domain: ${domainOnly}, host: ${fullHost}`);
 			throw redirect(307, '/not-found');
 		}
 
@@ -41,6 +50,7 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 			restaurant,
 			allRestaurants: filteredRestaurants,
 			isSuper,
+			isSuperUser: isSuper,
 			restaurantId: restaurant?.id
 		};
 	} catch (err) {
@@ -51,6 +61,7 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 			restaurant: null,
 			allRestaurants: [],
 			isSuper: false,
+			isSuperUser: false,
 			restaurantId: null
 		};
 	}

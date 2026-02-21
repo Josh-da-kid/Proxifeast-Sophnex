@@ -56,6 +56,53 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			}
 		}
 
+		// Create free trial subscription
+		if (action === 'createFreeTrial') {
+			console.log('[createFreeTrial] Received data:', JSON.stringify(subscriptionData));
+
+			// Check if restaurant already has a weekly subscription (one-time only)
+			const existingSubs = await locals.pb.collection('subscriptions').getList(1, 1, {
+				filter: `restaurantId = "${subscriptionData.restaurantId}" && plan = "weekly"`
+			});
+
+			if (existingSubs.items && existingSubs.items.length > 0) {
+				return json({ error: 'Free trial already used' }, { status: 400 });
+			}
+
+			const subscriptionInfo: any = {
+				restaurantId: subscriptionData.restaurantId,
+				plan: 'weekly',
+				amount: 0,
+				startDate: subscriptionData.startDate,
+				endDate: subscriptionData.endDate,
+				status: 'test',
+				paymentReference: 'FREE_TRIAL',
+				recurring: false,
+				autoRenew: false
+			};
+
+			console.log(
+				'[createFreeTrial] Creating subscription with:',
+				JSON.stringify(subscriptionInfo)
+			);
+
+			try {
+				const created = await locals.pb.collection('subscriptions').create(subscriptionInfo);
+				console.log('[createFreeTrial] Created successfully:', created.id);
+				return json({ success: true, subscription: created });
+			} catch (createErr: any) {
+				console.error('[createFreeTrial] Error:', createErr);
+				console.error('[createFreeTrial] Error response:', createErr.response?.data);
+				return json(
+					{
+						error: createErr.message || 'Failed to create subscription',
+						details: createErr.response?.data
+					},
+					{ status: 500 }
+				);
+			}
+		}
+
 		if (action === 'cancel') {
 			const updated = await locals.pb.collection('subscriptions').update(subscriptionData.id, {
 				status: 'cancelled'
@@ -73,17 +120,22 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		if (action === 'renew') {
 			const current = await locals.pb.collection('subscriptions').getOne(subscriptionData.id);
-			const newEndDate = new Date(current.endDate);
+
+			// Add time from today (allows renewal before expiry)
+			const newEndDate = new Date();
 
 			switch (current.plan) {
+				case 'weekly':
+					newEndDate.setDate(newEndDate.getDate() + 7);
+					break;
 				case 'monthly':
-					newEndDate.setDate(newEndDate.getDate() + 30);
+					newEndDate.setMonth(newEndDate.getMonth() + 1);
 					break;
 				case 'quarterly':
-					newEndDate.setDate(newEndDate.getDate() + 90);
+					newEndDate.setMonth(newEndDate.getMonth() + 3);
 					break;
 				case 'yearly':
-					newEndDate.setDate(newEndDate.getDate() + 365);
+					newEndDate.setFullYear(newEndDate.getFullYear() + 1);
 					break;
 			}
 

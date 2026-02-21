@@ -135,13 +135,44 @@ export const POST: RequestHandler = async ({ request }) => {
 			.collection('users')
 			.authWithPassword(normalizedEmail, data.password);
 
-		// Step 4: Request email verification
+		// Step 4: Create free trial subscription for the restaurant
+		try {
+			// Check if restaurant already has a subscription
+			const existingSubs = await pb.collection('subscriptions').getList(1, 1, {
+				filter: `restaurantId = "${restaurant.id}"`
+			});
+
+			// Only create free trial if no existing subscription
+			if (!existingSubs.items || existingSubs.items.length === 0) {
+				const startDate = new Date();
+				const endDate = new Date();
+				endDate.setDate(endDate.getDate() + 7);
+
+				await pb.collection('subscriptions').create({
+					restaurantId: restaurant.id,
+					plan: 'weekly',
+					amount: 0,
+					startDate: startDate.toISOString(),
+					endDate: endDate.toISOString(),
+					status: 'test',
+					paymentReference: 'FREE_TRIAL_SIGNUP',
+					recurring: false,
+					autoRenew: false
+				});
+				console.log('Created free trial subscription for restaurant:', restaurant.id);
+			}
+		} catch (subErr) {
+			console.error('Error creating free trial subscription:', subErr);
+			// Don't fail registration if subscription creation fails
+		}
+
+		// Step 5: Request email verification
 		await pb.collection('users').requestVerification(normalizedEmail);
 
-		// Step 5: Clear auth session
+		// Step 6: Clear auth session
 		pb.authStore.clear();
 
-		// Step 6: Send success response
+		// Step 7: Send success response
 		return new Response(
 			JSON.stringify({
 				success: true,

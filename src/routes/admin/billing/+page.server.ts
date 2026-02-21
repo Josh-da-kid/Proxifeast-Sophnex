@@ -14,11 +14,13 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		restaurant: null,
 		subscriptions: [] as any[],
 		restaurants: [] as any[],
+		hasUsedFreeTrial: false,
 		stats: {
 			total: 0,
 			active: 0,
 			expiringSoon: 0,
 			expired: 0,
+			testCount: 0,
 			totalRevenue: 0,
 			monthlyRevenue: 0
 		}
@@ -64,7 +66,9 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 				const now = new Date();
 				const endDate = new Date(subscription.endDate);
 
-				if (subscription.status === 'pending') {
+				if (subscription.status === 'test') {
+					subscriptionStatus = 'test';
+				} else if (subscription.status === 'pending') {
 					subscriptionStatus = 'pending';
 				} else if (subscription.status === 'cancelled' || subscription.status === 'inactive') {
 					subscriptionStatus = 'cancelled';
@@ -88,13 +92,18 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		const sevenDaysFromNow = new Date();
 		sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
-		const activeSubs = subscriptions.filter((s) => s?.endDate && new Date(s.endDate) > now);
+		const activeSubs = subscriptions.filter(
+			(s) => s?.endDate && new Date(s.endDate) > now && s.status !== 'test'
+		);
 		const expiringSoonSubs = subscriptions.filter((s) => {
 			if (!s?.endDate) return false;
 			const endDate = new Date(s.endDate);
 			return endDate > now && endDate <= sevenDaysFromNow;
 		});
 		const expiredSubs = subscriptions.filter((s) => s?.endDate && new Date(s.endDate) <= now);
+		const testSubs = subscriptions.filter(
+			(s) => s.status === 'test' && s?.endDate && new Date(s.endDate) > now
+		);
 		const totalRevenue = activeSubs.reduce((sum, s) => sum + (s.amount || 0), 0);
 
 		const stats = {
@@ -102,9 +111,12 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			active: activeSubs.length,
 			expiringSoon: expiringSoonSubs.length,
 			expired: expiredSubs.length,
+			testCount: testSubs.length,
 			totalRevenue,
 			monthlyRevenue: 0
 		};
+
+		const hasUsedFreeTrial = subscriptions.some((s) => s.plan === 'weekly');
 
 		return {
 			subscriptionStatus,
@@ -117,6 +129,7 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			restaurant: isSuperUser ? null : currentRest,
 			subscriptions,
 			restaurants: restaurantsList,
+			hasUsedFreeTrial,
 			stats
 		};
 	} catch (err: any) {

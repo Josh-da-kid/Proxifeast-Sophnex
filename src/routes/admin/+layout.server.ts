@@ -20,29 +20,41 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		}
 
 		const fullHost = request.headers.get('host') || '';
-		const domainOnly = fullHost.split(':')[0];
+		const domainOnly = fullHost.split(':')[0].replace('www.', '');
 
 		// Find the restaurant by domain
 		let restaurant: any = null;
 		let restaurants: any[] = [];
 		try {
 			restaurants = await locals.pb.collection('restaurants').getFullList();
-			restaurant = restaurants?.find((r: any) => r.domain === domainOnly);
+			restaurant = restaurants?.find((r: any) => {
+				const rDomain = (r.domain || '').replace('www.', '');
+				return (
+					rDomain === domainOnly || domainOnly.includes(rDomain) || rDomain.includes(domainOnly)
+				);
+			});
 		} catch (err) {
 			console.error('Error fetching restaurant:', err);
 		}
 
 		if (!restaurant && restaurants.length > 0) {
 			// Try to find by isSuper if domain lookup failed
-			restaurant = restaurants.find((r: any) => r.isSuper === true);
+			restaurant = restaurants.find((r: any) => {
+				const rDomain = (r.domain || '').replace('www.', '');
+				return (
+					r.isSuper === true &&
+					(rDomain === domainOnly || domainOnly.includes(rDomain) || rDomain.includes(domainOnly))
+				);
+			});
 		}
 
 		if (!restaurant) {
-			console.error(`Restaurant not found for domain: ${domainOnly}`);
+			console.error(`Restaurant not found for domain: ${domainOnly}, host: ${fullHost}`);
 			return {
 				user: locals.user,
 				restaurant: null,
 				isSuper: false,
+				isSuperUser: false,
 				restaurantId: null,
 				subscription: null,
 				subscriptionStatus: 'active'
@@ -58,6 +70,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 				user: locals.user,
 				restaurant,
 				isSuper: locals.isSuper,
+				isSuperUser: locals.isSuper,
 				restaurantId: restaurant?.id,
 				subscription: null,
 				subscriptionStatus: 'active'
@@ -103,8 +116,11 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 
 		// Block access if subscription is not active
 		// Only allow access to billing page
+		// Test subscriptions are also allowed (free trial)
 		const isSubscriptionActive =
-			subscriptionStatus === 'active' || subscriptionStatus === 'expiring_soon';
+			subscriptionStatus === 'active' ||
+			subscriptionStatus === 'expiring_soon' ||
+			subscriptionStatus === 'test';
 
 		if (!isSubscriptionActive && !isBillingPage) {
 			// Not on billing page and subscription is not active - redirect to billing
@@ -115,6 +131,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			user: locals.user,
 			restaurant,
 			isSuper: locals.isSuper,
+			isSuperUser: locals.isSuper,
 			restaurantId: restaurant?.id,
 			subscription,
 			subscriptionStatus
@@ -129,6 +146,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			user: locals.user || null,
 			restaurant: null,
 			isSuper: false,
+			isSuperUser: false,
 			restaurantId: null,
 			subscription: null,
 			subscriptionStatus: 'active'
