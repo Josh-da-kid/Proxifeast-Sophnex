@@ -1,5 +1,17 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+
+// Helper function to check if user is admin for a specific restaurant
+function isUserAdminForRestaurant(user: any, restaurantId: string): boolean {
+	const adminRestaurantIds = user?.adminRestaurantIds || [];
+	const userRestaurantIds = user?.restaurantIds || [];
+
+	if (adminRestaurantIds.length > 0) {
+		return adminRestaurantIds.includes(restaurantId);
+	}
+	// Fallback to global isAdmin flag
+	return user?.isAdmin === true && userRestaurantIds.includes(restaurantId);
+}
 
 export const load: PageServerLoad = async ({ locals, url, request }) => {
 	if (!locals.user) {
@@ -19,13 +31,13 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		return { dishes: [], categories: [] };
 	}
 
-	const search = url.searchParams.get('search')?.trim() ?? '';
-	const category = url.searchParams.get('category')?.trim() ?? 'All';
-
-	const restaurantIds = locals.user.restaurantIds || [];
-	if (!restaurantIds.includes(restaurantId)) {
+	// Check if user is admin for this restaurant
+	if (!isUserAdminForRestaurant(locals.user, restaurantId)) {
 		return { dishes: [], categories: [] };
 	}
+
+	const search = url.searchParams.get('search')?.trim() ?? '';
+	const category = url.searchParams.get('category')?.trim() ?? 'All';
 
 	let filter = `restaurantId = "${restaurantId}"`;
 
@@ -47,10 +59,6 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 
 export const actions: Actions = {
 	toggleFeatured: async ({ locals, request }) => {
-		if (!locals.pb.authStore.isValid || !locals.user?.isAdmin) {
-			return fail(403, { error: 'Forbidden. You must be an admin.' });
-		}
-
 		const host = request.headers.get('host') || '';
 		const domain = host.split(':')[0];
 
@@ -64,9 +72,9 @@ export const actions: Actions = {
 			return fail(400, { error: 'Restaurant not found.' });
 		}
 
-		const restaurantIds = locals.user.restaurantIds || [];
-		if (!restaurantIds.includes(restaurantId)) {
-			return fail(403, { error: 'Forbidden: You can only modify dishes from your restaurant.' });
+		// Check if user is admin for this restaurant
+		if (!isUserAdminForRestaurant(locals.user, restaurantId)) {
+			return fail(403, { error: 'Forbidden. You must be an admin.' });
 		}
 
 		const formData = await request.formData();
@@ -96,10 +104,6 @@ export const actions: Actions = {
 	},
 
 	createDish: async ({ locals, request }) => {
-		if (!locals.pb.authStore.isValid || !locals.user?.isAdmin) {
-			return fail(403, { error: 'Forbidden. You must be an admin.' });
-		}
-
 		const host = request.headers.get('host') || '';
 		const domain = host.split(':')[0];
 
@@ -113,9 +117,9 @@ export const actions: Actions = {
 			return fail(400, { error: 'Restaurant not found.' });
 		}
 
-		const restaurantIds = locals.user.restaurantIds || [];
-		if (!restaurantIds.includes(restaurantId)) {
-			return fail(403, { error: 'Forbidden: You can only create dishes for your restaurant.' });
+		// Check if user is admin for this restaurant
+		if (!isUserAdminForRestaurant(locals.user, restaurantId)) {
+			return fail(403, { error: 'Forbidden. You must be an admin.' });
 		}
 
 		const formData = await request.formData();
@@ -157,10 +161,6 @@ export const actions: Actions = {
 	},
 
 	editDish: async ({ locals, request }) => {
-		if (!locals.pb.authStore.isValid || !locals.user?.isAdmin) {
-			return fail(403, { error: 'Forbidden. You must be an admin.' });
-		}
-
 		const host = request.headers.get('host') || '';
 		const domain = host.split(':')[0];
 
@@ -174,9 +174,9 @@ export const actions: Actions = {
 			return fail(400, { error: 'Restaurant not found.' });
 		}
 
-		const restaurantIds = locals.user.restaurantIds || [];
-		if (!restaurantIds.includes(restaurantId)) {
-			return fail(403, { error: 'Forbidden: You can only modify dishes from your restaurant.' });
+		// Check if user is admin for this restaurant
+		if (!isUserAdminForRestaurant(locals.user, restaurantId)) {
+			return fail(403, { error: 'Forbidden. You must be an admin.' });
 		}
 
 		const formData = await request.formData();
