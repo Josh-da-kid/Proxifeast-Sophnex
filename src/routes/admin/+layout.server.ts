@@ -55,6 +55,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 				restaurant: null,
 				isSuper: false,
 				isSuperUser: false,
+				isAdminForRestaurant: false,
 				restaurantId: null,
 				subscription: null,
 				subscriptionStatus: 'active'
@@ -64,6 +65,11 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		locals.restaurant = restaurant;
 		locals.isSuper = restaurant?.isSuper === true;
 
+		// Check if user is admin for this specific restaurant
+		const userRestaurantIds = locals.user?.restaurantIds || [];
+		const isAdminForRestaurant =
+			locals.user?.isAdmin === true && userRestaurantIds.includes(restaurant.id);
+
 		// For super restaurants, skip all subscription checks
 		if (locals.isSuper) {
 			return {
@@ -71,6 +77,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 				restaurant,
 				isSuper: locals.isSuper,
 				isSuperUser: locals.isSuper,
+				isAdminForRestaurant,
 				restaurantId: restaurant?.id,
 				subscription: null,
 				subscriptionStatus: 'active'
@@ -140,6 +147,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			restaurant,
 			isSuper: locals.isSuper,
 			isSuperUser: locals.isSuper,
+			isAdminForRestaurant,
 			restaurantId: restaurant?.id,
 			subscription,
 			subscriptionStatus
@@ -155,6 +163,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			restaurant: null,
 			isSuper: false,
 			isSuperUser: false,
+			isAdminForRestaurant: false,
 			restaurantId: null,
 			subscription: null,
 			subscriptionStatus: 'active'

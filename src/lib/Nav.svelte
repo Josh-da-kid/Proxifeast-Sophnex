@@ -65,6 +65,7 @@
 
 	const user = derived(page, ($page) => $page.data.user);
 	const isSuper = derived(page, ($page) => $page.data.isSuper ?? false);
+	const isAdminForRestaurant = derived(page, ($page) => $page.data.isAdminForRestaurant ?? false);
 
 	const restaurantName = get(page).data.restaurant?.name;
 
@@ -499,6 +500,41 @@
 									/><path d="m4 7.5 1.6 6.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L20 7.5" /></svg
 								>
 								Restaurants
+							</a>
+						</li>
+					{/if}
+					{#if $isAdminForRestaurant}
+						<li>
+							<a
+								onclick={closeSideBar}
+								href="/admin"
+								class={$page.url.pathname.startsWith('/admin') ? 'active' : ''}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="18"
+									height="18"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									><rect width="7" height="9" x="3" y="3" rx="1" /><rect
+										width="7"
+										height="5"
+										x="14"
+										y="3"
+										rx="1"
+									/><rect width="7" height="9" x="14" y="12" rx="1" /><rect
+										width="7"
+										height="5"
+										x="3"
+										y="16"
+										rx="1"
+									/></svg
+								>
+								Admin
 							</a>
 						</li>
 					{/if}
