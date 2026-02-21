@@ -13,7 +13,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			throw redirect(302, `/admin/admin-login?redirectTo=${pathname}`);
 		}
 
-		if (token && (!locals.user || !locals.user.isAdmin)) {
+		if (token && !locals.user) {
 			locals.pb.authStore.clear();
 			cookies.delete('pb_auth', { path: '/' });
 			throw redirect(303, `/admin/admin-login?redirectTo=${pathname}&not_admin=1`);
@@ -66,9 +66,27 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		locals.isSuper = restaurant?.isSuper === true;
 
 		// Check if user is admin for this specific restaurant
+		// Use adminRestaurantIds if available (granular admin), fall back to global isAdmin + restaurantIds for backward compatibility
+		const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
 		const userRestaurantIds = locals.user?.restaurantIds || [];
-		const isAdminForRestaurant =
-			locals.user?.isAdmin === true && userRestaurantIds.includes(restaurant.id);
+
+		let isAdminForRestaurant = false;
+
+		// If user has specific adminRestaurantIds, check those
+		if (adminRestaurantIds.length > 0) {
+			isAdminForRestaurant = adminRestaurantIds.includes(restaurant.id);
+		} else {
+			// Fallback: use global isAdmin flag with restaurantIds (backward compatibility)
+			isAdminForRestaurant =
+				locals.user?.isAdmin === true && userRestaurantIds.includes(restaurant.id);
+		}
+
+		// Redirect if not admin for this restaurant (but allow login page)
+		if (!isAdminForRestaurant && !isAdminLoginPage) {
+			locals.pb.authStore.clear();
+			cookies.delete('pb_auth', { path: '/' });
+			throw redirect(303, `/admin/admin-login?redirectTo=${pathname}&not_admin=1`);
+		}
 
 		// For super restaurants, skip all subscription checks
 		if (locals.isSuper) {

@@ -45,14 +45,28 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 		// Filter allRestaurants for non-super restaurants (for dropdowns)
 		const filteredRestaurants = allRestaurants.filter((r: any) => r.isSuper !== true);
 
+		// Check if user is admin for this specific restaurant
+		const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
+		const userRestaurantIds = locals.user?.restaurantIds || [];
+
+		let isAdminForRestaurant = false;
+
+		if (adminRestaurantIds.length > 0) {
+			isAdminForRestaurant = adminRestaurantIds.includes(restaurant.id);
+		} else {
+			isAdminForRestaurant =
+				locals.user?.isAdmin === true && userRestaurantIds.includes(restaurant.id);
+		}
+
 		return {
 			user: locals.user ?? null,
 			restaurant,
 			allRestaurants: filteredRestaurants,
-			allRestaurantsIncludingSuper: allRestaurants, // Include all restaurants for cart lookups
+			allRestaurantsIncludingSuper: allRestaurants,
 			isSuper,
 			isSuperUser: isSuper,
-			restaurantId: restaurant?.id
+			restaurantId: restaurant?.id,
+			isAdminForRestaurant
 		};
 	} catch (err) {
 		console.error('Layout server error:', err);
@@ -63,7 +77,8 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 			allRestaurants: [],
 			isSuper: false,
 			isSuperUser: false,
-			restaurantId: null
+			restaurantId: null,
+			isAdminForRestaurant: false
 		};
 	}
 };
