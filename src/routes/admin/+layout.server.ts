@@ -67,7 +67,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		}
 
 		locals.restaurant = restaurant;
-		locals.isSuper = restaurant?.isSuper === true;
+		locals.isSuper = !!restaurant?.isSuper;
 
 		// Check if user is admin for this specific restaurant
 		// Use adminRestaurantIds if available (granular admin), fall back to global isAdmin + restaurantIds for backward compatibility

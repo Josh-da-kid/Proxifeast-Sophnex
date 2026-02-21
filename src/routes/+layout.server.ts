@@ -40,7 +40,7 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 		locals.restaurant = restaurant;
 
 		// Check if super restaurant
-		const isSuper = restaurant?.isSuper === true;
+		const isSuper = !!restaurant?.isSuper;
 
 		// Filter allRestaurants for non-super restaurants (for dropdowns)
 		const filteredRestaurants = allRestaurants.filter((r: any) => r.isSuper !== true);
