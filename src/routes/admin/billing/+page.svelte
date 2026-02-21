@@ -146,13 +146,17 @@
 	];
 
 	function hasFreeTrialUsed(restaurant: any): boolean {
-		if (!restaurant?.id) return data.hasUsedFreeTrial;
+		// Handle both string ID and full restaurant object
+		const restaurantId = typeof restaurant === 'string' ? restaurant : restaurant?.id;
+		if (!restaurantId) return data.hasUsedFreeTrial;
 		const restaurantSubs =
-			data.subscriptions?.filter((s: any) => s.restaurantId === restaurant.id) || [];
+			data.subscriptions?.filter((s: any) => s.restaurantId === restaurantId) || [];
 		return restaurantSubs.some((s: any) => s.plan === 'weekly');
 	}
 
 	function getAvailablePlans(restaurant: any): typeof plans {
+		// Only super users can grant free trial (weekly) subscriptions
+		// Non-super users should never see the weekly option
 		if (data.isSuper) {
 			const used = hasFreeTrialUsed(restaurant);
 			if (used) {
@@ -160,7 +164,8 @@
 			}
 			return plans;
 		}
-		return data.hasUsedFreeTrial ? plans.filter((p) => p.id !== 'weekly') : plans;
+		// Non-super users cannot subscribe to free trial
+		return plans.filter((p) => p.id !== 'weekly');
 	}
 
 	function getStatusColor(status: string) {
@@ -1294,7 +1299,7 @@
 				<div class="rounded-2xl bg-white p-6 shadow-sm">
 					<h3 class="mb-4 text-lg font-semibold text-slate-800">Expiring Soon (30 days)</h3>
 					<div class="space-y-3">
-						{#each data.subscriptions.filter((s: any) => s.status === 'active' && isExpiringSoon(s.endDate)) as subscription}
+						{#each data.subscriptions.filter((s: any) => (s.status === 'active' || s.status === 'test') && isExpiringSoon(s.endDate)) as subscription}
 							{@const restaurant = data.restaurants.find(
 								(r: any) => r.id === subscription.restaurantId
 							)}
@@ -1313,12 +1318,26 @@
 									</p>
 								</div>
 								<div class="flex flex-col items-end gap-2">
-									<button
-										class="rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-600"
-										onclick={() => renewSubscription(subscription)}
-									>
-										Renew
-									</button>
+									{#if subscription.status === 'test'}
+										<button
+											class="rounded-lg bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600"
+											onclick={() => {
+												activeTab = 'add';
+												selectedRestaurant = data.restaurants.find(
+													(r: any) => r.id === subscription.restaurantId
+												)?.id;
+											}}
+										>
+											Upgrade
+										</button>
+									{:else}
+										<button
+											class="rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-600"
+											onclick={() => renewSubscription(subscription)}
+										>
+											Renew
+										</button>
+									{/if}
 									{#if subscription.plan !== 'weekly' && subscription.status !== 'test'}
 										<button
 											class="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200"
