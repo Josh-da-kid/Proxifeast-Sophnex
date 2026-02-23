@@ -28,7 +28,6 @@
 	const iconClock = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
 	const iconStore = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2.5"/><path d="M2 17.5a.5.5 0 0 1 .5-.5h19a.5.5 0 0 1 .5.5v1a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 18.5Z"/><path d="m4 7.5 1.6 6.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L20 7.5"/></svg>`;
 
-	const paystackKey = derived(page, ($page) => $page.data.restaurant?.paystackKey);
 	const allRestaurants = derived(
 		page,
 		($page) => $page.data.allRestaurantsIncludingSuper ?? $page.data.allRestaurants ?? []
@@ -53,6 +52,38 @@
 	let showDetails = $state(false);
 	let unsubscribeDish: () => void;
 	let unsubscribeCart: () => void;
+
+	// Store restaurant data for payment
+	let restaurantData = $state<any>(null);
+	let userData = $state<any>(null);
+
+	$effect(() => {
+		restaurantData = $page.data.restaurant;
+		userData = $page.data.user;
+	});
+
+	let cartLocationInfo = $state({ valid: true, message: '', mismatchedRestaurants: [] as any[] });
+	let showPickupWarning = $state(false);
+	const isMultiRestaurantOrder = $derived.by(() => {
+		const uniqueRestaurantIds = new Set(
+			$cart.map((item: any) => item.expand?.dish?.restaurantId || item.restaurantId)
+		);
+		return uniqueRestaurantIds.size > 1;
+	});
+
+	$effect(() => {
+		// Track cart and delivery option changes
+		const _ = $cart;
+		const _delivery = deliveryOption;
+		cartLocationInfo = getCartLocationInfo();
+
+		// Show pickup warning if multiple restaurants and pickup selected
+		if (isMultiRestaurantOrder && deliveryOption === 'restaurantPickup') {
+			showPickupWarning = true;
+		} else {
+			showPickupWarning = false;
+		}
+	});
 
 	function groupCartByRestaurant(cartItems: any[]) {
 		const grouped = new Map();
@@ -82,7 +113,8 @@
 			.map((id) => $allRestaurants.find((r: any) => r.id === id))
 			.filter(Boolean);
 
-		if (restaurants.length < 2) return { valid: true, message: '' };
+		if (restaurants.length < 2)
+			return { valid: true, message: '', mismatchedRestaurants: [] as any[] };
 
 		const states = [
 			...new Set(restaurants.map((r: any) => r.state?.toLowerCase().trim()).filter(Boolean))
@@ -93,27 +125,50 @@
 			)
 		];
 
+		// Get all unique states and LGAs with restaurant names
+		const stateGroups = new Map<string, any[]>();
+		const lgaGroups = new Map<string, any[]>();
+
+		restaurants.forEach((r: any) => {
+			const state = r.state || 'Unknown';
+			const lga = r.localGovernment || 'Unknown';
+
+			if (!stateGroups.has(state)) stateGroups.set(state, []);
+			stateGroups.get(state)!.push(r);
+
+			if (!lgaGroups.has(lga)) lgaGroups.set(lga, []);
+			lgaGroups.get(lga)!.push(r);
+		});
+
 		if (states.length > 1) {
+			const stateMessages = Array.from(stateGroups.entries())
+				.map(([state, reses]) => `${reses.map((r: any) => r.name).join(', ')} (${state})`)
+				.join(' vs ');
 			return {
 				valid: false,
-				message: `Your cart has items from different states (${restaurants.map((r: any) => r.state).join(', ')}). Orders can only include restaurants in the same state.`
+				message: `Your cart has restaurants from different states: ${stateMessages}. Remove all but one state to proceed.`,
+				mismatchedRestaurants: restaurants
 			};
 		}
 
 		if (lgas.length > 1) {
+			const lgaMessages = Array.from(lgaGroups.entries())
+				.map(([lga, reses]) => `${reses.map((r: any) => r.name).join(', ')} (${lga} LGA)`)
+				.join(' vs ');
 			return {
 				valid: false,
-				message: `Your cart has items from different LGAs (${restaurants.map((r: any) => r.localGovernment).join(', ')}). Orders can only include restaurants in the same LGA.`
+				message: `Your cart has restaurants from different LGAs: ${lgaMessages}. Remove all but one LGA to proceed.`,
+				mismatchedRestaurants: restaurants
 			};
 		}
 
-		return { valid: true, message: '' };
+		return { valid: true, message: '', mismatchedRestaurants: [] };
 	}
 
 	const cartLocationCheck = derived(cart, () => getCartLocationInfo());
 
 	async function setupSubscriptions() {
-		if (!get(user)?.id) return;
+		if (!userData?.id) return;
 		unsubscribeDish = await pb.collection('dishes').subscribe('*', async ({ action, record }) => {
 			if (action === 'update') {
 				const isDishInCart = get(cart).some((item) => item.dish === record.id);
@@ -121,7 +176,7 @@
 			}
 		});
 		unsubscribeCart = await pb.collection('cart').subscribe('*', async ({ action, record }) => {
-			if (record.user === get(user).id) await fetchCart();
+			if (record.user === userData.id) await fetchCart();
 		});
 	}
 
@@ -132,7 +187,7 @@
 
 	export async function fetchCart() {
 		try {
-			const currentUser = get(user);
+			const currentUser = userData;
 			const userId = currentUser?.id;
 
 			if (!userId) {
@@ -222,6 +277,7 @@
 	let prefix = $state('+234');
 	let tableNumber = $state('');
 	let homeAddress = $state('');
+	let locationConfirmed = $state(false);
 
 	let hour = $state('12');
 	let minutes = $state('00');
@@ -229,9 +285,15 @@
 	let pickupTime = $derived(`${hour}:${minutes} ${meridian}`);
 	const formattedPhone = $derived(`${prefix}${phone}`);
 	const grandTotal = $derived($total);
-	const PaystackPop = (window as any).PaystackPop;
-	let email = get(user)?.email;
-	let amount = get(total);
+
+	const cartRestaurantInfo = $derived.by(() => {
+		const restaurantIds = [
+			...new Set($cart.map((item: any) => item.expand?.dish?.restaurantId || item.restaurantId))
+		];
+		if (restaurantIds.length === 0) return null;
+		const restaurant = $allRestaurants.find((r: any) => r.id === restaurantIds[0]);
+		return restaurant || null;
+	});
 
 	function isValidPhone(prefix: string, phone: string): boolean {
 		prefix = prefix.trim();
@@ -244,69 +306,131 @@
 	function payWithPaystack(e: Event) {
 		e.preventDefault();
 
-		// Validate address for home delivery
-		if (deliveryOption === 'home') {
-			if (!homeAddress || homeAddress.trim() === '') {
-				alert('Please enter your delivery address.');
-				return;
-			}
-		}
-
-		if (!isValidPhone(prefix, phone)) {
-			alert('Please enter a valid Nigerian phone number.');
+		if (!locationConfirmed) {
+			alert(
+				'Please confirm that your delivery address is in the same state/LGA as the restaurant before ordering.'
+			);
 			return;
 		}
-		amount = get(grandTotal);
-		let handler = PaystackPop.setup({
-			key: $paystackKey,
-			email: email,
-			amount: amount * 100,
-			currency: 'NGN',
-			ref: 'ORD-' + Math.floor(Math.random() * 1000000000 + 1),
-			callback: function (response: any) {
-				alert('Payment complete! Reference: ' + response.reference);
-				const orderedDishes = $cart.map((item) => ({
-					dish: item.expand?.dish?.id,
-					name: item.expand?.dish?.name,
-					quantity: item.quantity,
-					amount: item.amount
-				}));
-				const orderData = {
-					reference: response.reference,
-					totalAmount: get(grandTotal),
-					type: deliveryOption,
-					user: get(user).id,
-					dishes: orderedDishes,
-					name: get(user).name,
-					email: get(user).email,
-					quantity: $cart.length,
-					formattedPhone,
-					tableNumber,
-					homeAddress,
-					pickupTime,
-					payOnDelivery: deliveryOption === 'home'
-				};
-				fetch('/api/save-order', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(orderData)
-				})
-					.then((res) => res.json())
-					.then((data) => {
-						alert('Order saved successfully!');
-						goto('/pending');
-						clearCart();
-					})
-					.catch((err) => {
-						console.error(err);
-						alert('Error saving order.');
-					});
-			},
-			onClose: function () {
-				alert('Transaction was cancelled');
+
+		try {
+			const PaystackPop = (window as any).PaystackPop;
+
+			if (!PaystackPop) {
+				alert('Payment system is loading. Please try again in a moment.');
+				return;
 			}
-		});
-		handler.openIframe();
+
+			const paystackKeyValue = restaurantData?.paystackKey;
+
+			if (!paystackKeyValue) {
+				alert('Payment system not configured. Please contact the restaurant.');
+				return;
+			}
+
+			const currentUser = userData;
+
+			if (!currentUser) {
+				alert('Please log in to make a payment.');
+				return;
+			}
+
+			const currentEmail = currentUser.email;
+
+			// Calculate total directly from cart store
+			const cartSnapshot = $cart;
+			const currentAmount = cartSnapshot.reduce((acc, item) => {
+				if (item.expand?.dish?.availability === 'Available') {
+					const price = item.expand?.dish?.promoAmount ?? item.expand?.dish?.defaultAmount ?? 0;
+					return acc + price * item.quantity;
+				}
+				return acc;
+			}, 0);
+
+			if (currentAmount <= 0) {
+				alert('Your cart is empty.');
+				return;
+			}
+
+			// Validate address for home delivery
+			if (deliveryOption === 'home') {
+				if (!homeAddress || homeAddress.trim() === '') {
+					alert('Please enter your delivery address.');
+					return;
+				}
+			}
+
+			if (!isValidPhone(prefix, phone)) {
+				alert('Please enter a valid Nigerian phone number.');
+				return;
+			}
+
+			console.log('Opening Paystack with:', {
+				key: paystackKeyValue,
+				email: currentEmail,
+				amount: currentAmount * 100
+			});
+
+			const handler = PaystackPop.setup({
+				key: paystackKeyValue,
+				email: currentEmail,
+				amount: currentAmount * 100,
+				currency: 'NGN',
+				ref: 'ORD-' + Math.floor(Math.random() * 1000000000 + 1),
+				callback: function (response: any) {
+					alert('Payment complete! Reference: ' + response.reference);
+					const orderedDishes = $cart.map((item) => ({
+						dish: item.expand?.dish?.id,
+						name: item.expand?.dish?.name,
+						quantity: item.quantity,
+						amount: item.amount
+					}));
+					const orderData = {
+						reference: response.reference,
+						totalAmount: currentAmount,
+						type: deliveryOption,
+						user: currentUser.id,
+						dishes: orderedDishes,
+						name: currentUser.name,
+						email: currentUser.email,
+						quantity: $cart.length,
+						formattedPhone,
+						tableNumber,
+						homeAddress,
+						pickupTime,
+						payOnDelivery: deliveryOption === 'home',
+						restaurantId: cartRestaurantInfo?.id,
+						restaurantName: cartRestaurantInfo?.name,
+						isMultiRestaurantOrder: isMultiRestaurantOrder,
+						totalRestaurants: new Set(
+							$cart.map((item: any) => item.expand?.dish?.restaurantId || item.restaurantId)
+						).size
+					};
+					fetch('/api/save-order', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(orderData)
+					})
+						.then((res) => res.json())
+						.then((data) => {
+							alert('Order saved successfully!');
+							goto('/pending');
+							clearCart();
+						})
+						.catch((err) => {
+							console.error(err);
+							alert('Error saving order.');
+						});
+				},
+				onClose: function () {
+					alert('Transaction was cancelled');
+				}
+			});
+			handler.openIframe();
+		} catch (err) {
+			console.error('Payment error:', err);
+			alert('An error occurred. Please try again.');
+		}
 	}
 </script>
 
@@ -621,10 +745,9 @@
 										{#if uniqueRestaurants.size > 1}
 											<div class="bg-warning/10 border-warning/20 mt-4 rounded-lg border p-3">
 												<p class="text-warning text-sm">
-													<strong>⚠️ Important Notice:</strong> You're ordering from {uniqueRestaurants.size}
-													different restaurants. Each restaurant will charge a separate delivery fee,
-													which will make your order significantly more expensive. Consider ordering
-													from a single restaurant to save on delivery costs.
+													<strong>Important Notice:</strong> You're ordering from {uniqueRestaurants.size}
+													different restaurants. Delivery fees will be collected on delivery for each
+													restaurant.
 												</p>
 											</div>
 										{/if}
@@ -635,16 +758,21 @@
 										<p class="flex items-center gap-2 text-sm font-semibold">
 											{@html iconPackage} Select Delivery Method
 										</p>
-										<label class="block cursor-pointer">
+										<label
+											class="block cursor-pointer"
+											class:opacity-50={isMultiRestaurantOrder || !cartLocationInfo.valid}
+										>
 											<input
 												type="radio"
 												bind:group={deliveryOption}
 												value="tableService"
 												class="peer sr-only"
 												required
+												disabled={isMultiRestaurantOrder || !cartLocationInfo.valid}
 											/>
 											<div
 												class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
+												class:opacity-50={isMultiRestaurantOrder || !cartLocationInfo.valid}
 											>
 												<div
 													class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
@@ -662,6 +790,13 @@
 													</div>
 													<p class="text-base-content/70 text-sm">
 														We'll serve you at your table in the restaurant
+														{#if isMultiRestaurantOrder}
+															<span class="text-error"
+																>(Not available for multi-restaurant orders)</span
+															>
+														{:else if !cartLocationInfo.valid}
+															<span class="text-error">(Not available for your location)</span>
+														{/if}
 													</p>
 												</div>
 											</div>
@@ -725,6 +860,30 @@
 											</div>
 										</label>
 									</div>
+									{#if showPickupWarning}
+										{@const uniqueRestaurantCount = new Set(
+											$cart.map((item: any) => item.expand?.dish?.restaurantId || item.restaurantId)
+										).size}
+										<div class="bg-warning/10 rounded-xl p-4">
+											<div class="flex items-start gap-2">
+												{@html iconAlertCircle}
+												<div class="text-sm">
+													<p class="font-medium">Pickup from multiple locations!</p>
+													<p class="mt-1 opacity-80">
+														You have items from {uniqueRestaurantCount} different restaurants. You'll
+														need to pick up from {uniqueRestaurantCount} different locations.
+													</p>
+													<button
+														type="button"
+														class="btn btn-primary btn-sm mt-3"
+														onclick={() => (deliveryOption = 'home')}
+													>
+														Switch to Home Delivery
+													</button>
+												</div>
+											</div>
+										</div>
+									{/if}
 									{#if deliveryOption}
 										<div class="space-y-4" transition:slide={{ duration: 300 }}>
 											{#if deliveryOption === 'tableService'}
@@ -842,6 +1001,44 @@
 										</div>
 									</div>
 									<div class="border-base-200 space-y-6 border-t pt-6">
+										{#if cartRestaurantInfo && deliveryOption === 'home'}
+											<div class="bg-info/10 rounded-xl p-4">
+												<div class="flex items-start gap-2">
+													{@html iconAlertCircle}
+													<div class="text-sm">
+														<p class="font-medium">Location Check</p>
+														<p class="mt-1 opacity-80">
+															Please confirm that your delivery address is in <strong
+																>{cartRestaurantInfo.state}</strong
+															>
+															{cartRestaurantInfo.localGovernment
+																? `, ${cartRestaurantInfo.localGovernment} LGA`
+																: ''} to order from <strong>{cartRestaurantInfo.name}</strong>.
+														</p>
+														<label class="mt-3 flex cursor-pointer items-start gap-3">
+															<div class="relative mt-0.5 flex items-center">
+																<input
+																	type="checkbox"
+																	bind:checked={locationConfirmed}
+																	class="peer sr-only"
+																/>
+																<div
+																	class="border-base-300 peer-checked:border-primary peer-checked:bg-primary h-5 w-5 rounded border-2 transition-all"
+																></div>
+																<span
+																	class="pointer-events-none absolute top-1 left-1 opacity-0 peer-checked:opacity-100"
+																	>{@html iconCheck}</span
+																>
+															</div>
+															<span class="text-sm leading-relaxed"
+																>I confirm my delivery address is in the same state/LGA as the
+																restaurant</span
+															>
+														</label>
+													</div>
+												</div>
+											</div>
+										{/if}
 										<label class="group flex cursor-pointer items-start gap-3">
 											<div class="relative mt-0.5 flex items-center">
 												<input type="checkbox" required class="peer sr-only" />
@@ -865,22 +1062,60 @@
 											>
 										</label>
 										{#if $cart.length > 0}
-											{@const locationInfo = getCartLocationInfo()}
-											{#if !locationInfo.valid}
-												<div class="bg-warning/10 text-warning rounded-xl p-4">
+											{#if !cartLocationInfo.valid}
+												<div class="bg-warning/10 space-y-3 rounded-xl p-4">
 													<div class="flex items-start gap-2">
 														{@html iconAlertCircle}
-														<span class="text-sm">{locationInfo.message}</span>
+														<span class="text-sm">{cartLocationInfo.message}</span>
 													</div>
+													{#if cartLocationInfo.mismatchedRestaurants.length > 0}
+														<div class="mt-3 space-y-2">
+															<p class="text-xs font-medium">Restaurants in cart:</p>
+															{#each cartLocationInfo.mismatchedRestaurants as restaurant}
+																{@const cartItemsForRestaurant = $cart.filter(
+																	(item: any) =>
+																		(item.expand?.dish?.restaurantId || item.restaurantId) ===
+																		restaurant.id
+																)}
+																{#if cartItemsForRestaurant.length > 0}
+																	<div
+																		class="bg-base-100 flex items-center justify-between rounded-lg p-2"
+																	>
+																		<div class="flex flex-col">
+																			<span class="font-medium">{restaurant.name}</span>
+																			<span class="text-xs opacity-70"
+																				>{restaurant.state}{restaurant.localGovernment
+																					? `, ${restaurant.localGovernment} LGA`
+																					: ''}</span
+																			>
+																		</div>
+																		<button
+																			type="button"
+																			class="btn btn-error btn-sm text-white"
+																			onclick={async () => {
+																				for (const item of cartItemsForRestaurant) {
+																					await removeFromCart(item.id);
+																				}
+																			}}
+																		>
+																			{@html iconTrash2} Remove
+																		</button>
+																	</div>
+																{/if}
+															{/each}
+														</div>
+													{/if}
 												</div>
 											{/if}
 										{/if}
 										<button
-											type="submit"
+											type="button"
 											class="bg-primary hover:bg-primary/90 text-primary-content shadow-primary/20 flex w-full transform items-center justify-center gap-3 rounded-xl px-6 py-4 text-lg font-bold shadow-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
 											disabled={$cart.length === 0 ||
 												!deliveryOption ||
-												!getCartLocationInfo().valid}
+												!cartLocationInfo.valid ||
+												(deliveryOption === 'home' && !locationConfirmed)}
+											onclick={payWithPaystack}
 										>
 											{@html iconLock}<span>Pay ₦{$total.toLocaleString()}</span>
 										</button>

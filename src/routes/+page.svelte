@@ -391,21 +391,21 @@
 
 						// Check if same state
 						if (newState !== cartState) {
-							locationMismatchMessage = `${newRestaurant.name} is in ${newRestaurant.state} but your cart has items from ${cartRestaurant.state}. Orders can only include restaurants in the same state.`;
+							locationMismatchMessage = `${newRestaurant.name} (${newRestaurant.state}) is in a different state from ${cartRestaurant.name} (${cartRestaurant.state}). Remove ${cartRestaurant.name} from cart to add ${newRestaurant.name}.`;
 							locationMismatchAlert = true;
 							setTimeout(() => {
 								locationMismatchAlert = false;
-							}, 5000);
+							}, 6000);
 							return;
 						}
 
 						// Check if same LGA (only if both have LGA defined)
 						if (newLGA && cartLGA && newLGA !== cartLGA) {
-							locationMismatchMessage = `${newRestaurant.name} is in ${newRestaurant.localGovernment} LGA but your cart has items from ${cartRestaurant.localGovernment} LGA. Orders can only include restaurants in the same LGA.`;
+							locationMismatchMessage = `${newRestaurant.name} (${newRestaurant.localGovernment} LGA) is in a different LGA from ${cartRestaurant.name} (${cartRestaurant.localGovernment} LGA). Remove ${cartRestaurant.name} from cart to add ${newRestaurant.name}.`;
 							locationMismatchAlert = true;
 							setTimeout(() => {
 								locationMismatchAlert = false;
-							}, 5000);
+							}, 6000);
 							return;
 						}
 					}

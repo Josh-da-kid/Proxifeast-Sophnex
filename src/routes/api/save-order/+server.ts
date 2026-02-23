@@ -16,57 +16,93 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	try {
-		// Get restaurant by ID (passed from checkout)
-		const restaurant = await pb.collection('restaurants').getOne(data.restaurantId);
+		// Get restaurant info for each dish and group by restaurant
+		const dishRestaurantMap = new Map<string, any[]>();
 
-		if (!restaurant) {
-			throw error(400, 'Restaurant not found');
+		for (const dishItem of data.dishes) {
+			try {
+				const dish = await pb.collection('dishes').getOne(dishItem.dish);
+				const restaurantId = dish.restaurantId;
+
+				if (!dishRestaurantMap.has(restaurantId)) {
+					dishRestaurantMap.set(restaurantId, []);
+				}
+				dishRestaurantMap.get(restaurantId)!.push({
+					...dishItem,
+					dishName: dish.name
+				});
+			} catch (e) {
+				console.log('Could not get dish info for:', dishItem.dish);
+			}
 		}
 
-		// Create the order
-		const orderData: any = {
-			user: data.user,
-			name: data.name,
-			phone: data.formattedPhone,
-			email: data.email,
-			deliveryType: data.type,
-			status: 'Pending',
-			quantity: data.quantity,
-			dishes: data.dishes.map((dish: any) => ({
-				dish: dish.dish,
-				amount: dish.amount,
-				name: dish.name,
-				quantity: dish.quantity
-			})),
-			totalAmount: data.totalAmount,
-			foodTotal: data.foodTotal || data.totalAmount,
-			deliveryFee: 0, // Will be collected on delivery
-			payOnDelivery: data.payOnDelivery || false,
-			serviceFee: data.serviceFee || 0,
-			smallOrderFee: data.smallOrderFee || 0,
-			deliveryDistance: data.deliveryDistance || 0,
-			deliveryTier: data.deliveryTier || '',
-			customerState: data.customerState || '',
-			restaurantState: data.restaurantState || '',
-			reference: data.reference,
-			mainReference: data.mainReference || data.reference,
-			tableNumber: data.tableNumber || '',
-			homeAddress: data.homeAddress || '',
-			pickupTime: data.pickupTime || '',
-			restaurantId: restaurant.id,
-			restaurantName: data.restaurantName || restaurant.name,
-			isMultiRestaurantOrder: data.isMultiRestaurantOrder || false,
-			totalRestaurants: data.totalRestaurants || 1
-		};
+		const restaurantIds = Array.from(dishRestaurantMap.keys());
+		const isMultiRestaurant = restaurantIds.length > 1;
+		const mainReference = data.reference;
 
-		const record = await pb.collection('orders').create(orderData);
+		const createdOrders = [];
 
-		// Send email notification to restaurant if restaurant has an email
-		if (restaurant.email || restaurant.restaurantEmail) {
-			await sendRestaurantNotification(restaurant, orderData);
+		// Create order(s) - separate for each restaurant if multi-restaurant
+		for (const restaurantId of restaurantIds) {
+			let restaurant = null;
+			try {
+				restaurant = await pb.collection('restaurants').getOne(restaurantId);
+			} catch (e) {
+				console.log('Restaurant not found:', restaurantId);
+				continue;
+			}
+
+			const dishesForRestaurant = dishRestaurantMap.get(restaurantId)!;
+			const restaurantTotal = dishesForRestaurant.reduce((sum, d) => sum + (d.amount || 0), 0);
+			const restaurantQuantity = dishesForRestaurant.reduce((sum, d) => sum + (d.quantity || 0), 0);
+
+			const orderData: any = {
+				user: data.user,
+				name: data.name,
+				phone: data.formattedPhone,
+				email: data.email,
+				deliveryType: data.type,
+				status: 'Pending',
+				quantity: restaurantQuantity,
+				dishes: dishesForRestaurant.map((dish: any) => ({
+					dish: dish.dish,
+					amount: dish.amount,
+					name: dish.dishName,
+					quantity: dish.quantity
+				})),
+				totalAmount: restaurantTotal,
+				foodTotal: restaurantTotal,
+				deliveryFee: 0,
+				payOnDelivery: data.payOnDelivery || false,
+				serviceFee: 0,
+				smallOrderFee: 0,
+				deliveryDistance: 0,
+				deliveryTier: '',
+				customerState: data.customerState || '',
+				restaurantState: restaurant.state || '',
+				reference: isMultiRestaurant
+					? `${mainReference}-${restaurant.name.replace(/\s+/g, '').toUpperCase()}`
+					: mainReference,
+				mainReference: mainReference,
+				tableNumber: data.tableNumber || '',
+				homeAddress: data.homeAddress || '',
+				pickupTime: data.pickupTime || '',
+				restaurantId: restaurant.id,
+				restaurantName: restaurant.name,
+				isMultiRestaurantOrder: isMultiRestaurant,
+				totalRestaurants: restaurantIds.length
+			};
+
+			const record = await pb.collection('orders').create(orderData);
+			createdOrders.push(record);
+
+			// Send email notification to restaurant
+			if (restaurant.email || restaurant.restaurantEmail) {
+				await sendRestaurantNotification(restaurant, orderData);
+			}
 		}
 
-		return new Response(JSON.stringify({ success: true, record }), { status: 200 });
+		return new Response(JSON.stringify({ success: true, orders: createdOrders }), { status: 200 });
 	} catch (err) {
 		console.error('Save order error:', err);
 		return new Response(
@@ -103,21 +139,11 @@ async function sendRestaurantNotification(restaurant: any, orderData: any) {
 
 		let deliveryInfo = '';
 		if (orderData.deliveryType === 'home') {
-			const feesBreakdown = [];
-			if (orderData.deliveryFee > 0)
-				feesBreakdown.push(`Delivery: ₦${orderData.deliveryFee.toLocaleString()}`);
-			if (orderData.serviceFee > 0)
-				feesBreakdown.push(`Service: ₦${orderData.serviceFee.toLocaleString()}`);
-			if (orderData.smallOrderFee > 0)
-				feesBreakdown.push(`Small Order: ₦${orderData.smallOrderFee.toLocaleString()}`);
-
 			deliveryInfo = `
 				<div style="margin-top: 16px; padding: 12px; background-color: #f3f4f6; border-radius: 8px;">
 					<p style="margin: 0; font-weight: 600; color: #1f2937;">Delivery Details:</p>
 					<p style="margin: 4px 0 0 0; color: #4b5563;">Address: ${orderData.homeAddress}</p>
-					<p style="margin: 4px 0 0 0; color: #4b5563;">Distance: ${orderData.deliveryDistance}km${orderData.deliveryTier ? ` (${orderData.deliveryTier} tier)` : ''}</p>
-					<p style="margin: 4px 0 0 0; color: #4b5563;">Location: ${orderData.customerState || 'Unknown'}</p>
-					${feesBreakdown.length > 0 ? `<p style="margin: 4px 0 0 0; color: #4b5563;">Fees: ${feesBreakdown.join(' | ')}</p>` : ''}
+					<p style="margin: 4px 0 0 0; color: #4b5563;">Delivery fee to be collected on delivery</p>
 				</div>
 			`;
 		} else if (orderData.deliveryType === 'tableService') {
@@ -136,7 +162,7 @@ async function sendRestaurantNotification(restaurant: any, orderData: any) {
 
 		const multiRestaurantNotice = orderData.isMultiRestaurantOrder
 			? `<div style="margin-top: 16px; padding: 12px; background-color: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
-				<p style="margin: 0; color: #92400e;"><strong>Note:</strong> This is part of a multi-restaurant order (${orderData.totalRestaurants} restaurants total). The customer placed one payment but orders are split per restaurant.</p>
+				<p style="margin: 0; color: #92400e;"><strong>Note:</strong> This is part of a multi-restaurant order (${orderData.totalRestaurants} restaurants total). Order Reference: ${orderData.mainReference}</p>
 			</div>`
 			: '';
 
@@ -170,42 +196,8 @@ async function sendRestaurantNotification(restaurant: any, orderData: any) {
 						</tbody>
 						<tfoot>
 							<tr style="background-color: #f9fafb; font-weight: 600;">
-								<td style="padding: 12px; border-top: 2px solid #e5e7eb;" colspan="2">Food Subtotal:</td>
-								<td style="padding: 12px; border-top: 2px solid #e5e7eb; text-align: right;">₦${orderData.foodTotal.toLocaleString()}</td>
-							</tr>
-							${
-								orderData.deliveryFee > 0
-									? `
-							<tr style="background-color: #f9fafb;">
-								<td style="padding: 12px;" colspan="2">Delivery Fee:</td>
-								<td style="padding: 12px; text-align: right;">₦${orderData.deliveryFee.toLocaleString()}</td>
-							</tr>
-							`
-									: ''
-							}
-							${
-								orderData.serviceFee > 0
-									? `
-							<tr style="background-color: #f9fafb;">
-								<td style="padding: 12px;" colspan="2">Service Fee:</td>
-								<td style="padding: 12px; text-align: right;">₦${orderData.serviceFee.toLocaleString()}</td>
-							</tr>
-							`
-									: ''
-							}
-							${
-								orderData.smallOrderFee > 0
-									? `
-							<tr style="background-color: #f9fafb;">
-								<td style="padding: 12px;" colspan="2">Small Order Fee:</td>
-								<td style="padding: 12px; text-align: right;">₦${orderData.smallOrderFee.toLocaleString()}</td>
-							</tr>
-							`
-									: ''
-							}
-							<tr style="background-color: #f59e0b; color: white; font-weight: 700; font-size: 18px;">
-								<td style="padding: 16px; border-radius: 0 0 0 8px;" colspan="2">Total Amount:</td>
-								<td style="padding: 16px; text-align: right; border-radius: 0 0 8px 0;">₦${orderData.totalAmount.toLocaleString()}</td>
+								<td style="padding: 12px; border-top: 2px solid #e5e7eb;" colspan="2">Total:</td>
+								<td style="padding: 12px; border-top: 2px solid #e5e7eb; text-align: right;">₦${orderData.totalAmount.toLocaleString()}</td>
 							</tr>
 						</tfoot>
 					</table>
@@ -235,6 +227,5 @@ async function sendRestaurantNotification(restaurant: any, orderData: any) {
 		console.log(`Restaurant notification sent to ${restaurant.name}`);
 	} catch (err) {
 		console.error('Failed to send restaurant notification:', err);
-		// Don't throw - order is already saved, email is secondary
 	}
 }
