@@ -82,14 +82,26 @@ sw.addEventListener('fetch', (event) => {
 sw.addEventListener('push', (event) => {
 	const data = event.data?.json() ?? {};
 	const title = data.title || 'Proxifeast';
+
+	// Build the URL - make it absolute if relative
+	let redirectUrl = data.data?.url || '/';
+	if (redirectUrl && !redirectUrl.startsWith('http')) {
+		// Get the origin from the client's location
+		redirectUrl = redirectUrl; // Let the client handle this
+	}
+
 	const options = {
 		body: data.body || 'You have a new notification',
 		icon: '/icons/icon-192x192.png',
 		badge: '/icons/icon-72x72.png',
-		data: data.url || '/',
+		data: {
+			url: redirectUrl,
+			orderId: data.data?.orderId,
+			reference: data.data?.reference,
+			status: data.data?.status
+		},
 		tag: data.tag || 'notification',
-		requireInteraction: false,
-		...data
+		requireInteraction: false
 	};
 
 	event.waitUntil(sw.registration.showNotification(title, options));
@@ -98,7 +110,29 @@ sw.addEventListener('push', (event) => {
 // Handle notification clicks
 sw.addEventListener('notificationclick', (event) => {
 	event.notification.close();
-	event.waitUntil(sw.clients.openWindow(event.notification.data || '/'));
+
+	// Get the URL from notification data
+	const notificationData = event.notification.data || {};
+	const url = notificationData.url || '/';
+
+	event.waitUntil(
+		sw.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+			// If there's already a window/tab open, focus it
+			for (const client of clientList) {
+				if (client.url.includes(self.location.origin) && 'focus' in client) {
+					// Navigate to the specific URL
+					if (client.url !== url && 'navigate' in client) {
+						return client.navigate(url);
+					}
+					return client.focus();
+				}
+			}
+			// Otherwise open a new window
+			if (sw.clients.openWindow) {
+				return sw.clients.openWindow(url);
+			}
+		})
+	);
 });
 
 // Background sync for offline form submissions (optional)

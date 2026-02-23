@@ -84,6 +84,10 @@
 			filter += ` && restaurantId="${restaurantId}"`;
 		}
 
+		// Check for notification data in URL
+		const urlParams = new URLSearchParams(window.location.search);
+		const orderIdFromNotify = urlParams.get('orderId');
+
 		try {
 			const records = await pb.collection('orders').getFullList({
 				filter,
@@ -103,6 +107,29 @@
 	onMount(async () => {
 		orders = (await fetchPendingOrders()) || [];
 		loading = false;
+
+		// Handle notification click - check URL params
+		const urlParams = new URLSearchParams(window.location.search);
+		const orderIdFromNotify = urlParams.get('orderId');
+		const statusFromNotify = urlParams.get('status');
+
+		// Clear URL params after reading
+		if (orderIdFromNotify) {
+			// Clean up URL without refreshing
+			window.history.replaceState({}, '', '/pending');
+
+			// Scroll to the order if found
+			setTimeout(() => {
+				const orderElement = document.getElementById(`order-${orderIdFromNotify}`);
+				if (orderElement) {
+					orderElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+					orderElement.classList.add('ring-2', 'ring-primary');
+					setTimeout(() => {
+						orderElement.classList.remove('ring-2', 'ring-primary');
+					}, 3000);
+				}
+			}, 500);
+		}
 
 		// Check if push notifications are enabled (only for logged in users)
 		const currentUser = get(user);
@@ -425,6 +452,7 @@
 				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 					{#each filteredOrders as order, i}
 						<article
+							id="order-{order.id}"
 							class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:shadow-lg"
 							in:fly={{ y: 20, duration: 300, delay: i * 50 }}
 						>
