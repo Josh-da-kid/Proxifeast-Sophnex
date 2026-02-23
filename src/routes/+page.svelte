@@ -41,6 +41,7 @@
 	// Data from server
 	const restaurants = $derived($page.data.restaurants ?? []);
 	const allRestaurants = $derived($page.data.allRestaurants ?? []);
+	const allRestaurantsIncludingSuper = $derived($page.data.allRestaurantsIncludingSuper ?? []);
 	const featuredDishes = $derived($page.data.featuredDishes ?? []);
 	const selectedRestaurant = $derived($page.data.selectedRestaurant);
 	const dishes = $derived($page.data.dishes ?? []);
@@ -58,6 +59,8 @@
 	let dishQuantities = $state<Record<string, number>>({});
 	let addToCartAlert = $state(false);
 	let cartErrorAlert = $state(false);
+	let locationMismatchAlert = $state(false);
+	let locationMismatchMessage = $state('');
 
 	// Dish favorites state (for super restaurants)
 	let dishFavorites = $state<string[]>([]);
@@ -366,6 +369,50 @@
 	async function handleAddToCart(dish: any) {
 		if (dish.availability !== 'Available') return;
 
+		// Check location compatibility for super restaurants with multi-restaurant orders
+		if (isSuper && $cart.length > 0) {
+			const newRestaurant = allRestaurantsIncludingSuper.find(
+				(r: any) => r.id === dish.restaurantId
+			);
+			if (newRestaurant) {
+				const cartRestaurantIds = [
+					...new Set($cart.map((item: any) => item.expand?.dish?.restaurantId || item.restaurantId))
+				];
+
+				for (const cartRestaurantId of cartRestaurantIds) {
+					const cartRestaurant = allRestaurantsIncludingSuper.find(
+						(r: any) => r.id === cartRestaurantId
+					);
+					if (cartRestaurant) {
+						const newState = newRestaurant.state?.toLowerCase().trim();
+						const cartState = cartRestaurant.state?.toLowerCase().trim();
+						const newLGA = newRestaurant.localGovernment?.toLowerCase().trim();
+						const cartLGA = cartRestaurant.localGovernment?.toLowerCase().trim();
+
+						// Check if same state
+						if (newState !== cartState) {
+							locationMismatchMessage = `${newRestaurant.name} is in ${newRestaurant.state} but your cart has items from ${cartRestaurant.state}. Orders can only include restaurants in the same state.`;
+							locationMismatchAlert = true;
+							setTimeout(() => {
+								locationMismatchAlert = false;
+							}, 5000);
+							return;
+						}
+
+						// Check if same LGA (only if both have LGA defined)
+						if (newLGA && cartLGA && newLGA !== cartLGA) {
+							locationMismatchMessage = `${newRestaurant.name} is in ${newRestaurant.localGovernment} LGA but your cart has items from ${cartRestaurant.localGovernment} LGA. Orders can only include restaurants in the same LGA.`;
+							locationMismatchAlert = true;
+							setTimeout(() => {
+								locationMismatchAlert = false;
+							}, 5000);
+							return;
+						}
+					}
+				}
+			}
+		}
+
 		const quantity = Number(dishQuantities[dish.id] || 1);
 		const restaurantName = getRestaurantNameForDish(dish);
 
@@ -610,6 +657,29 @@
 		{:else}
 			<span>You must be logged in to add a dish to cart</span>
 		{/if}
+	</div>
+{/if}
+
+{#if locationMismatchAlert}
+	<div
+		role="alert"
+		class="alert alert-warning fixed top-1/2 left-1/2 z-50 w-[90%] max-w-md -translate-x-1/2"
+		in:fly={{ y: -20, duration: 300 }}
+	>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			class="h-6 w-6 shrink-0 stroke-current"
+			fill="none"
+			viewBox="0 0 24 24"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+			/>
+		</svg>
+		<span>{locationMismatchMessage}</span>
 	</div>
 {/if}
 

@@ -74,6 +74,44 @@
 		);
 	}
 
+	function getCartLocationInfo() {
+		const restaurantIds = [
+			...new Set($cart.map((item: any) => item.expand?.dish?.restaurantId || item.restaurantId))
+		];
+		const restaurants = restaurantIds
+			.map((id) => $allRestaurants.find((r: any) => r.id === id))
+			.filter(Boolean);
+
+		if (restaurants.length < 2) return { valid: true, message: '' };
+
+		const states = [
+			...new Set(restaurants.map((r: any) => r.state?.toLowerCase().trim()).filter(Boolean))
+		];
+		const lgas = [
+			...new Set(
+				restaurants.map((r: any) => r.localGovernment?.toLowerCase().trim()).filter(Boolean)
+			)
+		];
+
+		if (states.length > 1) {
+			return {
+				valid: false,
+				message: `Your cart has items from different states (${restaurants.map((r: any) => r.state).join(', ')}). Orders can only include restaurants in the same state.`
+			};
+		}
+
+		if (lgas.length > 1) {
+			return {
+				valid: false,
+				message: `Your cart has items from different LGAs (${restaurants.map((r: any) => r.localGovernment).join(', ')}). Orders can only include restaurants in the same LGA.`
+			};
+		}
+
+		return { valid: true, message: '' };
+	}
+
+	const cartLocationCheck = derived(cart, () => getCartLocationInfo());
+
 	async function setupSubscriptions() {
 		if (!get(user)?.id) return;
 		unsubscribeDish = await pb.collection('dishes').subscribe('*', async ({ action, record }) => {
@@ -826,10 +864,23 @@
 												></span
 											>
 										</label>
+										{#if $cart.length > 0}
+											{@const locationInfo = getCartLocationInfo()}
+											{#if !locationInfo.valid}
+												<div class="bg-warning/10 text-warning rounded-xl p-4">
+													<div class="flex items-start gap-2">
+														{@html iconAlertCircle}
+														<span class="text-sm">{locationInfo.message}</span>
+													</div>
+												</div>
+											{/if}
+										{/if}
 										<button
 											type="submit"
 											class="bg-primary hover:bg-primary/90 text-primary-content shadow-primary/20 flex w-full transform items-center justify-center gap-3 rounded-xl px-6 py-4 text-lg font-bold shadow-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
-											disabled={$cart.length === 0 || !deliveryOption}
+											disabled={$cart.length === 0 ||
+												!deliveryOption ||
+												!getCartLocationInfo().valid}
 										>
 											{@html iconLock}<span>Pay ₦{$total.toLocaleString()}</span>
 										</button>
