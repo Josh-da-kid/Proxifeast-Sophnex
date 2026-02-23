@@ -184,11 +184,13 @@
 	let prefix = $state('+234');
 	let tableNumber = $state('');
 	let homeAddress = $state('');
+
 	let hour = $state('12');
 	let minutes = $state('00');
 	let meridian = $state('PM');
 	let pickupTime = $derived(`${hour}:${minutes} ${meridian}`);
 	const formattedPhone = $derived(`${prefix}${phone}`);
+	const grandTotal = $derived($total);
 	const PaystackPop = (window as any).PaystackPop;
 	let email = get(user)?.email;
 	let amount = get(total);
@@ -203,11 +205,20 @@
 
 	function payWithPaystack(e: Event) {
 		e.preventDefault();
+
+		// Validate address for home delivery
+		if (deliveryOption === 'home') {
+			if (!homeAddress || homeAddress.trim() === '') {
+				alert('Please enter your delivery address.');
+				return;
+			}
+		}
+
 		if (!isValidPhone(prefix, phone)) {
 			alert('Please enter a valid Nigerian phone number.');
 			return;
 		}
-		amount = get(total);
+		amount = get(grandTotal);
 		let handler = PaystackPop.setup({
 			key: $paystackKey,
 			email: email,
@@ -224,7 +235,7 @@
 				}));
 				const orderData = {
 					reference: response.reference,
-					totalAmount: get(total),
+					totalAmount: get(grandTotal),
 					type: deliveryOption,
 					user: get(user).id,
 					dishes: orderedDishes,
@@ -234,7 +245,8 @@
 					formattedPhone,
 					tableNumber,
 					homeAddress,
-					pickupTime
+					pickupTime,
+					payOnDelivery: deliveryOption === 'home'
 				};
 				fetch('/api/save-order', {
 					method: 'POST',
@@ -549,18 +561,19 @@
 											>₦{$total.toLocaleString()}</span
 										>
 									</div>
-									<div class="flex justify-between text-sm">
-										<span class="text-base-content/70">Delivery Fee</span><span
-											class="text-success font-medium">Calculated next</span
-										>
-									</div>
+									{#if deliveryOption === 'home'}
+										<div class="flex justify-between text-sm">
+											<span class="text-base-content/70">Delivery Fee</span>
+											<span class="text-warning font-medium">Pay on delivery</span>
+										</div>
+									{/if}
 									<div class="border-base-300 mt-4 border-t-2 pt-4">
 										<div class="flex items-end justify-between">
 											<div>
 												<p class="text-sm font-semibold">Total Amount</p>
-												<p class="text-base-content/60 text-xs">Including all taxes</p>
+												<p class="text-base-content/60 text-xs">Pay on delivery for home orders</p>
 											</div>
-											<p class="text-primary text-3xl font-bold">₦{$total.toLocaleString()}</p>
+											<p class="text-primary text-3xl font-bold">₦{grandTotal.toLocaleString()}</p>
 										</div>
 									</div>
 									{#if $cart.length > 0}
@@ -756,11 +769,21 @@
 												>{@html iconPhone} Phone Number</label
 											>
 											<div class="flex gap-3">
-												<div
-													class="border-base-300 bg-base-200 text-base-content/70 flex w-24 items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 font-medium"
+												<select
+													bind:value={prefix}
+													class="border-base-300 bg-base-200 text-base-content/70 focus:border-primary cursor-pointer rounded-xl border-2 px-2 py-3 font-medium outline-none"
 												>
-													<span class="text-lg">🇳🇬</span><span>+234</span>
-												</div>
+													<option value="+234">🇳🇬 +234</option>
+													<option value="+233">🇬🇭 +233</option>
+													<option value="+229">🇧🇯 +229</option>
+													<option value="+228">🇹🇬 +228</option>
+													<option value="+227">🇳🇪 +227</option>
+													<option value="+235">🇹🇩 +235</option>
+													<option value="+237">🇨🇲 +237</option>
+													<option value="+241">🇬🇦 +241</option>
+													<option value="+244">🇦🇴 +244</option>
+													<option value="+231">🇱🇷 +231</option>
+												</select>
 												<div class="relative flex-1">
 													<input
 														type="tel"
@@ -773,7 +796,7 @@
 														<div
 															class="text-error absolute -bottom-6 left-0 flex items-center gap-1 text-xs"
 														>
-															{@html iconAlertCircle} Enter a valid Nigerian phone number
+															{@html iconAlertCircle} Enter a valid phone number
 														</div>
 													{/if}
 												</div>

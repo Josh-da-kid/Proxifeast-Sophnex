@@ -5,6 +5,19 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
+	build: {
+		target: 'esnext',
+		minify: 'terser',
+		terserOptions: {
+			compress: {
+				drop_console: true,
+				drop_debugger: true
+			}
+		}
+	},
+	optimizeDeps: {
+		include: ['pocketbase']
+	},
 	test: {
 		workspace: [
 			{

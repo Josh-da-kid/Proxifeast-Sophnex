@@ -8,6 +8,13 @@ const pb = new PocketBase('https://playgzero.pb.itcass.net/');
 export const POST: RequestHandler = async ({ request }) => {
 	const data = await request.json();
 
+	// Validate address for home delivery
+	if (data.type === 'home') {
+		if (!data.homeAddress || data.homeAddress.trim() === '') {
+			throw error(400, 'Home address is required for delivery');
+		}
+	}
+
 	try {
 		// Get restaurant by ID (passed from checkout)
 		const restaurant = await pb.collection('restaurants').getOne(data.restaurantId);
@@ -33,7 +40,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			})),
 			totalAmount: data.totalAmount,
 			foodTotal: data.foodTotal || data.totalAmount,
-			deliveryFee: data.deliveryFee || 0,
+			deliveryFee: 0, // Will be collected on delivery
+			payOnDelivery: data.payOnDelivery || false,
 			serviceFee: data.serviceFee || 0,
 			smallOrderFee: data.smallOrderFee || 0,
 			deliveryDistance: data.deliveryDistance || 0,

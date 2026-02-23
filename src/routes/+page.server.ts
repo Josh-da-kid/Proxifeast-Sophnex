@@ -10,44 +10,53 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 	try {
 		// Get current restaurant from domain
 		const host = request.headers.get('host') || '';
-		const domain = host.split(':')[0];
+		const domain = host.split(':')[0].replace('www.', '').toLowerCase();
 
 		let currentRestaurant = null;
 		try {
-			const restaurants = await locals.pb.collection('restaurants').getFullList({
-				filter: `domain="${domain}"`
-			});
-			currentRestaurant = restaurants?.[0] || null;
-		} catch (e) {
-			console.error('Could not find restaurant for domain:', domain);
+			currentRestaurant = await locals.pb
+				.collection('restaurants')
+				.getFirstListItem(`domain = "${domain}"`);
+		} catch {
+			// Try super restaurant as fallback
+			try {
+				currentRestaurant = await locals.pb
+					.collection('restaurants')
+					.getFirstListItem('isSuper = true');
+			} catch (e) {
+				console.error('Could not find restaurant for domain:', domain);
+			}
 		}
 
 		const isSuper = isSuperRestaurant(currentRestaurant);
 
-		// Fetch all restaurants (excluding ProxifeastLocal) - only for super restaurants
+		// Fetch restaurants - only what's needed
 		let allRestaurants: any[] = [];
 		if (isSuper) {
-			allRestaurants = await locals.pb.collection('restaurants').getFullList({
+			// Use getList with pagination for super restaurants
+			const result = await locals.pb.collection('restaurants').getList(1, 50, {
 				sort: 'name',
 				filter: 'name != "ProxifeastLocal"'
 			});
+			allRestaurants = result.items;
 		} else if (currentRestaurant) {
 			// Non-super restaurants only see themselves
 			allRestaurants = [currentRestaurant];
 		}
 
-		// Fetch featured dishes with restaurant access filter
+		// Fetch featured dishes - use pagination
 		const featuredFilter = buildRestaurantFilter(
 			currentRestaurant,
 			'isFeatured = true && availability = "Available"',
 			'restaurantId'
 		);
 
-		const featuredDishes = await locals.pb.collection('dishes').getFullList({
+		const featuredResult = await locals.pb.collection('dishes').getList(1, 20, {
 			filter: featuredFilter,
 			sort: '-created',
 			expand: 'restaurant'
 		});
+		const featuredDishes = featuredResult.items;
 
 		let filteredRestaurants = allRestaurants;
 		let selectedRestaurant = null;
@@ -61,16 +70,16 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 				const query = search.toLowerCase();
 				filteredRestaurants = allRestaurants.filter(
 					(r: any) =>
-						r.name.toLowerCase().includes(query) ||
+						r.name?.toLowerCase().includes(query) ||
 						r.restaurantAddress?.toLowerCase().includes(query)
 				);
 			} else if (searchType === 'dish') {
-				// Search dishes and find restaurants that serve them
-				const matchingDishes = await locals.pb.collection('dishes').getFullList({
+				// Search dishes with pagination
+				const dishResult = await locals.pb.collection('dishes').getList(1, 50, {
 					filter: `(name ~ "${search}" || description ~ "${search}") && availability = "Available"`,
 					fields: 'restaurantId'
 				});
-				const restaurantIds = [...new Set(matchingDishes.map((d: any) => d.restaurantId))];
+				const restaurantIds = [...new Set(dishResult.items.map((d: any) => d.restaurantId))];
 				filteredRestaurants = allRestaurants.filter((r: any) => restaurantIds.includes(r.id));
 			}
 		}
@@ -80,7 +89,7 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			selectedRestaurant = allRestaurants.find((r: any) => r.id === selectedRestaurantId) || null;
 
 			if (selectedRestaurant) {
-				// Fetch dishes for selected restaurant
+				// Fetch dishes for selected restaurant with pagination
 				const categoryFilter = url.searchParams.get('category')?.trim() ?? 'All';
 				let filter = `restaurantId = "${selectedRestaurantId}"`;
 
@@ -88,10 +97,11 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 					filter += ` && category = "${categoryFilter}"`;
 				}
 
-				dishes = await locals.pb.collection('dishes').getFullList({
+				const dishesResult = await locals.pb.collection('dishes').getList(1, 100, {
 					sort: '-created',
 					filter
 				});
+				dishes = dishesResult.items;
 
 				const categorySet = new Set(dishes.map((dish: any) => dish.category).filter(Boolean));
 				categories = Array.from(categorySet).sort();

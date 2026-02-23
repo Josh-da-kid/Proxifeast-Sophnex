@@ -3,7 +3,7 @@ import { isSuperRestaurant, hasRestaurantAccess } from '$lib/utils/restaurantAcc
 
 export const load: PageServerLoad = async ({ locals, request }) => {
 	const host = request.headers.get('host') || '';
-	const domain = host.split(':')[0];
+	const domain = host.split(':')[0].replace('www.', '').toLowerCase();
 
 	try {
 		const restaurant = await locals.pb
@@ -28,33 +28,35 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			today.getDate() + 1
 		).toISOString();
 
-		// Fetch today's revenue (Delivered orders)
-		const todayOrders = await locals.pb.collection('orders').getFullList({
+		// Fetch today's revenue with pagination
+		const todayOrdersResult = await locals.pb.collection('orders').getList(1, 100, {
 			filter: `${restaurantFilter}status = "Delivered" && created >= "${startOfDay}" && created < "${endOfDay}"`
 		});
+		const todayOrders = todayOrdersResult.items;
 
 		const todayRevenue = todayOrders.reduce(
 			(sum: number, order: any) => sum + (order.orderTotal || order.totalAmount || 0),
 			0
 		);
 
-		// Fetch pending orders count
-		const pendingOrders = await locals.pb.collection('orders').getFullList({
+		// Fetch pending orders with pagination
+		const pendingResult = await locals.pb.collection('orders').getList(1, 50, {
 			filter: `${restaurantFilter}(status = "Pending" || status = "Preparing" || status = "Ready")`
 		});
-		const pendingOrdersCount = pendingOrders.length;
+		const pendingOrdersCount = pendingResult.totalItems;
 
-		// Fetch completed orders (all time delivered)
-		const completedOrders = await locals.pb.collection('orders').getFullList({
+		// Fetch completed orders with pagination
+		const completedResult = await locals.pb.collection('orders').getList(1, 100, {
 			filter: `${restaurantFilter}status = "Delivered"`
 		});
-		const completedOrdersCount = completedOrders.length;
+		const completedOrdersCount = completedResult.totalItems;
 
 		// Get subscription stats for super restaurants
 		let subscriptionStats = null;
 		if (isSuper) {
 			try {
-				const subscriptions = await locals.pb.collection('subscriptions').getFullList();
+				const subsResult = await locals.pb.collection('subscriptions').getList(1, 100);
+				const subscriptions = subsResult.items;
 
 				const now = new Date();
 				const thirtyDaysFromNow = new Date();

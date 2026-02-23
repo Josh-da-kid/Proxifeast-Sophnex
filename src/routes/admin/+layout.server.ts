@@ -20,36 +20,32 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		}
 
 		const fullHost = request.headers.get('host') || '';
-		const domainOnly = fullHost.split(':')[0].replace('www.', '');
+		const domainOnly = fullHost.split(':')[0].replace('www.', '').toLowerCase();
 
-		// Find the restaurant by domain
+		// Find the restaurant by domain - use targeted query
 		let restaurant: any = null;
-		let restaurants: any[] = [];
 		try {
-			restaurants = await locals.pb.collection('restaurants').getFullList();
-
-			// First, try to find by exact domain match
-			restaurant = restaurants?.find((r: any) => {
-				const rDomain = (r.domain || '').replace('www.', '').toLowerCase();
-				const checkDomain = domainOnly.toLowerCase();
-				return rDomain === checkDomain;
-			});
-
-			// If not found, try partial match (subdomain support)
-			if (!restaurant) {
-				restaurant = restaurants?.find((r: any) => {
-					const rDomain = (r.domain || '').replace('www.', '').toLowerCase();
-					const checkDomain = domainOnly.toLowerCase();
-					return checkDomain.includes(rDomain) || rDomain.includes(checkDomain);
+			// Try exact match first
+			restaurant = await locals.pb
+				.collection('restaurants')
+				.getFirstListItem(`domain = "${domainOnly}"`);
+		} catch {
+			// Try partial match
+			try {
+				const results = await locals.pb.collection('restaurants').getList(1, 5, {
+					filter: `domain ~ "${domainOnly}"`
 				});
-			}
-		} catch (err) {
-			console.error('Error fetching restaurant:', err);
-		}
+				if (results.items.length > 0) {
+					restaurant = results.items[0];
+				}
+			} catch {}
 
-		// If still not found, try to find any super restaurant as fallback
-		if (!restaurant && restaurants.length > 0) {
-			restaurant = restaurants.find((r: any) => r.isSuper === true);
+			// Fallback to super restaurant
+			if (!restaurant) {
+				try {
+					restaurant = await locals.pb.collection('restaurants').getFirstListItem('isSuper = true');
+				} catch {}
+			}
 		}
 
 		if (!restaurant) {

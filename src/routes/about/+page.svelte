@@ -245,72 +245,524 @@
 				</div>
 			</article>
 
-			<!-- Features Grid -->
-			<div class="mb-12 grid gap-6 md:grid-cols-2">
-				{#each [{ icon: 'qr', title: 'QR Code Menus', desc: 'Contactless menu access for safe and convenient dining' }, { icon: 'online', title: 'Online Ordering', desc: 'Easy ordering directly from your smartphone' }, { icon: 'payment', title: 'Digital Payments', desc: 'Secure online payments through Paystack' }, { icon: 'realtime', title: 'Real-time Orders', desc: 'Instant order notifications for restaurants' }] as feature, i}
-					<article
-						class="rounded-2xl bg-white p-6 shadow-md transition-all hover:-translate-y-1 hover:shadow-lg"
-						in:fly={{ y: 30, duration: 400, delay: 600 + i * 100 }}
+			<!-- WHAT YOU GET Section -->
+			<article
+				class="mb-12 rounded-2xl bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 p-8 text-white shadow-2xl md:p-12"
+				in:fly={{ y: 30, duration: 600, delay: 550 }}
+			>
+				<div class="mb-10 text-center">
+					<div class="mb-4 flex items-center justify-center gap-3">
+						<div class="h-px w-12 bg-amber-500"></div>
+						<h2 class="font-playfair text-3xl font-semibold">What You Get as a Restaurant</h2>
+						<div class="h-px w-12 bg-amber-500"></div>
+					</div>
+					<p class="text-slate-300">Everything you need to modernize your restaurant</p>
+				</div>
+
+				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+					<!-- Feature 1: QR Code for Each Table -->
+					<div
+						class="group relative overflow-hidden rounded-2xl bg-white/10 p-6 backdrop-blur-sm transition-all hover:bg-white/20"
 					>
-						<div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100">
-							{#if feature.icon === 'qr'}
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									class="h-6 w-6 text-slate-600"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-								>
-									<rect x="3" y="3" width="7" height="7" />
-									<rect x="14" y="3" width="7" height="7" />
-									<rect x="3" y="14" width="7" height="7" />
-									<path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 17v3M17 14h3" />
-								</svg>
-							{:else if feature.icon === 'online'}
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									class="h-6 w-6 text-slate-600"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-								>
-									<rect x="2" y="3" width="20" height="14" rx="2" />
-									<line x1="8" x2="16" y1="21" y2="21" />
-									<line x1="12" x2="12" y1="17" y2="21" />
-								</svg>
-							{:else if feature.icon === 'payment'}
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									class="h-6 w-6 text-slate-600"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-								>
-									<rect x="1" y="4" width="22" height="16" rx="2" />
-									<line x1="1" x2="23" y1="10" y2="10" />
-								</svg>
-							{:else}
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									class="h-6 w-6 text-slate-600"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-								>
-									<circle cx="12" cy="12" r="10" />
-									<polyline points="12 6 12 12 16 14" />
-								</svg>
-							{/if}
+						<div
+							class="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-amber-500 shadow-lg"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-7 w-7 text-white"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<rect x="3" y="3" width="7" height="7" />
+								<rect x="14" y="3" width="7" height="7" />
+								<rect x="3" y="14" width="7" height="7" />
+								<path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 17v3M17 14h3" />
+							</svg>
 						</div>
-						<h3 class="font-playfair mb-2 text-lg font-semibold text-slate-900">{feature.title}</h3>
-						<p class="text-sm text-slate-600">{feature.desc}</p>
-					</article>
-				{/each}
-			</div>
+						<h3 class="font-playfair mb-2 text-xl font-semibold">QR Code Per Table</h3>
+						<p class="text-sm leading-relaxed text-slate-300">
+							Each table gets its own unique QR code. Customers simply scan to access your
+							personalized menu and order instantly—no app download required.
+						</p>
+					</div>
+
+					<!-- Feature 2: Custom Digital Menu -->
+					<div
+						class="group relative overflow-hidden rounded-2xl bg-white/10 p-6 backdrop-blur-sm transition-all hover:bg-white/20"
+					>
+						<div
+							class="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-amber-500 shadow-lg"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-7 w-7 text-white"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<rect x="2" y="3" width="20" height="14" rx="2" />
+								<line x1="8" y1="21" x2="16" y2="21" />
+								<line x1="12" y1="17" x2="12" y2="21" />
+							</svg>
+						</div>
+						<h3 class="font-playfair mb-2 text-xl font-semibold">Custom Digital Menu</h3>
+						<p class="text-sm leading-relaxed text-slate-300">
+							Get your own branded website with your restaurant name, logo, colors, and custom
+							domain. Make a lasting impression on every customer.
+						</p>
+					</div>
+
+					<!-- Feature 3: Real-time Order Management -->
+					<div
+						class="group relative overflow-hidden rounded-2xl bg-white/10 p-6 backdrop-blur-sm transition-all hover:bg-white/20"
+					>
+						<div
+							class="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-amber-500 shadow-lg"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-7 w-7 text-white"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<circle cx="12" cy="12" r="10" />
+								<polyline points="12 6 12 12 16 14" />
+							</svg>
+						</div>
+						<h3 class="font-playfair mb-2 text-xl font-semibold">Real-time Orders</h3>
+						<p class="text-sm leading-relaxed text-slate-300">
+							Receive orders instantly as they come in. Track order status in real-time and reduce
+							waiting times significantly.
+						</p>
+					</div>
+
+					<!-- Feature 4: Analytics Dashboard -->
+					<div
+						class="group relative overflow-hidden rounded-2xl bg-white/10 p-6 backdrop-blur-sm transition-all hover:bg-white/20"
+					>
+						<div
+							class="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-amber-500 shadow-lg"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-7 w-7 text-white"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<line x1="18" y1="20" x2="18" y2="10" />
+								<line x1="12" y1="20" x2="12" y2="4" />
+								<line x1="6" y1="20" x2="6" y2="14" />
+							</svg>
+						</div>
+						<h3 class="font-playfair mb-2 text-xl font-semibold">Analytics & Insights</h3>
+						<p class="text-sm leading-relaxed text-slate-300">
+							Understand your customers better with detailed analytics. Track popular dishes, peak
+							hours, revenue trends, and more.
+						</p>
+					</div>
+
+					<!-- Feature 5: Digital Payments -->
+					<div
+						class="group relative overflow-hidden rounded-2xl bg-white/10 p-6 backdrop-blur-sm transition-all hover:bg-white/20"
+					>
+						<div
+							class="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-amber-500 shadow-lg"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-7 w-7 text-white"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<rect x="1" y="4" width="22" height="16" rx="2" />
+								<line x1="1" y1="10" x2="23" y2="10" />
+							</svg>
+						</div>
+						<h3 class="font-playfair mb-2 text-xl font-semibold">Digital Payments</h3>
+						<p class="text-sm leading-relaxed text-slate-300">
+							Accept secure online payments through Paystack. Multiple payment options including
+							card, USSD, and mobile money.
+						</p>
+					</div>
+
+					<!-- Feature 6: Reservations -->
+					<div
+						class="group relative overflow-hidden rounded-2xl bg-white/10 p-6 backdrop-blur-sm transition-all hover:bg-white/20"
+					>
+						<div
+							class="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-amber-500 shadow-lg"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-7 w-7 text-white"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path d="M8 2v4" />
+								<path d="M16 2v4" />
+								<rect width="18" height="18" x="3" y="4" rx="2" />
+								<path d="M3 10h18" />
+							</svg>
+						</div>
+						<h3 class="font-playfair mb-2 text-xl font-semibold">Table Reservations</h3>
+						<p class="text-sm leading-relaxed text-slate-300">
+							Let customers book tables directly from their phones. Manage reservations
+							-effortlessly and maximize your seating capacity.
+						</p>
+					</div>
+				</div>
+			</article>
+
+			<!-- Why Proxifeast Section -->
+			<article
+				class="mb-12 rounded-2xl bg-white p-8 shadow-lg md:p-12"
+				in:fly={{ y: 30, duration: 600, delay: 650 }}
+			>
+				<div class="mb-10 text-center">
+					<div class="mb-4 flex items-center justify-center gap-3">
+						<div class="h-px w-12 bg-amber-500"></div>
+						<h2 class="font-playfair text-3xl font-semibold text-slate-900">
+							Why Choose Proxifeast?
+						</h2>
+						<div class="h-px w-12 bg-amber-500"></div>
+					</div>
+					<p class="text-slate-500">The smarter choice for modern restaurants</p>
+				</div>
+
+				<!-- Comparison: Traditional vs Proxifeast -->
+				<div class="mb-10">
+					<h3 class="font-playfair mb-6 text-xl font-semibold text-slate-900">
+						vs. Traditional Paper Menus
+					</h3>
+					<div class="grid gap-4 md:grid-cols-2">
+						<div class="rounded-xl bg-slate-100 p-5">
+							<h4 class="mb-3 font-semibold text-slate-500">Traditional Paper Menu</h4>
+							<ul class="space-y-2 text-sm text-slate-600">
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M6 18L18 6M6 6l12 12"
+										/></svg
+									>
+									Requires printing & regular updates
+								</li>
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M6 18L18 6M6 6l12 12"
+										/></svg
+									>
+									No real-time availability tracking
+								</li>
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M6 18L18 6M6 6l12 12"
+										/></svg
+									>
+									Hard to track popular dishes
+								</li>
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M6 18L18 6M6 6l12 12"
+										/></svg
+									>
+									No customer data collection
+								</li>
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M6 18L18 6M6 6l12 12"
+										/></svg
+									>
+									Physical contact required (post-COVID risk)
+								</li>
+							</ul>
+						</div>
+						<div class="rounded-xl bg-amber-50 p-5 ring-2 ring-amber-500">
+							<h4 class="mb-3 font-semibold text-amber-700">Proxifeast</h4>
+							<ul class="space-y-2 text-sm text-slate-700">
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										/></svg
+									>
+									Update menu instantly from dashboard
+								</li>
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										/></svg
+									>
+									Real-time dish availability updates
+								</li>
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										/></svg
+									>
+									Comprehensive analytics dashboard
+								</li>
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										/></svg
+									>
+									Build your customer database
+								</li>
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										/></svg
+									>
+									100% contactless - scan & order
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+
+				<!-- Comparison: Orderrave vs Proxifeast -->
+				<div>
+					<h3 class="font-playfair mb-6 text-xl font-semibold text-slate-900">
+						vs. Orderrave & Other Competitors
+					</h3>
+					<div class="grid gap-4 md:grid-cols-2">
+						<div class="rounded-xl bg-slate-100 p-5">
+							<h4 class="mb-3 font-semibold text-slate-500">Orderrave & Others</h4>
+							<ul class="space-y-2 text-sm text-slate-600">
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M6 18L18 6M6 6l12 12"
+										/></svg
+									>
+									Generic platform - no brand control
+								</li>
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M6 18L18 6M6 6l12 12"
+										/></svg
+									>
+									Limited customization options
+								</li>
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M6 18L18 6M6 6l12 12"
+										/></svg
+									>
+									High transaction fees
+								</li>
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M6 18L18 6M6 6l12 12"
+										/></svg
+									>
+									No reservation system
+								</li>
+							</ul>
+						</div>
+						<div class="rounded-xl bg-amber-50 p-5 ring-2 ring-amber-500">
+							<h4 class="mb-3 font-semibold text-amber-700">Proxifeast</h4>
+							<ul class="space-y-2 text-sm text-slate-700">
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										/></svg
+									>
+									Your own branded website & domain
+								</li>
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										/></svg
+									>
+									Full customization - colors, logo, layout
+								</li>
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										/></svg
+									>
+									Competitive pricing - no hidden fees
+								</li>
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										/></svg
+									>
+									Unique QR code per table
+								</li>
+								<li class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										/></svg
+									>
+									Built-in table reservation system
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</article>
 
 			<!-- CTA -->
 			<article

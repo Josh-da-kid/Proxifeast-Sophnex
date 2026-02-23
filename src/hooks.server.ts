@@ -28,5 +28,18 @@ export async function handle({ event, resolve }) {
 	// send updated cookie back
 	response.headers.append('set-cookie', event.locals.pb.authStore.exportToCookie());
 
+	// Add cache headers for static assets
+	const url = event.request.url;
+	const isStaticFile =
+		url.includes('/fonts/') || url.includes('/icons/') || url.includes('/favicon');
+
+	if (isStaticFile) {
+		// Cache static assets for 1 year
+		response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+	} else if (!url.includes('/api/')) {
+		// Cache public pages for 5 minutes
+		response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300');
+	}
+
 	return response;
 }

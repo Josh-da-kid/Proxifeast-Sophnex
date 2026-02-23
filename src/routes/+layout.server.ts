@@ -8,27 +8,29 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 
 		// Get domain from request
 		const fullHost = request.headers.get('host') || '';
-		const domainOnly = fullHost.split(':')[0].replace('www.', '');
+		const domainOnly = fullHost.split(':')[0].replace('www.', '').toLowerCase();
 
-		// Find restaurant by domain - use getFullList for reliability
-		const allRestaurants = await pb.collection('restaurants').getFullList();
-		let restaurant = allRestaurants.find((r: any) => {
-			const rDomain = (r.domain || '').replace('www.', '');
-			return rDomain === domainOnly || domainOnly.includes(rDomain) || rDomain.includes(domainOnly);
-		});
+		// Find restaurant by domain - use targeted query instead of getFullList
+		let restaurant = null;
+		try {
+			restaurant = await pb.collection('restaurants').getFirstListItem(`domain ~ "${domainOnly}"`);
+		} catch {
+			// Try partial match if exact match fails
+			try {
+				const results = await pb.collection('restaurants').getList(1, 5, {
+					filter: `domain ~ "${domainOnly}"`
+				});
+				if (results.items.length > 0) {
+					restaurant = results.items[0];
+				}
+			} catch {}
+		}
 
-		// If not found by domain, check if this is a super restaurant domain
+		// If not found, try super restaurant
 		if (!restaurant) {
-			const superRest = allRestaurants.find((r: any) => {
-				const rDomain = (r.domain || '').replace('www.', '');
-				return (
-					r.isSuper === true &&
-					(rDomain === domainOnly || domainOnly.includes(rDomain) || rDomain.includes(domainOnly))
-				);
-			});
-			if (superRest) {
-				restaurant = superRest;
-			}
+			try {
+				restaurant = await pb.collection('restaurants').getFirstListItem('isSuper = true');
+			} catch {}
 		}
 
 		if (!restaurant) {
@@ -42,8 +44,14 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 		// Check if super restaurant
 		const isSuper = !!restaurant?.isSuper;
 
-		// Filter allRestaurants for non-super restaurants (for dropdowns)
-		const filteredRestaurants = allRestaurants.filter((r: any) => r.isSuper !== true);
+		// Only fetch all restaurants if needed for dropdowns (for super users)
+		let filteredRestaurants: any[] = [];
+		let allRestaurants: any[] = [];
+
+		if (isSuper) {
+			allRestaurants = await pb.collection('restaurants').getFullList();
+			filteredRestaurants = allRestaurants.filter((r: any) => r.isSuper !== true);
+		}
 
 		// Check if user is admin for this specific restaurant
 		const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
@@ -69,12 +77,14 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 			isAdminForRestaurant
 		};
 	} catch (err) {
+		// Don't redirect to not-found here - let the page handle it
 		console.error('Layout server error:', err);
 		// Return minimal data on error to prevent 500
 		return {
 			user: locals.user ?? null,
 			restaurant: null,
 			allRestaurants: [],
+			allRestaurantsIncludingSuper: [],
 			isSuper: false,
 			isSuperUser: false,
 			restaurantId: null,
