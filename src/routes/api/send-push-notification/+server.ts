@@ -5,7 +5,6 @@ import webpush from 'web-push';
 const pb = new PocketBase('https://playgzero.pb.itcass.net/');
 
 // Set VAPID details
-// In production, use process.env, in dev use import.meta.env
 const getEnvVar = (name: string): string => {
 	if (typeof process !== 'undefined' && process.env[name]) {
 		return process.env[name] as string;
@@ -21,6 +20,11 @@ const VAPID_PRIVATE_KEY =
 	getEnvVar('VAPID_PRIVATE_KEY') || getEnvVar('VITE_VAPID_PRIVATE_KEY') || '';
 const VAPID_SUBJECT =
 	getEnvVar('VAPID_SUBJECT') || getEnvVar('VITE_VAPID_SUBJECT') || 'mailto:admin@proxifeast.com';
+
+console.log('[Push API] VAPID configured:', {
+	publicKey: VAPID_PUBLIC_KEY ? 'set' : 'missing',
+	privateKey: VAPID_PRIVATE_KEY ? 'set' : 'missing'
+});
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 	webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
@@ -38,6 +42,8 @@ export async function POST({ request }: { request: Request }) {
 	try {
 		const { userId, title, body, data, tag } = await request.json();
 
+		console.log('[Push API] Sending notification to user:', userId, 'Title:', title);
+
 		if (!userId || !title || !body) {
 			return json({ success: false, error: 'Missing required fields' }, { status: 400 });
 		}
@@ -47,11 +53,14 @@ export async function POST({ request }: { request: Request }) {
 			filter: `user="${userId}"`
 		});
 
+		console.log('[Push API] Found subscriptions:', subscriptions.length);
+
 		if (subscriptions.length === 0) {
-			return json(
-				{ success: false, error: 'No push subscriptions found for user' },
-				{ status: 404 }
-			);
+			console.log('[Push API] No subscriptions found for user:', userId);
+			return json({
+				success: true,
+				message: 'No subscriptions found (user may not have enabled notifications)'
+			});
 		}
 
 		const payload = JSON.stringify({
@@ -80,13 +89,15 @@ export async function POST({ request }: { request: Request }) {
 
 				await webpush.sendNotification(pushSubscription, payload);
 				results.push({ endpoint: sub.endpoint, status: 'sent' });
+				console.log('[Push API] Notification sent to:', sub.endpoint);
 			} catch (error: any) {
-				console.error('Push notification error:', error);
+				console.error('[Push API] Push error:', error.message);
 				errors.push({ endpoint: sub.endpoint, error: error.message });
 
 				// If subscription is expired or invalid, delete it
 				if (error.statusCode === 404 || error.statusCode === 410) {
 					await pb.collection('push_subscriptions').delete(sub.id);
+					console.log('[Push API] Deleted expired subscription:', sub.id);
 				}
 			}
 		}
@@ -98,7 +109,7 @@ export async function POST({ request }: { request: Request }) {
 			errors: errors.length > 0 ? errors : undefined
 		});
 	} catch (error: any) {
-		console.error('Send notification error:', error);
+		console.error('[Push API] Send notification error:', error);
 		return json({ success: false, error: error.message }, { status: 500 });
 	}
 }

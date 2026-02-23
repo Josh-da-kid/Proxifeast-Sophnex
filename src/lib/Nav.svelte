@@ -411,7 +411,23 @@
 									<form method="dialog">
 										<button class="btn">Cancel</button>
 									</form>
-									<form action="/admin/admin-logout" method="POST">
+									<form
+										action="/admin/admin-logout"
+										method="POST"
+										onsubmit={async () => {
+											if ('serviceWorker' in navigator) {
+												try {
+													const registration = await navigator.serviceWorker.getRegistration();
+													if (registration) {
+														await registration.unregister();
+													}
+												} catch (e) {
+													console.log('SW unregister error:', e);
+												}
+											}
+											localStorage.clear();
+										}}
+									>
 										<button class="btn btn-error">Logout</button>
 									</form>
 								</div>
@@ -739,7 +755,25 @@
 									<form method="dialog">
 										<button class="btn">Cancel</button>
 									</form>
-									<form action="/logout" method="POST">
+									<form
+										action="/logout"
+										method="POST"
+										onsubmit={async () => {
+											// Clear service worker cache on logout
+											if ('serviceWorker' in navigator) {
+												try {
+													const registration = await navigator.serviceWorker.getRegistration();
+													if (registration) {
+														await registration.unregister();
+													}
+												} catch (e) {
+													console.log('SW unregister error:', e);
+												}
+											}
+											// Clear localStorage
+											localStorage.clear();
+										}}
+									>
 										<button class="btn btn-error">Logout</button>
 									</form>
 								</div>

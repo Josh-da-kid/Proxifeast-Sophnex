@@ -7,15 +7,16 @@ const sw = self as unknown as ServiceWorkerGlobalScope;
 
 const CACHE = `cache-${process.env.npm_package_version || Date.now().toString()}`;
 
-// Install event - cache all static assets
+// Routes that should never be cached
+const NO_CACHE_ROUTES = ['/logout', '/admin-logout', '/api/', '/login', '/admin-login'];
+
+function shouldSkipCache(url: URL): boolean {
+	return NO_CACHE_ROUTES.some((route) => url.pathname.includes(route));
+}
+
+// Install event
 sw.addEventListener('install', (event) => {
-	event.waitUntil(
-		sw.skipWaiting().then(() => {
-			return caches.open(CACHE).then((cache) => {
-				return cache.addAll(['/', '/manifest.json']).catch(() => {});
-			});
-		})
-	);
+	event.waitUntil(sw.skipWaiting());
 });
 
 // Activate event - remove old caches
@@ -32,11 +33,30 @@ sw.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache, fallback to network
 sw.addEventListener('fetch', (event) => {
+	const url = new URL(event.request.url);
+
+	// Skip non-GET requests
 	if (event.request.method !== 'GET') return;
+
+	// Never cache certain routes
+	if (shouldSkipCache(url)) {
+		event.respondWith(fetch(event.request));
+		return;
+	}
 
 	event.respondWith(
 		caches.match(event.request).then((cached) => {
-			if (cached) return cached;
+			if (cached) {
+				fetch(event.request)
+					.then((response) => {
+						if (response.ok) {
+							const clone = response.clone();
+							caches.open(CACHE).then((cache) => cache.put(event.request, clone));
+						}
+					})
+					.catch(() => {});
+				return cached;
+			}
 
 			return fetch(event.request)
 				.then((response) => {
@@ -46,7 +66,15 @@ sw.addEventListener('fetch', (event) => {
 					}
 					return response;
 				})
-				.catch(() => new Response('Offline', { status: 503 }));
+				.catch(() => {
+					if (event.request.mode === 'navigate') {
+						return new Response('Offline', {
+							status: 503,
+							headers: { 'Content-Type': 'text/html' }
+						});
+					}
+					return new Response('Offline', { status: 503 });
+				});
 		})
 	);
 });
@@ -71,5 +99,25 @@ sw.addEventListener('push', (event) => {
 sw.addEventListener('notificationclick', (event) => {
 	event.notification.close();
 	const data = event.notification.data || {};
-	event.waitUntil(sw.clients.openWindow(data.url || '/'));
+	const url = data.url || '/';
+
+	event.waitUntil(
+		sw.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+			for (const client of clientList) {
+				if (client.url.includes(sw.location.origin) && 'focus' in client) {
+					return client.focus();
+				}
+			}
+			return sw.clients.openWindow(url);
+		})
+	);
+});
+
+// Clear cache on message
+sw.addEventListener('message', (event) => {
+	if (event.data?.type === 'CLEAR_CACHE') {
+		caches.keys().then((keys) => {
+			Promise.all(keys.map((key) => caches.delete(key)));
+		});
+	}
 });
