@@ -54,11 +54,10 @@
 
 			// Check if user is logged in and should be prompted for notifications
 			const user = data.user;
-			const isStandalone =
-				window.matchMedia('(display-mode: standalone)').matches ||
-				(window.navigator as any).standalone === true;
 
-			if (user?.id && isStandalone) {
+			// Show notification prompt for ALL logged-in users (not just standalone)
+			// This ensures notifications work for both PWA and web users
+			if (user?.id) {
 				const alreadyPrompted = localStorage.getItem('notificationPrompted');
 				if (!alreadyPrompted) {
 					// Check if notifications are not yet granted

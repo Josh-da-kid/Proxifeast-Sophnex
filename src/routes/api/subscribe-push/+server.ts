@@ -5,7 +5,17 @@ const pb = new PocketBase('https://playgzero.pb.itcass.net/');
 
 export async function POST({ request }: { request: Request }) {
 	try {
-		const { userId, subscription } = await request.json();
+		const data = await request.json();
+
+		// Support both nested and flat formats
+		const userId = data.userId;
+		const subscription = data.subscription || {
+			endpoint: data.endpoint,
+			keys: {
+				p256dh: data.p256dh,
+				auth: data.auth
+			}
+		};
 
 		if (!userId || !subscription) {
 			return json({ success: false, error: 'Missing userId or subscription' }, { status: 400 });
@@ -20,8 +30,8 @@ export async function POST({ request }: { request: Request }) {
 			// Update existing subscription
 			await pb.collection('push_subscriptions').update(existing[0].id, {
 				endpoint: subscription.endpoint,
-				p256dh: subscription.keys.p256dh,
-				auth: subscription.keys.auth,
+				p256dh: subscription.keys?.p256dh || data.p256dh,
+				auth: subscription.keys?.auth || data.auth,
 				updated: new Date().toISOString()
 			});
 		} else {
@@ -29,8 +39,8 @@ export async function POST({ request }: { request: Request }) {
 			await pb.collection('push_subscriptions').create({
 				user: userId,
 				endpoint: subscription.endpoint,
-				p256dh: subscription.keys.p256dh,
-				auth: subscription.keys.auth,
+				p256dh: subscription.keys?.p256dh || data.p256dh,
+				auth: subscription.keys?.auth || data.auth,
 				created: new Date().toISOString()
 			});
 		}

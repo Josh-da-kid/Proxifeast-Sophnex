@@ -67,7 +67,7 @@
 					linkEmail = result.email || email;
 					showLinkModal = true;
 				} else {
-					error = result.message || 'Login failed.';
+					error = result.message || 'Login failed. Please check your credentials and try again.';
 				}
 			} else {
 				success = result.message || 'Login successful!';
@@ -75,7 +75,7 @@
 			}
 		} catch (err) {
 			console.error('Fetch failed:', err);
-			error = 'Failed to connect to server.';
+			error = 'Connection failed. Please check your internet connection and try again.';
 		}
 		isLoading = false;
 	}
