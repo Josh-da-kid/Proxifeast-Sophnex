@@ -4,6 +4,9 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+	server: {
+		allowedHosts: ['8cc1-2605-59c1-1966-2e10-fa65-5e4d-c498-37cc.ngrok-free.app']
+	},
 	plugins: [tailwindcss(), sveltekit()],
 	build: {
 		target: 'esnext',
