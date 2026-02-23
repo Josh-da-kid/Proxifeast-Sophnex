@@ -83,12 +83,8 @@ sw.addEventListener('push', (event) => {
 	const data = event.data?.json() ?? {};
 	const title = data.title || 'Proxifeast';
 
-	// Build the URL - make it absolute if relative
-	let redirectUrl = data.data?.url || '/';
-	if (redirectUrl && !redirectUrl.startsWith('http')) {
-		// Get the origin from the client's location
-		redirectUrl = redirectUrl; // Let the client handle this
-	}
+	// Get the redirect URL from data
+	const redirectUrl = data.data?.url || '/';
 
 	const options = {
 		body: data.body || 'You have a new notification',
@@ -113,25 +109,48 @@ sw.addEventListener('notificationclick', (event) => {
 
 	// Get the URL from notification data
 	const notificationData = event.notification.data || {};
-	const url = notificationData.url || '/';
+	let url = notificationData.url || '/';
+
+	// Make URL absolute if it's relative
+	if (!url.startsWith('http')) {
+		// Use the service worker's location to construct the full URL
+		const origin = self.location.origin;
+		url = `${origin}${url.startsWith('/') ? '' : '/'}${url}`;
+	}
+
+	console.log('Notification click - navigating to:', url);
 
 	event.waitUntil(
-		sw.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-			// If there's already a window/tab open, focus it
-			for (const client of clientList) {
-				if (client.url.includes(self.location.origin) && 'focus' in client) {
-					// Navigate to the specific URL
-					if (client.url !== url && 'navigate' in client) {
-						return client.navigate(url);
+		sw.clients
+			.matchAll({ type: 'window', includeUncontrolled: true })
+			.then((clientList) => {
+				// If there's already a window/tab open, try to focus and navigate
+				for (const client of clientList) {
+					// Skip clients that aren't from our origin
+					if (!client.url.includes(self.location.origin)) continue;
+
+					// Focus the client
+					if ('focus' in client) {
+						// Try to navigate if the URL is different
+						if ('navigate' in client && client.url !== url) {
+							return client.navigate(url);
+						}
+						return client.focus();
 					}
-					return client.focus();
 				}
-			}
-			// Otherwise open a new window
-			if (sw.clients.openWindow) {
-				return sw.clients.openWindow(url);
-			}
-		})
+
+				// No existing client found - open a new window
+				if (sw.clients.openWindow) {
+					return sw.clients.openWindow(url);
+				}
+			})
+			.catch((err) => {
+				console.error('Error handling notification click:', err);
+				// Fallback: try to open directly
+				if (sw.clients.openWindow) {
+					sw.clients.openWindow(url);
+				}
+			})
 	);
 });
 

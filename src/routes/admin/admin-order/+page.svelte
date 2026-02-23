@@ -153,7 +153,9 @@
 			};
 
 			// Determine redirect URL based on status
-			const redirectUrl = ['Delivered', 'Cancelled'].includes(newStatus) ? '/history' : '/pending';
+			const redirectUrl = ['Delivered', 'Cancelled'].includes(newStatus)
+				? `/history?orderId=${updatedOrder.id}&status=${newStatus}`
+				: `/pending?orderId=${updatedOrder.id}&status=${newStatus}`;
 
 			await fetch('/api/send-push-notification', {
 				method: 'POST',
