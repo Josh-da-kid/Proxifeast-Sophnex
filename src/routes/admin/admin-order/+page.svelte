@@ -16,7 +16,7 @@
 	let filteredOrders: any = $state([]);
 	let loading = $state(true);
 	const restaurantName = get(page).data.restaurant?.name;
-	const allRestaurants = get(page).data.allRestaurants ?? [];
+	const allRestaurants = get(page).data.allRestaurantsIncludingSuper ?? [];
 	const currentRestaurantId = get(page).data.restaurantId;
 	const isSuper = get(page).data.isSuper ?? false;
 

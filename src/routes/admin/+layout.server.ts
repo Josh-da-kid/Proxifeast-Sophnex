@@ -97,6 +97,12 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 
 		// For super restaurants, skip all subscription checks
 		if (locals.isSuper) {
+			// Fetch all restaurants including super for dropdown
+			let allRestaurantsIncludingSuper: any[] = [];
+			try {
+				allRestaurantsIncludingSuper = await locals.pb.collection('restaurants').getFullList();
+			} catch {}
+
 			return {
 				user: locals.user,
 				restaurant,
@@ -105,7 +111,8 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 				isAdminForRestaurant,
 				restaurantId: restaurant?.id,
 				subscription: null,
-				subscriptionStatus: 'active'
+				subscriptionStatus: 'active',
+				allRestaurantsIncludingSuper
 			};
 		}
 
