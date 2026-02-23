@@ -54,7 +54,11 @@
 
 			// Check if user is logged in and should be prompted for notifications
 			const user = data.user;
-			if (user?.id) {
+			const isStandalone =
+				window.matchMedia('(display-mode: standalone)').matches ||
+				(window.navigator as any).standalone === true;
+
+			if (user?.id && isStandalone) {
 				const alreadyPrompted = localStorage.getItem('notificationPrompted');
 				if (!alreadyPrompted) {
 					// Check if notifications are not yet granted
@@ -142,6 +146,50 @@
 	/>
 	<link rel="icon" href="/favicon.png" type="image/png" />
 </svelte:head>
+
+{#if showNotificationPrompt}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+		<div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
+			<div class="mb-4 flex justify-center">
+				<div class="rounded-full bg-blue-100 p-4">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="h-10 w-10 text-blue-600"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+						/>
+					</svg>
+				</div>
+			</div>
+			<h3 class="mb-2 text-xl font-bold text-gray-900">Stay Updated!</h3>
+			<p class="mb-6 text-gray-600">
+				Get notified when your order status changes. Never miss an update!
+			</p>
+			<div class="flex flex-col gap-3">
+				<button
+					onclick={enableNotifications}
+					disabled={isEnablingNotifications}
+					class="w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 font-semibold text-white transition-all hover:from-blue-700 hover:to-blue-800 disabled:opacity-50"
+				>
+					{isEnablingNotifications ? 'Enabling...' : 'Enable Notifications'}
+				</button>
+				<button
+					onclick={dismissNotificationPrompt}
+					class="w-full rounded-xl border border-gray-300 px-4 py-3 font-semibold text-gray-700 transition-all hover:bg-gray-50"
+				>
+					Maybe Later
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 {#if loading}
 	<div class="bg-opacity-70 fixed inset-0 z-50 flex items-center justify-center bg-white">
