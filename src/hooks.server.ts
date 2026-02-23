@@ -32,10 +32,17 @@ export async function handle({ event, resolve }) {
 	const url = event.request.url;
 	const isStaticFile =
 		url.includes('/fonts/') || url.includes('/icons/') || url.includes('/favicon');
+	const isLogoutRoute = url.includes('/logout') || url.includes('/admin-logout');
+	const isAuthenticatedPage = event.locals.user !== null;
 
 	if (isStaticFile) {
 		// Cache static assets for 1 year
 		response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+	} else if (isLogoutRoute || isAuthenticatedPage) {
+		// Don't cache logout routes or authenticated pages
+		response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+		response.headers.set('Pragma', 'no-cache');
+		response.headers.set('Expires', '0');
 	} else if (!url.includes('/api/')) {
 		// Cache public pages for 5 minutes
 		response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300');
