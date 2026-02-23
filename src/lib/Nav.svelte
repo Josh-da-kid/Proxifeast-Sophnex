@@ -17,6 +17,14 @@
 
 	let isMenuOpen = $state(false);
 
+	function handleLogout(e: Event) {
+		e.preventDefault();
+		localStorage.clear();
+		sessionStorage.clear();
+		const form = e.target as HTMLFormElement;
+		form.submit();
+	}
+
 	let previousScrollY = 0;
 	let showHeader = $state(true);
 
@@ -411,7 +419,7 @@
 									<form method="dialog">
 										<button class="btn">Cancel</button>
 									</form>
-									<form action="/admin/admin-logout" method="POST">
+									<form action="/admin/admin-logout" method="POST" onsubmit={handleLogout}>
 										<button class="btn btn-error">Logout</button>
 									</form>
 								</div>
@@ -739,7 +747,7 @@
 									<form method="dialog">
 										<button class="btn">Cancel</button>
 									</form>
-									<form action="/logout" method="POST">
+									<form action="/logout" method="POST" onsubmit={handleLogout}>
 										<button class="btn btn-error">Logout</button>
 									</form>
 								</div>
