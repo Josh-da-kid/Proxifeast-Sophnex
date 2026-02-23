@@ -61,6 +61,8 @@
 	let cartErrorAlert = $state(false);
 	let locationMismatchAlert = $state(false);
 	let locationMismatchMessage = $state('');
+	let isAddingToCart = $state(false);
+	let lastAddedDishId = $state('');
 
 	// Dish favorites state (for super restaurants)
 	let dishFavorites = $state<string[]>([]);
@@ -331,6 +333,46 @@
 	// Cart functionality
 	export const cart = writable<any[]>([]);
 
+	// Optimistically add item to cart for instant UI update
+	function addToCartOptimistic(dish: any, quantity: number, restaurantId: string, restaurantName: string) {
+		const unitPrice = dish.promoAmount || dish.defaultAmount;
+		
+		cart.update(items => {
+			// Check if item already exists
+			const existingIndex = items.findIndex(item => 
+				(item.expand?.dish?.id || item.dish) === dish.id && item.restaurantId === restaurantId
+			);
+			
+			if (existingIndex >= 0) {
+				// Update quantity
+				items[existingIndex].quantity += quantity;
+				items[existingIndex].amount = (items[existingIndex].quantity) * unitPrice;
+				return [...items];
+			} else {
+				// Add new item
+				const newItem = {
+					id: `temp-${Date.now()}`,
+					dish: dish.id,
+					quantity: quantity,
+					amount: unitPrice * quantity,
+					restaurantId: restaurantId,
+					restaurantName: restaurantName,
+					expand: {
+						dish: {
+							id: dish.id,
+							name: dish.name,
+							defaultAmount: dish.defaultAmount,
+							promoAmount: dish.promoAmount,
+							availability: dish.availability,
+							image: dish.image
+						}
+					}
+				};
+				return [...items, newItem];
+			}
+		});
+	}
+
 	export const total = derived(cart, ($cart) =>
 		$cart.reduce((acc, item) => {
 			if (item.expand?.dish?.availability === 'Available') {
@@ -416,6 +458,20 @@
 		const quantity = Number(dishQuantities[dish.id] || 1);
 		const restaurantName = getRestaurantNameForDish(dish);
 
+		// Prevent rapid duplicate clicks
+		if (isAddingToCart) {
+			return;
+		}
+
+		isAddingToCart = true;
+		lastAddedDishId = dish.id;
+
+		// Show notification IMMEDIATELY for instant feedback
+		addToCartAlert = true;
+		setTimeout(() => {
+			addToCartAlert = false;
+		}, 2000);
+
 		try {
 			if ($isLoggedIn) {
 				await addToCartPB(
@@ -430,22 +486,34 @@
 				);
 
 				await fetchCart();
-
+			} else {
+				addToCartAlert = false;
+				cartErrorAlert = true;
+				setTimeout(() => {
+					cartErrorAlert = false;
+				}, 2500);
+			}
+		} catch (err) {
+			console.error('Add to cart error:', err);
+			addToCartAlert = false;
+			// Even if there's an error, the item might have been added
+			await fetchCart();
+			const wasAdded = $cart.some((item: any) => item.dish === dish.id);
+			if (wasAdded) {
 				addToCartAlert = true;
 				setTimeout(() => {
 					addToCartAlert = false;
-				}, 2000);
+				}, 2500);
 			} else {
 				cartErrorAlert = true;
 				setTimeout(() => {
 					cartErrorAlert = false;
-				}, 2000);
+				}, 2500);
 			}
-		} catch (err) {
-			cartErrorAlert = true;
+		} finally {
 			setTimeout(() => {
-				cartErrorAlert = false;
-			}, 2000);
+				isAddingToCart = false;
+			}, 500);
 		}
 	}
 
@@ -610,76 +678,90 @@
 
 {#if addToCartAlert}
 	<div
-		role="alert"
-		class="alert alert-success fixed top-1/2 z-20 mb-4 ml-2 px-6"
-		in:fly={{ y: -20, duration: 300 }}
-		out:fly={{ y: -20, duration: 300 }}
+		class="toast toast-top toast-center z-50"
+		in:fly={{ y: -50, duration: 300 }}
+		out:fly={{ y: -50, duration: 300 }}
 	>
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			class="h-6 w-6 shrink-0 stroke-current"
-			fill="none"
-			viewBox="0 0 24 24"
-		>
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				stroke-width="2"
-				d="M9 12l2 2l4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-			/>
-		</svg>
-		<span>Dish added to cart successfully!</span>
+		<div class="alert gap-3 rounded-2xl border-0 bg-gray-900 px-5 py-3 text-white shadow-2xl">
+			<div class="rounded-full bg-green-500/20 p-1">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-5 w-5 text-green-400"
+					viewBox="0 0 20 20"
+					fill="currentColor"
+				>
+					<path
+						fill-rule="evenodd"
+						d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+						clip-rule="evenodd"
+					/>
+				</svg>
+			</div>
+			<div>
+				<p class="text-sm font-semibold">Added to cart</p>
+				<p class="text-xs text-gray-400">Item has been added successfully</p>
+			</div>
+		</div>
 	</div>
 {/if}
 
 {#if cartErrorAlert}
 	<div
-		role="alert"
-		class="alert alert-error fixed top-1/2 z-20 mb-4"
-		in:fly={{ y: -20, duration: 300 }}
-		out:fly={{ y: -20, duration: 300 }}
+		class="toast toast-top toast-center z-50"
+		in:fly={{ y: -50, duration: 300 }}
+		out:fly={{ y: -50, duration: 300 }}
 	>
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			class="h-6 w-6 shrink-0 stroke-current"
-			fill="none"
-			viewBox="0 0 24 24"
-		>
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				stroke-width="2"
-				d="M12 9v2m0 4h.01M12 5a7 7 0 100 14 7 7 0 000-14z"
-			/>
-		</svg>
-		{#if $isLoggedIn}
-			<span>Dish Could not be Added to Cart</span>
-		{:else}
-			<span>You must be logged in to add a dish to cart</span>
-		{/if}
+		<div class="alert gap-3 rounded-2xl border-0 bg-gray-900 px-5 py-3 text-white shadow-2xl">
+			<div class="rounded-full bg-red-500/20 p-1">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-5 w-5 text-red-400"
+					viewBox="0 0 20 20"
+					fill="currentColor"
+				>
+					<path
+						fill-rule="evenodd"
+						d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+						clip-rule="evenodd"
+					/>
+				</svg>
+			</div>
+			<div>
+				<p class="text-sm font-semibold">Something went wrong</p>
+				<p class="text-xs text-gray-400">Please try again</p>
+			</div>
+		</div>
 	</div>
 {/if}
 
 {#if locationMismatchAlert}
 	<div
-		role="alert"
-		class="alert alert-warning fixed top-1/2 left-1/2 z-50 w-[90%] max-w-md -translate-x-1/2"
-		in:fly={{ y: -20, duration: 300 }}
+		class="toast toast-top toast-center z-50"
+		in:fly={{ y: -50, duration: 300 }}
+		out:fly={{ y: -50, duration: 300 }}
 	>
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			class="h-6 w-6 shrink-0 stroke-current"
-			fill="none"
-			viewBox="0 0 24 24"
+		<div
+			class="alert max-w-md gap-3 rounded-2xl border-0 bg-gray-900 px-5 py-3 text-white shadow-2xl"
 		>
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				stroke-width="2"
-				d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-			/>
-		</svg>
-		<span>{locationMismatchMessage}</span>
+			<div class="rounded-full bg-amber-500/20 p-1">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-5 w-5 text-amber-400"
+					viewBox="0 0 20 20"
+					fill="currentColor"
+				>
+					<path
+						fill-rule="evenodd"
+						d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+						clip-rule="evenodd"
+					/>
+				</svg>
+			</div>
+			<div>
+				<p class="text-sm font-semibold">Location Mismatch</p>
+				<p class="text-xs text-gray-400">{locationMismatchMessage}</p>
+			</div>
+		</div>
 	</div>
 {/if}
 

@@ -25,6 +25,51 @@ export const total = derived(cart, ($cart) =>
 	}, 0)
 );
 
+// Optimistically add item to cart for instant UI update
+export function addToCartOptimistic(
+	dish: any,
+	quantity: number,
+	restaurantId: string,
+	restaurantName: string
+) {
+	const unitPrice = dish.promoAmount || dish.defaultAmount;
+	const newItem = {
+		id: `temp-${Date.now()}`,
+		dish: dish.id,
+		quantity: quantity,
+		amount: unitPrice * quantity,
+		restaurantId: restaurantId,
+		restaurantName: restaurantName,
+		expand: {
+			dish: {
+				id: dish.id,
+				name: dish.name,
+				defaultAmount: dish.defaultAmount,
+				promoAmount: dish.promoAmount,
+				availability: dish.availability,
+				image: dish.image
+			}
+		}
+	};
+
+	cart.update((items) => {
+		// Check if item already exists
+		const existingIndex = items.findIndex(
+			(item) => item.expand?.dish?.id === dish.id && item.restaurantId === restaurantId
+		);
+
+		if (existingIndex >= 0) {
+			// Update quantity
+			items[existingIndex].quantity += quantity;
+			items[existingIndex].amount = items[existingIndex].quantity * unitPrice;
+			return [...items];
+		} else {
+			// Add new item
+			return [...items, newItem];
+		}
+	});
+}
+
 export async function fetchCart(restaurantId?: string) {
 	try {
 		const userId = pb.authStore.model?.id;
