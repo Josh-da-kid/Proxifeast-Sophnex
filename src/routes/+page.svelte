@@ -334,19 +334,25 @@
 	export const cart = writable<any[]>([]);
 
 	// Optimistically add item to cart for instant UI update
-	function addToCartOptimistic(dish: any, quantity: number, restaurantId: string, restaurantName: string) {
+	function addToCartOptimistic(
+		dish: any,
+		quantity: number,
+		restaurantId: string,
+		restaurantName: string
+	) {
 		const unitPrice = dish.promoAmount || dish.defaultAmount;
-		
-		cart.update(items => {
+
+		cart.update((items) => {
 			// Check if item already exists
-			const existingIndex = items.findIndex(item => 
-				(item.expand?.dish?.id || item.dish) === dish.id && item.restaurantId === restaurantId
+			const existingIndex = items.findIndex(
+				(item) =>
+					(item.expand?.dish?.id || item.dish) === dish.id && item.restaurantId === restaurantId
 			);
-			
+
 			if (existingIndex >= 0) {
 				// Update quantity
 				items[existingIndex].quantity += quantity;
-				items[existingIndex].amount = (items[existingIndex].quantity) * unitPrice;
+				items[existingIndex].amount = items[existingIndex].quantity * unitPrice;
 				return [...items];
 			} else {
 				// Add new item
@@ -471,6 +477,9 @@
 		setTimeout(() => {
 			addToCartAlert = false;
 		}, 2000);
+
+		// Update cart UI IMMEDIATELY for instant feedback
+		addToCartOptimistic(dish, quantity, dish.restaurantId, restaurantName);
 
 		try {
 			if ($isLoggedIn) {
