@@ -12,6 +12,9 @@
 
 	let { children, data } = $props();
 
+	let showNotificationPrompt = $state(false);
+	let isEnablingNotifications = $state(false);
+
 	function closeSideBar() {
 		const drawerToggle = document.getElementById('my-drawer-4');
 		if (drawerToggle instanceof HTMLInputElement) {
@@ -48,11 +51,80 @@
 						console.log('SW registration failed:', error);
 					});
 			}
+
+			// Check if user is logged in and should be prompted for notifications
+			const user = data.user;
+			if (user?.id) {
+				const alreadyPrompted = localStorage.getItem('notificationPrompted');
+				if (!alreadyPrompted) {
+					// Check if notifications are not yet granted
+					if (Notification.permission === 'default' || Notification.permission === 'denied') {
+						showNotificationPrompt = true;
+					}
+				}
+			}
 		} catch (err) {
 			console.error('Layout mount error:', err);
 			loading = false;
 		}
 	});
+
+	async function enableNotifications() {
+		isEnablingNotifications = true;
+		try {
+			if (!('Notification' in window)) {
+				alert('This browser does not support notifications');
+				return;
+			}
+
+			const permission = await Notification.requestPermission();
+			if (permission === 'granted') {
+				// Subscribe to push notifications
+				const registration = await navigator.serviceWorker.ready;
+				const subscription = await registration.pushManager.subscribe({
+					userVisibleOnly: true,
+					applicationServerKey: urlBase64ToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY || '')
+				});
+
+				// Save subscription to backend
+				await fetch('/api/subscribe-push', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						userId: data.user.id,
+						endpoint: subscription.endpoint,
+						p256dh: subscription.keys?.p256dh,
+						auth: subscription.keys?.auth
+					})
+				});
+
+				showNotificationPrompt = false;
+				localStorage.setItem('notificationPrompted', 'true');
+			} else if (permission === 'denied') {
+				alert('Notifications are blocked. Please enable them in your browser settings.');
+			}
+		} catch (error) {
+			console.error('Error enabling notifications:', error);
+		}
+		isEnablingNotifications = false;
+	}
+
+	function dismissNotificationPrompt() {
+		showNotificationPrompt = false;
+		localStorage.setItem('notificationPrompted', 'true');
+	}
+
+	// Helper to convert VAPID key
+	function urlBase64ToUint8Array(base64String: string): Uint8Array {
+		const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+		const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+		const rawData = window.atob(base64);
+		const outputArray = new Uint8Array(rawData.length);
+		for (let i = 0; i < rawData.length; ++i) {
+			outputArray[i] = rawData.charCodeAt(i);
+		}
+		return outputArray;
+	}
 
 	afterNavigate(() => {
 		loading = false;
