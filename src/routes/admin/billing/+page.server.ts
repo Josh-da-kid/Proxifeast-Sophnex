@@ -41,10 +41,6 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		// Find super restaurant
 		const superRestaurant = allRestaurants.find((r: any) => r.isSuper === true);
 
-		// Check if user is a super admin (set by layout during auth)
-		// If locals.isSuper is true, always treat as super restaurant
-		const isLocalsSuper = locals.isSuper === true;
-
 		// Find restaurant by domain
 		let restaurant = allRestaurants.find((r: any) => {
 			const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
@@ -64,12 +60,16 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			restaurant = superRestaurant;
 		}
 
-		// Check if this is a super restaurant
-		// Use locals.isSuper first (set by auth), then fall back to restaurant.isSuper
-		const isSuperRestaurant = isLocalsSuper || restaurant?.isSuper === true;
+		// Check if this is a super restaurant - use both locals.isSuper and restaurant.isSuper
+		// The locals.isSuper should be set by the layout after authentication
+		const restaurantIsSuper = restaurant?.isSuper === true;
+		const localsIsSuper = locals.isSuper === true;
 
-		// If user is super admin but domain didn't match, use super restaurant
-		if (isLocalsSuper && !isSuperRestaurant && superRestaurant) {
+		// Super if either locals says so OR the restaurant has isSuper flag
+		const isSuperRestaurant = localsIsSuper || restaurantIsSuper;
+
+		// If user is super admin (from locals) but restaurant wasn't found as super, use super restaurant
+		if (localsIsSuper && !isSuperRestaurant && superRestaurant) {
 			restaurant = superRestaurant;
 		}
 
@@ -78,6 +78,7 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		console.log('Domain:', domainOnly);
 		console.log('locals.isSuper:', locals.isSuper);
 		console.log('Restaurant found:', restaurant?.name, restaurant?.id);
+		console.log('restaurant.isSuper:', restaurant?.isSuper);
 		console.log('isSuperRestaurant:', isSuperRestaurant);
 		console.log('=========================');
 

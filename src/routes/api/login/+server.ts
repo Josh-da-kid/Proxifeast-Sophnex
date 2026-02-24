@@ -54,7 +54,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			}
 		}
 
-		// If no restaurant found for domain, try to find a super restaurant
+		// If still no restaurant, try to find a super restaurant
 		if (!restaurant) {
 			try {
 				const restaurants = await locals.pb.collection('restaurants').getFullList();
@@ -121,11 +121,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		// ✅ Authorized
 		locals.user = record;
 
-		return json({
-			error: false,
-			message: 'Login successful!',
-			user: record
-		});
+		// Export auth store to cookie
+		return json(
+			{
+				error: false,
+				message: 'Login successful!',
+				user: record
+			},
+			{
+				headers: {
+					'set-cookie': `pb_auth=${locals.pb.authStore.exportToCookie()}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
+				}
+			}
+		);
 	} catch (err: any) {
 		console.error('Login error:', err);
 

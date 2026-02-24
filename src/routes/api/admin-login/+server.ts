@@ -59,13 +59,53 @@ export const POST: RequestHandler = async ({ request, locals, cookies, url }) =>
 
 		// 🌍 Resolve restaurant from domain
 		const host = request.headers.get('host') || '';
-		const domain = host.split(':')[0];
+		const domain = host.split(':')[0].replace('www.', '').toLowerCase();
 
-		const restaurant = await locals.pb
-			.collection('restaurants')
-			.getFirstListItem(`domain = "${domain}"`);
+		// Try to find restaurant by domain
+		let restaurant = null;
+		try {
+			restaurant = await locals.pb
+				.collection('restaurants')
+				.getFirstListItem(`domain = "${domain}"`);
+		} catch (e) {
+			// Try partial match
+			try {
+				const restaurants = await locals.pb.collection('restaurants').getFullList();
+				restaurant = restaurants.find((r: any) => {
+					const rDomain = (r.domain || '').replace('www.', '').toLowerCase();
+					return domain.includes(rDomain) || rDomain.includes(domain);
+				});
+			} catch (e2) {
+				// No restaurant found
+			}
+		}
 
-		// ❌ Must be admin for this specific restaurant
+		// If still no restaurant, try to find a super restaurant
+		if (!restaurant) {
+			try {
+				const restaurants = await locals.pb.collection('restaurants').getFullList();
+				restaurant = restaurants.find((r: any) => r.isSuper === true);
+			} catch (e) {
+				// No super restaurant either
+			}
+		}
+
+		// If still no restaurant, return error
+		if (!restaurant) {
+			locals.pb.authStore.clear();
+			return json(
+				{
+					error: true,
+					message: 'Restaurant not found. Please contact support.'
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Check if this is a super restaurant
+		const isSuperRestaurant = restaurant.isSuper === true;
+
+		// ❌ Must be admin for this specific restaurant (or super admin)
 		// Check adminRestaurantIds first (granular admin), fall back to global isAdmin for backward compatibility
 		const adminRestaurantIds = record.adminRestaurantIds || [];
 		const restaurantIds = record.restaurantIds || [];
@@ -77,12 +117,20 @@ export const POST: RequestHandler = async ({ request, locals, cookies, url }) =>
 
 		let isAuthorizedAdmin = false;
 
-		if (adminRestaurantIds.length > 0) {
-			// User has specific admin assignments - check if they're admin for this restaurant
-			isAuthorizedAdmin = adminRestaurantIds.includes(restaurant.id);
+		// For super restaurants, check if user has access to it
+		if (isSuperRestaurant) {
+			// User is authorized if they have this restaurant in their admin or regular restaurantIds
+			isAuthorizedAdmin =
+				adminRestaurantIds.includes(restaurant.id) || restaurantIds.includes(restaurant.id);
 		} else {
-			// Fallback: use global isAdmin flag (backward compatibility)
-			isAuthorizedAdmin = record.isAdmin === true && restaurantIds.includes(restaurant.id);
+			// For regular restaurants
+			if (adminRestaurantIds.length > 0) {
+				// User has specific admin assignments - check if they're admin for this restaurant
+				isAuthorizedAdmin = adminRestaurantIds.includes(restaurant.id);
+			} else {
+				// Fallback: use global isAdmin flag (backward compatibility)
+				isAuthorizedAdmin = record.isAdmin === true && restaurantIds.includes(restaurant.id);
+			}
 		}
 
 		if (!isAuthorizedAdmin) {
@@ -99,16 +147,36 @@ export const POST: RequestHandler = async ({ request, locals, cookies, url }) =>
 		// Store user in locals for hooks to pick up
 		locals.user = record;
 
-		// Let PocketBase handle the cookie via hooks.server.ts
-		// The hooks will export the auth store cookie automatically
+		// Determine redirect based on restaurant type
+		let redirectTo = '/admin/admin-menu';
+		if (isSuperRestaurant) {
+			redirectTo = url.searchParams.get('redirectTo') || '/admin/admin-menu';
+		} else {
+			redirectTo = url.searchParams.get('redirectTo') || '/admin/admin-menu';
+		}
 
-		const redirectTo = url.searchParams.get('redirectTo') || '/admin/admin-menu';
+		// Export auth store to cookie
+		const cookieOptions = {
+			path: '/',
+			httpOnly: true,
+			sameSite: 'lax' as const,
+			secure: false, // Set to true in production with HTTPS
+			maxAge: 60 * 60 * 24 * 7 // 7 days
+		};
 
-		return json({
-			success: true,
-			message: 'Admin login successful.',
-			redirectTo
-		});
+		return json(
+			{
+				success: true,
+				message: 'Admin login successful.',
+				redirectTo,
+				isSuper: isSuperRestaurant
+			},
+			{
+				headers: {
+					'set-cookie': `pb_auth=${locals.pb.authStore.exportToCookie()}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
+				}
+			}
+		);
 	} catch (err: any) {
 		console.error('Admin login error:', err);
 
