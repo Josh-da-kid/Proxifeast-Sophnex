@@ -37,9 +37,10 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		// Find super restaurant
 		const superRestaurant = allRestaurants.find((r: any) => r.isSuper === true);
 
-		// Get user's restaurant IDs from auth - prioritize this over domain matching
+		// Get user's restaurant IDs from auth
 		const userRestaurantIds = locals.user?.restaurantIds || [];
 		const userAdminRestaurantIds = locals.user?.adminRestaurantIds || [];
+		const isUserAdmin = locals.user?.isAdmin === true;
 
 		// Backward compatibility: check old restaurantId field too
 		if (locals.user?.restaurantId && !userRestaurantIds.includes(locals.user.restaurantId)) {
@@ -48,12 +49,15 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 
 		console.log('=== BILLING PAGE DEBUG ===');
 		console.log('locals.user:', locals.user?.email);
+		console.log('isAdmin:', isUserAdmin);
 		console.log('userRestaurantIds:', userRestaurantIds);
+		console.log('userAdminRestaurantIds:', userAdminRestaurantIds);
 		console.log('superRestaurant:', superRestaurant?.name, superRestaurant?.id);
 		console.log('=========================');
 
-		// Check if user has access to super restaurant
+		// Check if user should see super overview - must be admin AND have access to super restaurant
 		const hasAccessToSuper =
+			isUserAdmin &&
 			superRestaurant &&
 			(userRestaurantIds.includes(superRestaurant.id) ||
 				userAdminRestaurantIds.includes(superRestaurant.id));
