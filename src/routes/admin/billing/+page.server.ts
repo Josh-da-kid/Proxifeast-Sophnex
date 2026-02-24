@@ -89,15 +89,22 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			});
 			restaurantsList = allRestaurants.filter((r) => r.isSuper !== true);
 		} else if (restaurant?.id) {
+			console.log('Fetching subscription for restaurant:', restaurant.id, restaurant.name);
+
 			const subs: any = await locals.pb.collection('subscriptions').getList(1, 1, {
 				filter: `restaurantId = "${restaurant.id}"`,
 				sort: '-created'
 			});
 
+			console.log('Subscription query result:', subs.items);
+
 			if (subs.items && subs.items.length > 0) {
 				subscription = subs.items[0];
+				console.log('Found subscription:', subscription);
+
 				const now = new Date();
 				const endDate = new Date(subscription.endDate);
+				console.log('Subscription endDate:', endDate, 'Now:', now, 'Is expired:', endDate <= now);
 
 				if (subscription.status === 'test') {
 					if (endDate <= now) {
@@ -111,10 +118,15 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 					subscriptionStatus = 'cancelled';
 				} else if (endDate <= now) {
 					subscriptionStatus = 'expired';
+					console.log('Setting status to expired');
 				} else {
 					subscriptionStatus = 'active';
 				}
+			} else {
+				subscriptionStatus = 'not_subscribed';
 			}
+
+			console.log('Final subscriptionStatus:', subscriptionStatus);
 
 			const allSubs: any = await locals.pb.collection('subscriptions').getList(1, 50, {
 				filter: `restaurantId = "${restaurant.id}"`,

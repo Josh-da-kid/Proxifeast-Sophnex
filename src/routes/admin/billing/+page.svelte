@@ -671,7 +671,7 @@
 								>{new Date(data.subscription.endDate).toLocaleDateString()}</span
 							>
 						</div>
-						{#if data.subscriptionStatus === 'expiring_soon'}
+						{#if data.subscriptionStatus === 'expiring_soon' || data.subscriptionStatus === 'expired'}
 							<div class="mt-4">
 								<button
 									class="btn btn-primary w-full"
@@ -731,10 +731,14 @@
 			<div class="mx-auto max-w-3xl">
 				<div class="rounded-2xl bg-white p-6 shadow-sm">
 					<h3 class="mb-6 text-lg font-semibold text-slate-800">
-						{#if data.subscriptionStatus === 'not_subscribed' || data.subscriptionStatus === 'cancelled' || data.subscriptionStatus === 'expired'}
+						{#if data.subscriptionStatus === 'not_subscribed'}
 							Choose a Plan to Get Started
-						{:else}
-							Complete Your Subscription
+						{:else if data.subscriptionStatus === 'expired'}
+							Your Subscription Has Expired - Please Renew
+						{:else if data.subscriptionStatus === 'cancelled'}
+							Your Subscription Was Cancelled - Please Subscribe
+						{:else if data.subscriptionStatus === 'pending'}
+							Complete Your Subscription Payment
 						{/if}
 					</h3>
 
@@ -818,7 +822,7 @@
 					</div>
 				</div>
 			</div>
-		{:else if !data.isSuper && data.subscription && (data.subscriptionStatus === 'active' || data.subscriptionStatus === 'expiring_soon')}
+		{:else if !data.isSuper && data.subscription && (data.subscriptionStatus === 'active' || data.subscriptionStatus === 'expiring_soon' || data.subscriptionStatus === 'test')}
 			<!-- Active Subscription Dashboard for Non-Super Restaurants -->
 			<div class="mx-auto max-w-4xl">
 				<!-- Header Card -->
@@ -857,14 +861,25 @@
 							<div>
 								<p class="text-sm font-medium text-slate-300">Current Plan</p>
 								<h2 class="font-playfair mt-1 text-3xl font-bold text-white capitalize">
-									{data.subscription.plan}
+									{data.subscription.plan === 'weekly'
+										? '7-Day Free Trial'
+										: data.subscription.plan}
 								</h2>
 							</div>
 							<div class="text-right">
 								<span
-									class="rounded-full border border-emerald-400 bg-emerald-500/20 px-4 py-1.5 text-sm font-semibold text-emerald-300"
+									class="rounded-full border px-4 py-1.5 text-sm font-semibold {data.subscriptionStatus ===
+									'expired'
+										? 'border-red-400 bg-red-500/20 text-red-300'
+										: data.subscriptionStatus === 'test'
+											? 'border-blue-400 bg-blue-500/20 text-blue-300'
+											: 'border-emerald-400 bg-emerald-500/20 text-emerald-300'}"
 								>
-									Active
+									{data.subscriptionStatus === 'expired'
+										? 'Expired'
+										: data.subscriptionStatus === 'test'
+											? 'Test (Free Trial)'
+											: 'Active'}
 								</span>
 							</div>
 						</div>
@@ -874,23 +889,41 @@
 					<div class="px-6 py-6">
 						<div class="mb-2 flex items-center justify-between">
 							<span class="text-sm font-medium text-slate-600">Subscription Progress</span>
-							<span class="text-sm font-bold text-slate-800">
-								{data.subscription.startDate
-									? getSubscriptionProgress(data.subscription.startDate, data.subscription.endDate)
-									: 0}%
+							<span
+								class="text-sm font-bold {data.subscriptionStatus === 'expired'
+									? 'text-red-600'
+									: 'text-slate-800'}"
+							>
+								{data.subscriptionStatus === 'expired'
+									? 'Expired'
+									: `${
+											data.subscription.startDate
+												? getSubscriptionProgress(
+														data.subscription.startDate,
+														data.subscription.endDate
+													)
+												: 0
+										}%`}
 							</span>
 						</div>
 						<div class="h-3 w-full overflow-hidden rounded-full bg-slate-100">
 							<div
-								class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
+								class="h-full rounded-full transition-all duration-500 {data.subscriptionStatus ===
+								'expired'
+									? 'bg-red-500'
+									: 'bg-gradient-to-r from-emerald-500 to-emerald-400'}"
 								style="width: {data.subscription.startDate
 									? getSubscriptionProgress(data.subscription.startDate, data.subscription.endDate)
 									: 0}%"
 							></div>
 						</div>
 						<p class="mt-2 text-xs text-slate-500">
-							{data.subscription.startDate ? getDaysRemaining(data.subscription.endDate) : 0} days remaining
-							until renewal
+							{#if data.subscriptionStatus === 'expired'}
+								Subscription has expired
+							{:else}
+								{data.subscription.startDate ? getDaysRemaining(data.subscription.endDate) : 0} days
+								remaining until renewal
+							{/if}
 						</p>
 					</div>
 				</div>
@@ -1010,8 +1043,13 @@
 							</div>
 							<div class="flex justify-between">
 								<span class="text-slate-600">Days Remaining</span>
-								<span class="font-medium text-emerald-600"
-									>{data.subscription.endDate ? getDaysRemaining(data.subscription.endDate) : 0} days</span
+								<span
+									class="font-medium {data.subscriptionStatus === 'expired'
+										? 'text-red-600'
+										: 'text-emerald-600'}"
+									>{data.subscriptionStatus === 'expired'
+										? 'Expired'
+										: `${data.subscription.endDate ? getDaysRemaining(data.subscription.endDate) : 0} days`}</span
 								>
 							</div>
 						</div>
