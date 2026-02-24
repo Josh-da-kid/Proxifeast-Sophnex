@@ -71,6 +71,8 @@
 
 	let logoutModalAdmin: HTMLDialogElement;
 	let logoutModalUser: HTMLDialogElement;
+	let isLoggingOut = $state(false);
+	let isLoggingOutAdmin = $state(false);
 </script>
 
 <nav
@@ -409,18 +411,19 @@
 								<p class="py-4">Are you sure you want to logout?</p>
 								<div class="modal-action">
 									<form method="dialog">
-										<button class="btn">Cancel</button>
+										<button class="btn" disabled={isLoggingOutAdmin}>Cancel</button>
 									</form>
 									<form
 										action="/admin/admin-logout"
 										method="POST"
-										onsubmit={async () => {
+										onsubmit={() => {
+											isLoggingOutAdmin = true;
 											if ('serviceWorker' in navigator) {
 												try {
-													const registration = await navigator.serviceWorker.getRegistration();
-													if (registration) {
-														await registration.unregister();
-													}
+													const registration = navigator.serviceWorker.getRegistration();
+													registration.then((reg) => {
+														if (reg) reg.unregister();
+													});
 												} catch (e) {
 													console.log('SW unregister error:', e);
 												}
@@ -428,7 +431,14 @@
 											localStorage.clear();
 										}}
 									>
-										<button class="btn btn-error">Logout</button>
+										{#if isLoggingOutAdmin}
+											<button class="btn btn-error" disabled>
+												<span class="loading loading-spinner loading-sm"></span>
+												Logging out...
+											</button>
+										{:else}
+											<button class="btn btn-error">Logout</button>
+										{/if}
 									</form>
 								</div>
 							</div>
@@ -753,19 +763,20 @@
 								<p class="py-4">Are you sure you want to logout?</p>
 								<div class="modal-action">
 									<form method="dialog">
-										<button class="btn">Cancel</button>
+										<button class="btn" disabled={isLoggingOut}>Cancel</button>
 									</form>
 									<form
 										action="/logout"
 										method="POST"
-										onsubmit={async () => {
+										onsubmit={() => {
+											isLoggingOut = true;
 											// Clear service worker cache on logout
 											if ('serviceWorker' in navigator) {
 												try {
-													const registration = await navigator.serviceWorker.getRegistration();
-													if (registration) {
-														await registration.unregister();
-													}
+													const registration = navigator.serviceWorker.getRegistration();
+													registration.then((reg) => {
+														if (reg) reg.unregister();
+													});
 												} catch (e) {
 													console.log('SW unregister error:', e);
 												}
@@ -774,7 +785,14 @@
 											localStorage.clear();
 										}}
 									>
-										<button class="btn btn-error">Logout</button>
+										{#if isLoggingOut}
+											<button class="btn btn-error" disabled>
+												<span class="loading loading-spinner loading-sm"></span>
+												Logging out...
+											</button>
+										{:else}
+											<button class="btn btn-error">Logout</button>
+										{/if}
 									</form>
 								</div>
 							</div>
