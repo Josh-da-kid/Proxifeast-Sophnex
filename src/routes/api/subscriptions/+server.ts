@@ -110,6 +110,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			return json({ success: true, subscription: updated });
 		}
 
+		// Delete subscription (for weekly free trials)
+		if (action === 'delete') {
+			await locals.pb.collection('subscriptions').delete(subscriptionData.id);
+			return json({ success: true, message: 'Subscription deleted' });
+		}
+
 		if (action === 'toggleAutoRenew') {
 			const subscription = await locals.pb.collection('subscriptions').getOne(subscriptionData.id);
 			const updated = await locals.pb.collection('subscriptions').update(subscriptionData.id, {

@@ -468,6 +468,44 @@
 			isProcessing = false;
 		}
 	}
+
+	async function deleteSubscription(subscription: any) {
+		if (
+			!confirm(
+				`Are you sure you want to delete this ${subscription.plan === 'weekly' ? '7-Day Free Trial' : subscription.plan} subscription?`
+			)
+		) {
+			return;
+		}
+
+		isProcessing = true;
+		paymentError = '';
+
+		try {
+			const response = await fetch('/api/subscriptions', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					action: 'delete',
+					id: subscription.id
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.success) {
+				paymentSuccess = true;
+				window.location.reload();
+			} else {
+				paymentError = 'Failed to delete subscription: ' + (result.error || '');
+			}
+		} catch (err) {
+			console.error('Delete subscription error:', err);
+			paymentError = 'Failed to delete subscription';
+		} finally {
+			isProcessing = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -962,11 +1000,15 @@
 							<div class="flex justify-between border-b border-slate-100 pb-3">
 								<span class="text-slate-600">Billing Cycle</span>
 								<span class="font-medium text-slate-800 capitalize"
-									>{data.subscription.plan === 'monthly'
-										? 'Monthly'
-										: data.subscription.plan === 'quarterly'
-											? 'Quarterly'
-											: 'Yearly'}</span
+									>{data.subscription.plan === 'weekly'
+										? '7-Day Free Trial'
+										: data.subscription.plan === 'monthly'
+											? 'Monthly'
+											: data.subscription.plan === 'quarterly'
+												? 'Quarterly'
+												: data.subscription.plan === 'yearly'
+													? 'Yearly'
+													: 'N/A'}</span
 								>
 							</div>
 							<div class="flex justify-between">
@@ -1032,12 +1074,16 @@
 							<div class="flex justify-between border-b border-slate-100 pb-3">
 								<span class="text-slate-600">Duration</span>
 								<span class="font-medium text-slate-800">
-									{#if data.subscription.plan === 'monthly'}
+									{#if data.subscription.plan === 'weekly'}
+										7 Days
+									{:else if data.subscription.plan === 'monthly'}
 										30 Days
 									{:else if data.subscription.plan === 'quarterly'}
 										90 Days
 									{:else if data.subscription.plan === 'yearly'}
 										365 Days
+									{:else}
+										N/A
 									{/if}
 								</span>
 							</div>
@@ -1114,7 +1160,7 @@
 							<div class="flex justify-between">
 								<span class="text-slate-600">Recurring</span>
 								<span class="font-medium text-slate-800"
-									>{data.subscription.recurring ? 'Yes' : 'No'}</span
+									>{data.subscription?.recurring === true ? 'Yes' : 'No'}</span
 								>
 							</div>
 						</div>
@@ -1320,6 +1366,15 @@
 											{isProcessing ? '...' : subscription.autoRenew ? 'Disable' : 'Enable'}
 										</button>
 									{/if}
+									{#if subscription.plan === 'weekly' || subscription.status === 'test'}
+										<button
+											class="mt-1 block rounded-lg bg-red-100 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-200"
+											onclick={() => deleteSubscription(subscription)}
+											disabled={isProcessing}
+										>
+											{isProcessing ? '...' : 'Delete'}
+										</button>
+									{/if}
 									{#if isExpiringSoon(subscription.endDate)}
 										<p class="mt-1 text-xs text-amber-600">
 											{getDaysUntilExpiry(subscription.endDate)} days left
@@ -1480,6 +1535,15 @@
 											onclick={() => renewSubscription(subscription)}
 										>
 											Renew
+										</button>
+									{/if}
+									{#if subscription.plan === 'weekly' || subscription.status === 'test'}
+										<button
+											class="mt-1 block rounded-lg bg-red-100 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-200"
+											onclick={() => deleteSubscription(subscription)}
+											disabled={isProcessing}
+										>
+											{isProcessing ? '...' : 'Delete'}
 										</button>
 									{/if}
 								</td>

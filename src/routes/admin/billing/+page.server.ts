@@ -41,6 +41,10 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		// Find super restaurant
 		const superRestaurant = allRestaurants.find((r: any) => r.isSuper === true);
 
+		// Check if user is a super admin (set by layout during auth)
+		// If locals.isSuper is true, always treat as super restaurant
+		const isLocalsSuper = locals.isSuper === true;
+
 		// Find restaurant by domain
 		let restaurant = allRestaurants.find((r: any) => {
 			const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
@@ -61,11 +65,18 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		}
 
 		// Check if this is a super restaurant
-		const isSuperRestaurant = restaurant?.isSuper === true;
+		// Use locals.isSuper first (set by auth), then fall back to restaurant.isSuper
+		const isSuperRestaurant = isLocalsSuper || restaurant?.isSuper === true;
+
+		// If user is super admin but domain didn't match, use super restaurant
+		if (isLocalsSuper && !isSuperRestaurant && superRestaurant) {
+			restaurant = superRestaurant;
+		}
 
 		console.log('=== BILLING PAGE DEBUG ===');
 		console.log('Host:', host);
 		console.log('Domain:', domainOnly);
+		console.log('locals.isSuper:', locals.isSuper);
 		console.log('Restaurant found:', restaurant?.name, restaurant?.id);
 		console.log('isSuperRestaurant:', isSuperRestaurant);
 		console.log('=========================');
