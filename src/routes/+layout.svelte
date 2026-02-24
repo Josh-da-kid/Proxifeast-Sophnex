@@ -43,9 +43,22 @@
 			// Register service worker for PWA
 			if ('serviceWorker' in navigator) {
 				navigator.serviceWorker
-					.register('/service-worker.js')
+					.register('/service-worker.js', {
+						updateViaCache: 'all'
+					})
 					.then((registration) => {
 						console.log('SW registered:', registration);
+						// Check for updates
+						registration.addEventListener('updatefound', () => {
+							const newWorker = registration.installing;
+							if (newWorker) {
+								newWorker.addEventListener('statechange', () => {
+									if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+										console.log('New SW available');
+									}
+								});
+							}
+						});
 					})
 					.catch((error) => {
 						console.log('SW registration failed:', error);
@@ -74,23 +87,38 @@
 
 	async function enableNotifications() {
 		isEnablingNotifications = true;
+		console.log('[Push] Starting notification enable...');
+
 		try {
 			if (!('Notification' in window)) {
+				console.error('[Push] Notifications not supported');
 				alert('This browser does not support notifications');
 				return;
 			}
 
+			console.log('[Push] Requesting permission...');
 			const permission = await Notification.requestPermission();
+			console.log('[Push] Permission result:', permission);
+
 			if (permission === 'granted') {
-				// Subscribe to push notifications
+				console.log('[Push] Permission granted, subscribing...');
+
+				// Check if service worker is ready
 				const registration = await navigator.serviceWorker.ready;
+				console.log('[Push] SW ready:', registration);
+
+				const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+				console.log('[Push] VAPID key exists:', !!vapidKey);
+
 				const subscription = await registration.pushManager.subscribe({
 					userVisibleOnly: true,
-					applicationServerKey: urlBase64ToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY || '')
+					applicationServerKey: urlBase64ToUint8Array(vapidKey || '')
 				});
 
+				console.log('[Push] Subscription created:', subscription);
+
 				// Save subscription to backend
-				await fetch('/api/subscribe-push', {
+				const response = await fetch('/api/subscribe-push', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
@@ -101,13 +129,17 @@
 					})
 				});
 
+				const result = await response.json();
+				console.log('[Push] Subscribe API result:', result);
+
 				showNotificationPrompt = false;
 				localStorage.setItem('notificationPrompted', 'true');
+				alert('Notifications enabled successfully!');
 			} else if (permission === 'denied') {
 				alert('Notifications are blocked. Please enable them in your browser settings.');
 			}
 		} catch (error) {
-			console.error('Error enabling notifications:', error);
+			console.error('[Push] Error enabling notifications:', error);
 		}
 		isEnablingNotifications = false;
 	}
