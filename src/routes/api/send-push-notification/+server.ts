@@ -79,6 +79,14 @@ export async function POST({ request }: { request: Request }) {
 		// Send notification to all subscriptions
 		for (const sub of subscriptions) {
 			try {
+				// Skip subscriptions that are missing required keys
+				if (!sub.p256dh || !sub.auth) {
+					console.log('[Push API] Skipping subscription missing keys:', sub.id);
+					// Delete invalid subscription
+					await pb.collection('push_subscriptions').delete(sub.id);
+					continue;
+				}
+
 				const pushSubscription: PushSubscription = {
 					endpoint: sub.endpoint,
 					keys: {

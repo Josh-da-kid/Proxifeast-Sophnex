@@ -16,23 +16,36 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 		// Even super admins should only see orders for the restaurant they're currently managing
 		const restaurantFilter = `restaurantId = "${restaurantId}" && `;
 
+		console.log('Admin Dashboard - Restaurant ID:', restaurantId, 'Domain:', domain);
+		console.log('Admin Dashboard - Filter:', restaurantFilter);
+
 		// Get today's date range
 		const today = new Date();
-		const startOfDay = new Date(
-			today.getFullYear(),
-			today.getMonth(),
-			today.getDate()
-		).toISOString();
-		const endOfDay = new Date(
-			today.getFullYear(),
-			today.getMonth(),
-			today.getDate() + 1
-		).toISOString();
+		// Use local timezone date
+		const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+		const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1, 0, 0, 0);
+
+		console.log('Date range:', {
+			startOfDay: startOfDay.toISOString(),
+			endOfDay: endOfDay.toISOString()
+		});
 
 		// Fetch today's revenue - get ALL orders (no pagination limit)
 		const todayOrdersResult = await locals.pb.collection('orders').getFullList({
-			filter: `${restaurantFilter}status = "Delivered" && created >= "${startOfDay}" && created < "${endOfDay}"`
+			filter: `${restaurantFilter}status = "Delivered" && created >= "${startOfDay.toISOString()}" && created < "${endOfDay.toISOString()}"`
 		});
+
+		console.log(
+			'Today orders (Delivered):',
+			todayOrdersResult.length,
+			todayOrdersResult.map((o: any) => ({
+				id: o.id,
+				restaurantId: o.restaurantId,
+				status: o.status,
+				totalAmount: o.totalAmount
+			}))
+		);
+
 		const todayOrders = todayOrdersResult;
 
 		const todayRevenue = todayOrders.reduce(
@@ -40,10 +53,22 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			0
 		);
 
+		console.log('Today Revenue:', todayRevenue);
+
 		// Fetch pending/delivering orders for potential revenue
 		const pendingOrdersResult = await locals.pb.collection('orders').getFullList({
-			filter: `${restaurantFilter}(status = "Pending" || status = "Preparing" || status = "Ready") && created >= "${startOfDay}" && created < "${endOfDay}"`
+			filter: `${restaurantFilter}(status = "Pending" || status = "Preparing" || status = "Ready") && created >= "${startOfDay.toISOString()}" && created < "${endOfDay.toISOString()}"`
 		});
+
+		console.log(
+			'Pending orders:',
+			pendingOrdersResult.length,
+			pendingOrdersResult.map((o: any) => ({
+				id: o.id,
+				restaurantId: o.restaurantId,
+				status: o.status
+			}))
+		);
 
 		const pendingRevenue = pendingOrdersResult.reduce(
 			(sum: number, order: any) => sum + (order.orderTotal || order.totalAmount || 0),
