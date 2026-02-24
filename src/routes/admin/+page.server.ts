@@ -28,13 +28,23 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			today.getDate() + 1
 		).toISOString();
 
-		// Fetch today's revenue with pagination
-		const todayOrdersResult = await locals.pb.collection('orders').getList(1, 100, {
+		// Fetch today's revenue - get ALL orders (no pagination limit)
+		const todayOrdersResult = await locals.pb.collection('orders').getFullList({
 			filter: `${restaurantFilter}status = "Delivered" && created >= "${startOfDay}" && created < "${endOfDay}"`
 		});
-		const todayOrders = todayOrdersResult.items;
+		const todayOrders = todayOrdersResult;
 
 		const todayRevenue = todayOrders.reduce(
+			(sum: number, order: any) => sum + (order.orderTotal || order.totalAmount || 0),
+			0
+		);
+
+		// Fetch pending/delivering orders for potential revenue
+		const pendingOrdersResult = await locals.pb.collection('orders').getFullList({
+			filter: `${restaurantFilter}(status = "Pending" || status = "Preparing" || status = "Ready") && created >= "${startOfDay}" && created < "${endOfDay}"`
+		});
+
+		const pendingRevenue = pendingOrdersResult.reduce(
 			(sum: number, order: any) => sum + (order.orderTotal || order.totalAmount || 0),
 			0
 		);
@@ -89,6 +99,7 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			isSuper,
 			stats: {
 				todayRevenue,
+				pendingRevenue,
 				pendingOrdersCount,
 				completedOrdersCount
 			},
@@ -100,6 +111,7 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			dishes: [],
 			stats: {
 				todayRevenue: 0,
+				pendingRevenue: 0,
 				pendingOrdersCount: 0,
 				completedOrdersCount: 0
 			},

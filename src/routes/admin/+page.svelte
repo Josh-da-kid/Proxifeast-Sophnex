@@ -262,10 +262,38 @@
 							</svg>
 						</div>
 						<div>
-							<p class="text-sm text-slate-500">Today's Revenue</p>
+							<p class="text-500">Today's Revenue</p>
+
 							<p class="text-xl font-bold text-slate-900">
 								₦{(stats.todayRevenue ?? 0).toLocaleString()}
 							</p>
+						</div>
+					</div>
+				</div>
+
+				<div class="rounded-2xl bg-white p-6 shadow-md">
+					<div class="flex items-center gap-4">
+						<div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-6 w-6 text-amber-600"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<circle cx="12" cy="12" r="10" />
+								<polyline points="12 6 12 12 16 14" />
+							</svg>
+						</div>
+						<div>
+							<p class="text-sm text-slate-500">Pending Revenue</p>
+							<p class="text-xl font-bold text-amber-600">
+								₦{(stats.pendingRevenue ?? 0).toLocaleString()}
+							</p>
+							<p class="text-xs text-slate-400">Awaiting delivery</p>
 						</div>
 					</div>
 				</div>

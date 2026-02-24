@@ -278,6 +278,9 @@
 	let tableNumber = $state('');
 	let homeAddress = $state('');
 	let locationConfirmed = $state(false);
+	let showSuccessToast = $state(false);
+	let showErrorToast = $state(false);
+	let toastMessage = $state('');
 
 	let hour = $state('12');
 	let minutes = $state('00');
@@ -306,7 +309,8 @@
 	function payWithPaystack(e: Event) {
 		e.preventDefault();
 
-		if (!locationConfirmed) {
+		// Only require location confirmation for home delivery
+		if (deliveryOption === 'home' && !locationConfirmed) {
 			alert(
 				'Please confirm that your delivery address is in the same state/LGA as the restaurant before ordering.'
 			);
@@ -378,7 +382,10 @@
 				currency: 'NGN',
 				ref: 'ORD-' + Math.floor(Math.random() * 1000000000 + 1),
 				callback: function (response: any) {
-					alert('Payment complete! Reference: ' + response.reference);
+					// Show payment success toast immediately
+					showSuccessToast = true;
+					toastMessage = 'Payment successful!';
+
 					const orderedDishes = $cart.map((item) => ({
 						dish: item.expand?.dish?.id,
 						name: item.expand?.dish?.name,
@@ -406,6 +413,10 @@
 							$cart.map((item: any) => item.expand?.dish?.restaurantId || item.restaurantId)
 						).size
 					};
+
+					// Clear cart immediately
+					clearCart();
+
 					fetch('/api/save-order', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
@@ -413,23 +424,31 @@
 					})
 						.then((res) => res.json())
 						.then((data) => {
-							alert('Order saved successfully!');
-							goto('/pending');
-							clearCart();
+							toastMessage = 'Order placed successfully!';
+							setTimeout(() => {
+								goto('/pending');
+							}, 1500);
 						})
 						.catch((err) => {
 							console.error(err);
-							alert('Error saving order.');
+							showSuccessToast = false;
+							showErrorToast = true;
+							toastMessage = 'Payment successful but failed to save order. Please contact support.';
+							setTimeout(() => (showErrorToast = false), 5000);
 						});
 				},
 				onClose: function () {
-					alert('Transaction was cancelled');
+					showErrorToast = true;
+					toastMessage = 'Payment was cancelled';
+					setTimeout(() => (showErrorToast = false), 3000);
 				}
 			});
 			handler.openIframe();
 		} catch (err) {
 			console.error('Payment error:', err);
-			alert('An error occurred. Please try again.');
+			showErrorToast = true;
+			toastMessage = 'An error occurred. Please try again.';
+			setTimeout(() => (showErrorToast = false), 3000);
 		}
 	}
 </script>
@@ -1130,6 +1149,34 @@
 												{@html iconCreditCard}<span>Secure Payment</span>
 											</div>
 										</div>
+										<div
+											class="mt-4 rounded-xl border border-green-100 bg-gradient-to-r from-green-50 to-emerald-50 p-4"
+										>
+											<div class="flex items-center justify-center gap-3">
+												<div
+													class="flex h-10 w-10 items-center justify-center rounded-full bg-green-100"
+												>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														class="h-5 w-5 text-green-600"
+														viewBox="0 0 20 20"
+														fill="currentColor"
+													>
+														<path
+															fill-rule="evenodd"
+															d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+															clip-rule="evenodd"
+														/>
+													</svg>
+												</div>
+												<div class="text-center">
+													<p class="text-sm font-semibold text-green-700">Secured by Paystack</p>
+													<p class="text-xs text-green-600">
+														Your payment information is encrypted and secure
+													</p>
+												</div>
+											</div>
+										</div>
 									</div>
 								</form>
 							{/if}
@@ -1184,3 +1231,58 @@
 		</div>
 	</div>
 </dialog>
+
+<!-- Success Toast -->
+{#if showSuccessToast}
+	<div class="toast toast-top toast-center z-50" in:fly={{ y: -50, duration: 300 }}>
+		<div
+			class="alert min-w-[300px] gap-4 rounded-2xl border-0 bg-gray-900 px-6 py-4 text-white shadow-2xl"
+		>
+			<div class="rounded-full bg-green-500/20 p-2">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-6 w-6 text-green-400"
+					viewBox="0 0 20 20"
+					fill="currentColor"
+				>
+					<path
+						fill-rule="evenodd"
+						d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+						clip-rule="evenodd"
+					/>
+				</svg>
+			</div>
+			<div>
+				<p class="text-base font-bold">Order Confirmed!</p>
+				<p class="text-sm text-gray-400">Redirecting to pending orders...</p>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Error Toast -->
+{#if showErrorToast}
+	<div class="toast toast-top toast-center z-50" in:fly={{ y: -50, duration: 300 }}>
+		<div
+			class="alert min-w-[300px] gap-4 rounded-2xl border-0 bg-gray-900 px-6 py-4 text-white shadow-2xl"
+		>
+			<div class="rounded-full bg-red-500/20 p-2">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-6 w-6 text-red-400"
+					viewBox="0 0 20 20"
+					fill="currentColor"
+				>
+					<path
+						fill-rule="evenodd"
+						d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+						clip-rule="evenodd"
+					/>
+				</svg>
+			</div>
+			<div>
+				<p class="text-base font-bold">{toastMessage}</p>
+			</div>
+		</div>
+	</div>
+{/if}
