@@ -31,9 +31,9 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			localEnd: endOfDay.toString()
 		});
 
-		// Fetch today's revenue - completed orders for today
+		// Fetch today's revenue - all delivered orders (to ensure we capture any completed orders)
 		const todayOrdersResult = await locals.pb.collection('orders').getFullList({
-			filter: `${restaurantFilter}status = "Delivered" && created >= "${startOfDay.toISOString()}" && created < "${endOfDay.toISOString()}"`
+			filter: `${restaurantFilter}status = "Delivered"`
 		});
 
 		console.log(

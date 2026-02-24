@@ -339,218 +339,218 @@
 						></path>
 					</svg>
 				</div>
-			{:else if filteredOrders.length === 0}
-				<div class="py-16 text-center">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="mx-auto h-16 w-16 text-slate-300"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.5"
-					>
-						<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
-						<rect x="9" y="3" width="6" height="4" rx="1" />
-					</svg>
-					<h3 class="mt-4 text-lg font-medium text-slate-700">No Pending Orders</h3>
-					<p class="mt-1 text-slate-500">You have no orders at the moment.</p>
-				</div>
 			{:else}
-				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-					{#each filteredOrders as order}
-						<article
-							class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md transition-all hover:shadow-xl"
-							in:fly={{ y: 20, duration: 300 }}
+				<!-- Summary Cards -->
+				<div class="mb-6 grid gap-4 sm:grid-cols-2">
+					<div class="rounded-xl bg-white p-4 shadow-md shadow-slate-900/5">
+						<p class="text-sm text-slate-500">Total Orders</p>
+						<p class="text-2xl font-bold text-slate-800">{filteredOrders.length}</p>
+					</div>
+					<div class="rounded-xl bg-white p-4 shadow-md shadow-slate-900/5">
+						<p class="text-sm text-slate-500">Total Amount</p>
+						<p class="text-2xl font-bold text-emerald-600">
+							₦{filteredOrders
+								.reduce((sum: number, o: any) => sum + (o.orderTotal ?? o.totalAmount ?? 0), 0)
+								.toLocaleString()}
+						</p>
+					</div>
+				</div>
+
+				{#if filteredOrders.length === 0}
+					<div class="py-16 text-center">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="mx-auto h-16 w-16 text-slate-300"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.5"
 						>
-							<!-- Status Bar -->
-							<div
-								class="h-1.5 w-full {getStatusColor(order.status)
-									.replace('bg-', 'bg-')
-									.replace('text-', 'text-')
-									.replace('border-', 'bg-')}"
-							></div>
+							<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+							<rect x="9" y="3" width="6" height="4" rx="1" />
+						</svg>
+						<h3 class="mt-4 text-lg font-medium text-slate-700">No Pending Orders</h3>
+						<p class="mt-1 text-slate-500">You have no orders at the moment.</p>
+					</div>
+				{:else}
+					<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+						{#each filteredOrders as order}
+							<article
+								class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md transition-all hover:shadow-xl"
+								in:fly={{ y: 20, duration: 300 }}
+							>
+								<!-- Status Bar -->
+								<div
+									class="h-1.5 w-full {getStatusColor(order.status)
+										.replace('bg-', 'bg-')
+										.replace('text-', 'text-')
+										.replace('border-', 'bg-')}"
+								></div>
 
-							<div class="p-5">
-								<!-- Header -->
-								<div class="mb-4 flex items-start justify-between">
-									<div>
-										<p class="text-xs font-medium tracking-wider text-slate-400 uppercase">Order</p>
-										<h3 class="font-mono text-sm font-semibold text-slate-800">
-											{order.reference}
-										</h3>
-									</div>
-									<span
-										class="rounded-full border px-3 py-1 text-xs font-semibold {getStatusColor(
-											order.status
-										)}"
-									>
-										{order.status}
-									</span>
-								</div>
-
-								<!-- Customer Info -->
-								<div class="mb-4 rounded-xl bg-slate-50 p-3">
-									<div class="flex items-center justify-between">
-										<div class="flex items-center gap-2">
-											<div
-												class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200"
-											>
-												<svg
-													xmlns="http://www.w3.org/2000/svg"
-													class="h-4 w-4 text-slate-500"
-													viewBox="0 0 24 24"
-													fill="none"
-													stroke="currentColor"
-													stroke-width="2"
-													><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle
-														cx="12"
-														cy="7"
-														r="4"
-													/></svg
-												>
-											</div>
-											<div>
-												<p class="text-sm font-semibold text-slate-800">{order.name || 'Guest'}</p>
-												{#if order.phone}
-													<a href="tel:{order.phone}" class="text-primary text-xs hover:underline">
-														{order.phone}
-													</a>
-												{/if}
-											</div>
+								<div class="p-5">
+									<!-- Header -->
+									<div class="mb-4 flex items-start justify-between">
+										<div>
+											<p class="text-xs font-medium tracking-wider text-slate-400 uppercase">
+												Order
+											</p>
+											<h3 class="font-mono text-sm font-semibold text-slate-800">
+												{order.reference}
+											</h3>
 										</div>
-										{#if order.phone}
-											<a
-												href="tel:{order.phone}"
-												class="bg-primary flex h-8 w-8 items-center justify-center rounded-full text-white shadow-lg transition-transform hover:scale-110"
-											>
-												<svg
-													xmlns="http://www.w3.org/2000/svg"
-													class="h-4 w-4"
-													viewBox="0 0 24 24"
-													fill="none"
-													stroke="currentColor"
-													stroke-width="2"
-													><path
-														d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2 18 18 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"
-													/></svg
-												>
-											</a>
-										{/if}
-									</div>
-								</div>
-
-								<!-- Order Details -->
-								<div class="mb-4 space-y-2 border-b border-slate-100 pb-3">
-									<div class="flex items-center justify-between">
-										<span class="text-sm text-slate-500">Total</span>
-										<span class="font-playfair text-lg font-bold text-slate-800"
-											>₦{(order.orderTotal ?? order.totalAmount ?? 0).toLocaleString()}</span
+										<span
+											class="rounded-full border px-3 py-1 text-xs font-semibold {getStatusColor(
+												order.status
+											)}"
 										>
-									</div>
-									<div class="flex items-center justify-between text-sm">
-										<span class="text-slate-500">Items</span>
-										<span class="font-medium text-slate-700">{order.quantity}</span>
-									</div>
-									<div class="flex items-center justify-between text-sm">
-										<span class="text-slate-500">Type</span>
-										<span class="font-medium text-slate-700">
-											{#if order.deliveryType === 'restaurantPickup'}
-												<span class="flex items-center gap-1">
-													<svg
-														xmlns="http://www.w3.org/2000/svg"
-														class="h-4 w-4"
-														viewBox="0 0 24 24"
-														fill="none"
-														stroke="currentColor"
-														stroke-width="2"
-														><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path
-															d="M3 6h18"
-														/><path d="M16 10a4 4 0 0 1-8 0" /></svg
-													>
-													Pickup
-												</span>
-											{:else if order.deliveryType === 'home'}
-												<span class="flex items-center gap-1">
-													<svg
-														xmlns="http://www.w3.org/2000/svg"
-														class="h-4 w-4"
-														viewBox="0 0 24 24"
-														fill="none"
-														stroke="currentColor"
-														stroke-width="2"
-														><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /><path
-															d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
-														/></svg
-													>
-													Delivery
-												</span>
-											{:else if order.deliveryType === 'tableService'}
-												<span class="flex items-center gap-1">
-													<svg
-														xmlns="http://www.w3.org/2000/svg"
-														class="h-4 w-4"
-														viewBox="0 0 24 24"
-														fill="none"
-														stroke="currentColor"
-														stroke-width="2"
-														><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><path
-															d="M7 2v20"
-														/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" /></svg
-													>
-													Table
-												</span>
-											{/if}
+											{order.status}
 										</span>
 									</div>
-								</div>
 
-								<!-- Address Info -->
-								{#if order.deliveryType === 'home' && order.homeAddress}
-									<div class="mb-4 flex items-start gap-2 rounded-lg bg-amber-50 p-2 text-xs">
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											class="h-4 w-4 flex-shrink-0 text-amber-600"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2"
-											><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle
-												cx="12"
-												cy="10"
-												r="3"
-											/></svg
-										>
-										<span class="truncate text-slate-600">{order.homeAddress}</span>
+									<!-- Customer Info -->
+									<div class="mb-4 rounded-xl bg-slate-50 p-3">
+										<div class="flex items-center justify-between">
+											<div class="flex items-center gap-2">
+												<div
+													class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200"
+												>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														class="h-4 w-4 text-slate-500"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+														><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle
+															cx="12"
+															cy="7"
+															r="4"
+														/></svg
+													>
+												</div>
+												<div>
+													<p class="text-sm font-semibold text-slate-800">
+														{order.name || 'Guest'}
+													</p>
+													{#if order.phone}
+														<a
+															href="tel:{order.phone}"
+															class="text-primary text-xs hover:underline"
+														>
+															{order.phone}
+														</a>
+													{/if}
+												</div>
+											</div>
+											{#if order.phone}
+												<a
+													href="tel:{order.phone}"
+													class="bg-primary flex h-8 w-8 items-center justify-center rounded-full text-white shadow-lg transition-transform hover:scale-110"
+												>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														class="h-4 w-4"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+														><path
+															d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2 18 18 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"
+														/></svg
+													>
+												</a>
+											{/if}
+										</div>
 									</div>
-								{:else if order.deliveryType === 'tableService' && order.tableNumber}
-									<div class="mb-4 flex items-center gap-2 rounded-lg bg-slate-100 p-2 text-sm">
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											class="h-4 w-4 text-slate-500"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2"
-											><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><path d="M7 2v20" /><path
-												d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"
-											/></svg
-										>
-										<span class="font-medium text-slate-700">Table {order.tableNumber}</span>
+
+									<!-- Order Details -->
+									<div class="mb-4 space-y-2 border-b border-slate-100 pb-3">
+										<div class="flex items-center justify-between">
+											<span class="text-sm text-slate-500">Total</span>
+											<span class="font-playfair text-lg font-bold text-slate-800"
+												>₦{(order.orderTotal ?? order.totalAmount ?? 0).toLocaleString()}</span
+											>
+										</div>
+										<div class="flex items-center justify-between text-sm">
+											<span class="text-slate-500">Items</span>
+											<span class="font-medium text-slate-700">{order.quantity}</span>
+										</div>
+										<div class="flex items-center justify-between text-sm">
+											<span class="text-slate-500">Type</span>
+											<span class="font-medium text-slate-700">
+												{#if order.deliveryType === 'restaurantPickup'}
+													<span class="flex items-center gap-1">
+														<svg
+															xmlns="http://www.w3.org/2000/svg"
+															class="h-4 w-4"
+															viewBox="0 0 24 24"
+															fill="none"
+															stroke="currentColor"
+															stroke-width="2"
+															><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path
+																d="M3 6h18"
+															/><path d="M16 10a4 4 0 0 1-8 0" /></svg
+														>
+														Pickup
+													</span>
+												{:else if order.deliveryType === 'home'}
+													<span class="flex items-center gap-1">
+														<svg
+															xmlns="http://www.w3.org/2000/svg"
+															class="h-4 w-4"
+															viewBox="0 0 24 24"
+															fill="none"
+															stroke="currentColor"
+															stroke-width="2"
+															><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /><path
+																d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+															/></svg
+														>
+														Delivery
+													</span>
+												{:else if order.deliveryType === 'tableService'}
+													<span class="flex items-center gap-1">
+														<svg
+															xmlns="http://www.w3.org/2000/svg"
+															class="h-4 w-4"
+															viewBox="0 0 24 24"
+															fill="none"
+															stroke="currentColor"
+															stroke-width="2"
+															><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><path
+																d="M7 2v20"
+															/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" /></svg
+														>
+														Table
+													</span>
+												{/if}
+											</span>
+										</div>
 									</div>
-								{/if}
 
-								<!-- Restaurant -->
-								<p class="mb-4 text-xs text-slate-400">{order.restaurantName || restaurantName}</p>
-
-								<!-- Dishes -->
-								<details class="mb-4">
-									<summary
-										class="cursor-pointer rounded-xl bg-slate-100 px-4 py-2 text-center text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
-									>
-										<span class="flex items-center justify-center gap-2">
+									<!-- Address Info -->
+									{#if order.deliveryType === 'home' && order.homeAddress}
+										<div class="mb-4 flex items-start gap-2 rounded-lg bg-amber-50 p-2 text-xs">
 											<svg
 												xmlns="http://www.w3.org/2000/svg"
-												class="h-4 w-4"
+												class="h-4 w-4 flex-shrink-0 text-amber-600"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle
+													cx="12"
+													cy="10"
+													r="3"
+												/></svg
+											>
+											<span class="truncate text-slate-600">{order.homeAddress}</span>
+										</div>
+									{:else if order.deliveryType === 'tableService' && order.tableNumber}
+										<div class="mb-4 flex items-center gap-2 rounded-lg bg-slate-100 p-2 text-sm">
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												class="h-4 w-4 text-slate-500"
 												viewBox="0 0 24 24"
 												fill="none"
 												stroke="currentColor"
@@ -559,39 +559,66 @@
 													d="M7 2v20"
 												/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" /></svg
 											>
-											View {order.dishes?.length || 0} Dishes
-										</span>
-									</summary>
-									<div class="mt-2 space-y-1">
-										{#each order.dishes || [] as item}
-											<div
-												class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"
-											>
-												<span class="text-slate-700">{item.name}</span>
-												<span class="font-semibold text-slate-500">×{item.quantity}</span>
-											</div>
+											<span class="font-medium text-slate-700">Table {order.tableNumber}</span>
+										</div>
+									{/if}
+
+									<!-- Restaurant -->
+									<p class="mb-4 text-xs text-slate-400">
+										{order.restaurantName || restaurantName}
+									</p>
+
+									<!-- Dishes -->
+									<details class="mb-4">
+										<summary
+											class="cursor-pointer rounded-xl bg-slate-100 px-4 py-2 text-center text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
+										>
+											<span class="flex items-center justify-center gap-2">
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													class="h-4 w-4"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+													><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><path
+														d="M7 2v20"
+													/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" /></svg
+												>
+												View {order.dishes?.length || 0} Dishes
+											</span>
+										</summary>
+										<div class="mt-2 space-y-1">
+											{#each order.dishes || [] as item}
+												<div
+													class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"
+												>
+													<span class="text-slate-700">{item.name}</span>
+													<span class="font-semibold text-slate-500">×{item.quantity}</span>
+												</div>
+											{/each}
+										</div>
+									</details>
+
+									<!-- Status Update -->
+									<select
+										bind:value={order.status}
+										class="focus:border-primary w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors focus:outline-none"
+										onchange={() => updateOrderStatus(order.id, order.status, order.reference)}
+									>
+										{#each ['Pending', 'Preparing', 'Ready', 'Delivered', 'Cancelled'] as statusOption}
+											<option value={statusOption}>{statusOption}</option>
 										{/each}
-									</div>
-								</details>
+									</select>
 
-								<!-- Status Update -->
-								<select
-									bind:value={order.status}
-									class="focus:border-primary w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors focus:outline-none"
-									onchange={() => updateOrderStatus(order.id, order.status, order.reference)}
-								>
-									{#each ['Pending', 'Preparing', 'Ready', 'Delivered', 'Cancelled'] as statusOption}
-										<option value={statusOption}>{statusOption}</option>
-									{/each}
-								</select>
-
-								<p class="mt-3 text-center text-xs text-slate-400">
-									{new Date(order.created).toLocaleString()}
-								</p>
-							</div>
-						</article>
-					{/each}
-				</div>
+									<p class="mt-3 text-center text-xs text-slate-400">
+										{new Date(order.created).toLocaleString()}
+									</p>
+								</div>
+							</article>
+						{/each}
+					</div>
+				{/if}
 			{/if}
 		{:else}
 			<div class="py-16 text-center">

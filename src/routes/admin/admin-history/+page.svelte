@@ -15,7 +15,7 @@
 	let filteredOrders: any = $state([]);
 	let loading = $state(true);
 	const restaurantName = get(page).data.restaurant?.name;
-	const allRestaurants = get(page).data.allRestaurants ?? [];
+	const allRestaurants = get(page).data.allRestaurantsIncludingSuper ?? [];
 	const currentRestaurantId = get(page).data.restaurantId;
 	const isSuper = get(page).data.isSuper ?? false;
 
@@ -199,92 +199,110 @@
 						></path>
 					</svg>
 				</div>
-			{:else if filteredOrders.length === 0}
-				<div class="py-16 text-center">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="mx-auto h-16 w-16 text-slate-300"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.5"
-					>
-						<circle cx="12" cy="12" r="10" />
-						<polyline points="12 6 12 12 16 14" />
-					</svg>
-					<h3 class="mt-4 text-lg font-medium text-slate-700">No Order History</h3>
-					<p class="mt-1 text-slate-500">You have no completed orders yet.</p>
-				</div>
 			{:else}
-				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-					{#each filteredOrders as order}
-						<article
-							class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"
-							in:fly={{ y: 20, duration: 300 }}
-						>
-							<!-- Header -->
-							<div class="mb-4 flex items-start justify-between">
-								<div>
-									<p class="text-xs text-slate-500">Order Ref</p>
-									<h3 class="font-semibold text-slate-900">{order.reference}</h3>
-									<p class="text-sm text-slate-600">{order.name || 'Guest'}</p>
-								</div>
-								<span
-									class="rounded-full border px-3 py-1 text-xs font-medium {getStatusColor(
-										order.status
-									)}"
-								>
-									{order.status}
-								</span>
-							</div>
+				<!-- Summary Cards -->
+				<div class="mb-6 grid gap-4 sm:grid-cols-2">
+					<div class="rounded-xl bg-white p-4 shadow-md shadow-slate-900/5">
+						<p class="text-sm text-slate-500">Total Orders</p>
+						<p class="text-2xl font-bold text-slate-800">{filteredOrders.length}</p>
+					</div>
+					<div class="rounded-xl bg-white p-4 shadow-md shadow-slate-900/5">
+						<p class="text-sm text-slate-500">Total Amount</p>
+						<p class="text-2xl font-bold text-emerald-600">
+							₦{filteredOrders
+								.reduce((sum: number, o: any) => sum + (o.orderTotal ?? o.totalAmount ?? 0), 0)
+								.toLocaleString()}
+						</p>
+					</div>
+				</div>
 
-							<!-- Details -->
-							<div class="mb-4 space-y-1 text-sm">
-								<div class="flex justify-between">
-									<span class="text-slate-500">Total</span>
-									<span class="font-semibold text-slate-700"
-										>₦{(order.orderTotal ?? order.totalAmount ?? 0).toLocaleString()}</span
+				{#if filteredOrders.length === 0}
+					<div class="py-16 text-center">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="mx-auto h-16 w-16 text-slate-300"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.5"
+						>
+							<circle cx="12" cy="12" r="10" />
+							<polyline points="12 6 12 12 16 14" />
+						</svg>
+						<h3 class="mt-4 text-lg font-medium text-slate-700">No Order History</h3>
+						<p class="mt-1 text-slate-500">You have no completed orders yet.</p>
+					</div>
+				{:else}
+					<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+						{#each filteredOrders as order}
+							<article
+								class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"
+								in:fly={{ y: 20, duration: 300 }}
+							>
+								<!-- Header -->
+								<div class="mb-4 flex items-start justify-between">
+									<div>
+										<p class="text-xs text-slate-500">Order Ref</p>
+										<h3 class="font-semibold text-slate-900">{order.reference}</h3>
+										<p class="text-sm text-slate-600">{order.name || 'Guest'}</p>
+									</div>
+									<span
+										class="rounded-full border px-3 py-1 text-xs font-medium {getStatusColor(
+											order.status
+										)}"
 									>
-								</div>
-								<div class="flex justify-between">
-									<span class="text-slate-500">Items</span>
-									<span class="text-slate-700">{order.quantity}</span>
-								</div>
-								<div class="flex justify-between">
-									<span class="text-slate-500">Type</span>
-									<span class="text-slate-700">
-										{#if order.deliveryType === 'restaurantPickup'}Pickup
-										{:else if order.deliveryType === 'home'}Home Delivery
-										{:else if order.deliveryType === 'tableService'}Dine-in
-										{/if}
+										{order.status}
 									</span>
 								</div>
-								<p class="text-xs text-slate-500">{order.restaurantName || restaurantName}</p>
-							</div>
 
-							<!-- Dishes -->
-							<details class="mb-4">
-								<summary
-									class="cursor-pointer rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-								>
-									View Dishes ({order.dishes?.length || 0})
-								</summary>
-								<div class="mt-2 space-y-1">
-									{#each order.dishes || [] as item}
-										<div class="flex justify-between rounded bg-slate-50 px-3 py-1.5 text-xs">
-											<span class="text-slate-700">{item.name}</span>
-											<span class="text-slate-500">×{item.quantity}</span>
-										</div>
-									{/each}
+								<!-- Details -->
+								<div class="mb-4 space-y-1 text-sm">
+									<div class="flex justify-between">
+										<span class="text-slate-500">Total</span>
+										<span class="font-semibold text-slate-700"
+											>₦{(order.orderTotal ?? order.totalAmount ?? 0).toLocaleString()}</span
+										>
+									</div>
+									<div class="flex justify-between">
+										<span class="text-slate-500">Items</span>
+										<span class="text-slate-700">{order.quantity}</span>
+									</div>
+									<div class="flex justify-between">
+										<span class="text-slate-500">Type</span>
+										<span class="text-slate-700">
+											{#if order.deliveryType === 'restaurantPickup'}Pickup
+											{:else if order.deliveryType === 'home'}Home Delivery
+											{:else if order.deliveryType === 'tableService'}Dine-in
+											{/if}
+										</span>
+									</div>
+									<p class="text-xs text-slate-500">{order.restaurantName || restaurantName}</p>
 								</div>
-							</details>
 
-							<p class="text-xs text-slate-400">
-								Completed: {new Date(order.updated).toLocaleString()}
-							</p>
-						</article>
-					{/each}
-				</div>
+								<!-- Dishes -->
+								<details class="mb-4">
+									<summary
+										class="cursor-pointer rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+									>
+										View Dishes ({order.dishes?.length || 0})
+									</summary>
+									<div class="mt-2 space-y-1">
+										{#each order.dishes || [] as item}
+											<div class="flex justify-between rounded bg-slate-50 px-3 py-1.5 text-xs">
+												<span class="text-slate-700">{item.name}</span>
+												<span class="text-slate-500">×{item.quantity}</span>
+											</div>
+										{/each}
+									</div>
+								</details>
+
+								<p class="text-xs text-slate-400">
+									Completed: {new Date(order.updated).toLocaleString()}
+								</p>
+							</article>
+						{/each}
+					</div>
+				{/if}
 			{/if}
 		{:else}
 			<div class="py-16 text-center">
