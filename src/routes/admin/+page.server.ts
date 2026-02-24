@@ -12,8 +12,9 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 		const restaurantId = restaurant.id;
 		const isSuper = isSuperRestaurant(restaurant);
 
-		// Build restaurant filter - super restaurants see all, otherwise just their restaurant
-		const restaurantFilter = isSuper ? '' : `restaurantId = "${restaurantId}" && `;
+		// Build restaurant filter - always filter by current restaurant (based on domain)
+		// Even super admins should only see orders for the restaurant they're currently managing
+		const restaurantFilter = `restaurantId = "${restaurantId}" && `;
 
 		// Get today's date range
 		const today = new Date();

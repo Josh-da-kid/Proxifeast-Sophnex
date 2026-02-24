@@ -384,7 +384,7 @@
 				callback: function (response: any) {
 					// Show payment success toast immediately
 					showSuccessToast = true;
-					toastMessage = 'Payment successful!';
+					toastMessage = 'Payment successful! Saving order...';
 
 					const orderedDishes = $cart.map((item) => ({
 						dish: item.expand?.dish?.id,
@@ -427,7 +427,7 @@
 							toastMessage = 'Order placed successfully!';
 							setTimeout(() => {
 								goto('/pending');
-							}, 1500);
+							}, 500);
 						})
 						.catch((err) => {
 							console.error(err);
