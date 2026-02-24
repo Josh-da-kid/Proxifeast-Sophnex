@@ -59,6 +59,7 @@
 	let dishQuantities = $state<Record<string, number>>({});
 	let addToCartAlert = $state(false);
 	let cartErrorAlert = $state(false);
+	let cartErrorMessage = $state('');
 	let locationMismatchAlert = $state(false);
 	let locationMismatchMessage = $state('');
 	let isAddingToCart = $state(new Map<string, boolean>());
@@ -476,6 +477,16 @@
 			return;
 		}
 
+		// Check if user is logged in first - if not, prompt them to login
+		if (!$isLoggedIn) {
+			cartErrorMessage = 'Please login to add items to cart';
+			cartErrorAlert = true;
+			setTimeout(() => {
+				cartErrorAlert = false;
+			}, 3000);
+			return;
+		}
+
 		isAddingToCart.set(dish.id, true);
 		lastAddedDishId = dish.id;
 
@@ -489,26 +500,18 @@
 		addToCartOptimistic(dish, quantity, dish.restaurantId, restaurantName);
 
 		try {
-			if ($isLoggedIn) {
-				await addToCartPB(
-					pb,
-					dish.id,
-					quantity,
-					$user.id,
-					dish.defaultAmount,
-					dish.promoAmount,
-					dish.restaurantId,
-					restaurantName
-				);
+			await addToCartPB(
+				pb,
+				dish.id,
+				quantity,
+				$user.id,
+				dish.defaultAmount,
+				dish.promoAmount,
+				dish.restaurantId,
+				restaurantName
+			);
 
-				await fetchCart();
-			} else {
-				addToCartAlert = false;
-				cartErrorAlert = true;
-				setTimeout(() => {
-					cartErrorAlert = false;
-				}, 2500);
-			}
+			await fetchCart();
 		} catch (err) {
 			console.error('Add to cart error:', err);
 			addToCartAlert = false;
@@ -521,6 +524,7 @@
 					addToCartAlert = false;
 				}, 2500);
 			} else {
+				cartErrorMessage = 'Failed to add item. Please try again.';
 				cartErrorAlert = true;
 				setTimeout(() => {
 					cartErrorAlert = false;
@@ -742,9 +746,17 @@
 					/>
 				</svg>
 			</div>
-			<div>
-				<p class="text-sm font-semibold">Something went wrong</p>
-				<p class="text-xs text-gray-400">Please try again</p>
+			<div class="flex flex-col">
+				<p class="text-sm font-semibold">{cartErrorMessage || 'Something went wrong'}</p>
+				<p class="text-xs text-gray-400">{cartErrorMessage ? '' : 'Please try again'}</p>
+				{#if cartErrorMessage === 'Please login to add items to cart'}
+					<a
+						href="/login"
+						class="btn btn-sm btn-primary mt-2 self-start rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+					>
+						Login
+					</a>
+				{/if}
 			</div>
 		</div>
 	</div>
