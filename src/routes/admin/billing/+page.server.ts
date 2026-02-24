@@ -36,6 +36,9 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			return defaults;
 		}
 
+		// First, check if there's a super restaurant in the system
+		const superRestaurant = allRestaurants.find((r: any) => r.isSuper === true);
+
 		// Find current restaurant by domain (same logic as layout)
 		let currentRest = allRestaurants.find((r: any) => {
 			const rDomain = (r.domain || '').replace('www.', '').toLowerCase();
@@ -51,11 +54,22 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			});
 		}
 
+		// If still not found, try to use the super restaurant if domain matches partially
+		if (!currentRest && superRestaurant) {
+			const superDomain = (superRestaurant.domain || '').replace('www.', '').toLowerCase();
+			if (
+				domainOnly.toLowerCase().includes(superDomain) ||
+				superDomain.includes(domainOnly.toLowerCase())
+			) {
+				currentRest = superRestaurant;
+			}
+		}
+
 		// isSuperUser is true only if current restaurant is super
 		const isSuperUser = currentRest ? !!currentRest.isSuper : false;
 
 		// Get super restaurant for settings (if current is super, use it; otherwise find one)
-		const superRest = isSuperUser ? currentRest : allRestaurants.find((r: any) => !!r.isSuper);
+		const superRest = isSuperUser ? currentRest : superRestaurant;
 
 		const paystackKey = superRest?.paystackKey || '';
 		const supportEmail = superRest?.supportEmail || 'support@proxifeast.com';

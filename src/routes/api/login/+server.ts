@@ -33,11 +33,48 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		// 🌍 Resolve restaurant from domain
 		const host = request.headers.get('host') || '';
-		const domain = host.split(':')[0];
+		const domain = host.split(':')[0].replace('www.', '').toLowerCase();
 
-		const restaurant = await locals.pb
-			.collection('restaurants')
-			.getFirstListItem(`domain = "${domain}"`);
+		// Try to find restaurant by domain
+		let restaurant = null;
+		try {
+			restaurant = await locals.pb
+				.collection('restaurants')
+				.getFirstListItem(`domain = "${domain}"`);
+		} catch (e) {
+			// Try partial match
+			try {
+				const restaurants = await locals.pb.collection('restaurants').getFullList();
+				restaurant = restaurants.find((r: any) => {
+					const rDomain = (r.domain || '').replace('www.', '').toLowerCase();
+					return domain.includes(rDomain) || rDomain.includes(domain);
+				});
+			} catch (e2) {
+				// No restaurant found
+			}
+		}
+
+		// If no restaurant found for domain, try to find a super restaurant
+		if (!restaurant) {
+			try {
+				const restaurants = await locals.pb.collection('restaurants').getFullList();
+				restaurant = restaurants.find((r: any) => r.isSuper === true);
+			} catch (e) {
+				// No super restaurant either
+			}
+		}
+
+		// If still no restaurant, return error
+		if (!restaurant) {
+			locals.pb.authStore.clear();
+			return json(
+				{
+					error: true,
+					message: 'Restaurant not found. Please contact support.'
+				},
+				{ status: 400 }
+			);
+		}
 
 		// 🚫 User does not belong to this restaurant
 		// Support both old (restaurantId) and new (restaurantIds) schema
@@ -91,12 +128,24 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		});
 	} catch (err: any) {
 		console.error('Login error:', err);
+
+		// Check if it's an authentication error
+		if (err.status === 400 || err.status === 403) {
+			return json(
+				{
+					error: true,
+					message: 'Invalid email or password.'
+				},
+				{ status: 400 }
+			);
+		}
+
 		return json(
 			{
 				error: true,
-				message: 'Invalid email or password.'
+				message: 'An error occurred. Please try again.'
 			},
-			{ status: 400 }
+			{ status: 500 }
 		);
 	}
 };
