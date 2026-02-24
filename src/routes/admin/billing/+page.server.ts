@@ -27,67 +27,70 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 	};
 
 	try {
+		// Get host from request
 		const host = request.headers.get('host') || '';
-		const domainOnly = host.split(':')[0].replace('www.', '');
+		const domainOnly = host.split(':')[0].replace('www.', '').toLowerCase();
 
+		// Fetch all restaurants
 		const allRestaurants: any[] = await locals.pb.collection('restaurants').getFullList();
 
 		if (!allRestaurants || allRestaurants.length === 0) {
 			return defaults;
 		}
 
-		// First, check if there's a super restaurant in the system
+		// Find super restaurant
 		const superRestaurant = allRestaurants.find((r: any) => r.isSuper === true);
 
-		// Find current restaurant by domain (same logic as layout)
-		let currentRest = allRestaurants.find((r: any) => {
-			const rDomain = (r.domain || '').replace('www.', '').toLowerCase();
-			return rDomain === domainOnly.toLowerCase();
+		// Find restaurant by domain
+		let restaurant = allRestaurants.find((r: any) => {
+			const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
+			return rDomain === domainOnly;
 		});
 
 		// If not found, try partial match
-		if (!currentRest) {
-			currentRest = allRestaurants.find((r: any) => {
-				const rDomain = (r.domain || '').replace('www.', '').toLowerCase();
-				const checkDomain = domainOnly.toLowerCase();
-				return checkDomain.includes(rDomain) || rDomain.includes(checkDomain);
+		if (!restaurant) {
+			restaurant = allRestaurants.find((r: any) => {
+				const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
+				return domainOnly.includes(rDomain) || rDomain.includes(domainOnly);
 			});
 		}
 
-		// If still not found, try to use the super restaurant if domain matches partially
-		if (!currentRest && superRestaurant) {
-			const superDomain = (superRestaurant.domain || '').replace('www.', '').toLowerCase();
-			if (
-				domainOnly.toLowerCase().includes(superDomain) ||
-				superDomain.includes(domainOnly.toLowerCase())
-			) {
-				currentRest = superRestaurant;
-			}
+		// If still not found, use super restaurant
+		if (!restaurant && superRestaurant) {
+			restaurant = superRestaurant;
 		}
 
-		// isSuperUser is true only if current restaurant is super
-		const isSuperUser = currentRest ? !!currentRest.isSuper : false;
+		// Check if this is a super restaurant
+		const isSuperRestaurant = restaurant?.isSuper === true;
 
-		// Get super restaurant for settings (if current is super, use it; otherwise find one)
-		const superRest = isSuperUser ? currentRest : superRestaurant;
+		console.log('=== BILLING PAGE DEBUG ===');
+		console.log('Host:', host);
+		console.log('Domain:', domainOnly);
+		console.log('Restaurant found:', restaurant?.name, restaurant?.id);
+		console.log('isSuperRestaurant:', isSuperRestaurant);
+		console.log('=========================');
+
+		// Get super restaurant for settings (for paystack key)
+		const superRest = superRestaurant;
 
 		const paystackKey = superRest?.paystackKey || '';
 		const supportEmail = superRest?.supportEmail || 'support@proxifeast.com';
 
 		let subscription: any = null;
-		let subscriptionStatus = isSuperUser ? 'active' : 'not_subscribed';
+		let subscriptionStatus = isSuperRestaurant ? 'active' : 'not_subscribed';
 		let subscriptions: any[] = [];
 		let restaurantsList: any[] = [];
 		let previousSubscriptions: any[] = [];
 
-		if (isSuperUser) {
+		// If super restaurant, show all subscriptions overview
+		if (isSuperRestaurant) {
 			subscriptions = await locals.pb.collection('subscriptions').getFullList({
 				sort: '-created'
 			});
 			restaurantsList = allRestaurants.filter((r) => r.isSuper !== true);
-		} else if (currentRest?.id) {
+		} else if (restaurant?.id) {
 			const subs: any = await locals.pb.collection('subscriptions').getList(1, 1, {
-				filter: `restaurantId = "${currentRest.id}"`,
+				filter: `restaurantId = "${restaurant.id}"`,
 				sort: '-created'
 			});
 
@@ -97,11 +100,10 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 				const endDate = new Date(subscription.endDate);
 
 				if (subscription.status === 'test') {
-					// Test subscriptions are treated as active for display purposes
 					if (endDate <= now) {
 						subscriptionStatus = 'expired';
 					} else {
-						subscriptionStatus = 'active'; // Treat as active for UI
+						subscriptionStatus = 'active';
 					}
 				} else if (subscription.status === 'pending') {
 					subscriptionStatus = 'pending';
@@ -115,12 +117,12 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			}
 
 			const allSubs: any = await locals.pb.collection('subscriptions').getList(1, 50, {
-				filter: `restaurantId = "${currentRest.id}"`,
+				filter: `restaurantId = "${restaurant.id}"`,
 				sort: '-created'
 			});
 			previousSubscriptions = allSubs.items || [];
 			subscriptions = subscription ? [subscription] : [];
-			restaurantsList = [currentRest];
+			restaurantsList = [restaurant];
 		}
 
 		const now = new Date();
@@ -157,11 +159,11 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			subscriptionStatus,
 			subscription,
 			previousSubscriptions,
-			isSuper: isSuperUser,
+			isSuper: isSuperRestaurant,
 			paystackKey,
 			supportEmail,
 			expired: url.searchParams.get('expired') === '1',
-			restaurant: isSuperUser ? null : currentRest,
+			restaurant: isSuperRestaurant ? null : restaurant,
 			subscriptions,
 			restaurants: restaurantsList,
 			hasUsedFreeTrial,
