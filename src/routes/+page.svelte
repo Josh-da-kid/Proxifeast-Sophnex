@@ -154,6 +154,13 @@
 		// Check URL for restaurant parameter
 		const urlParams = new URLSearchParams(window.location.search);
 		const restaurantParam = urlParams.get('restaurant');
+		const tableParam = urlParams.get('table');
+
+		// Store table number in localStorage if present in URL
+		if (tableParam) {
+			localStorage.setItem('tableNumber', tableParam);
+			console.log('Table number detected from QR:', tableParam);
+		}
 
 		if (restaurantParam || selectedRestaurant) {
 			viewMode = 'menu';

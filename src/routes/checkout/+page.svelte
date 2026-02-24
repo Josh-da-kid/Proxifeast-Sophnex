@@ -258,6 +258,13 @@
 		fetchCart();
 		setupSubscriptions();
 
+		// Check for table number from QR code scan
+		const storedTable = localStorage.getItem('tableNumber');
+		if (storedTable) {
+			tableNumber = storedTable;
+			deliveryOption = 'tableService';
+		}
+
 		// Safety timeout - ensure loading is false after 5 seconds
 		const timeout = setTimeout(() => {
 			if (loading) {
@@ -424,6 +431,8 @@
 					})
 						.then((res) => res.json())
 						.then((data) => {
+							// Clear table number from localStorage after successful order
+							localStorage.removeItem('tableNumber');
 							toastMessage = 'Order placed successfully!';
 							setTimeout(() => {
 								goto('/pending');
