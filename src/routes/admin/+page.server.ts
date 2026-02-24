@@ -19,18 +19,19 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 		console.log('Admin Dashboard - Restaurant ID:', restaurantId, 'Domain:', domain);
 		console.log('Admin Dashboard - Filter:', restaurantFilter);
 
-		// Get today's date range
-		const today = new Date();
-		// Use local timezone date
-		const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
-		const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1, 0, 0, 0);
+		// Get today's date range - use PocketBase date format for local timezone
+		const now = new Date();
+		const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+		const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
 
 		console.log('Date range:', {
 			startOfDay: startOfDay.toISOString(),
-			endOfDay: endOfDay.toISOString()
+			endOfDay: endOfDay.toISOString(),
+			localStart: startOfDay.toString(),
+			localEnd: endOfDay.toString()
 		});
 
-		// Fetch today's revenue - get ALL orders (no pagination limit)
+		// Fetch today's revenue - completed orders for today
 		const todayOrdersResult = await locals.pb.collection('orders').getFullList({
 			filter: `${restaurantFilter}status = "Delivered" && created >= "${startOfDay.toISOString()}" && created < "${endOfDay.toISOString()}"`
 		});
@@ -55,9 +56,9 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 
 		console.log('Today Revenue:', todayRevenue);
 
-		// Fetch pending/delivering orders for potential revenue
+		// Fetch pending orders for potential revenue (all pending orders, not just today's)
 		const pendingOrdersResult = await locals.pb.collection('orders').getFullList({
-			filter: `${restaurantFilter}(status = "Pending" || status = "Preparing" || status = "Ready") && created >= "${startOfDay.toISOString()}" && created < "${endOfDay.toISOString()}"`
+			filter: `${restaurantFilter}(status = "Pending" || status = "Preparing" || status = "Ready")`
 		});
 
 		console.log(
