@@ -19,21 +19,20 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 		console.log('Admin Dashboard - Restaurant ID:', restaurantId, 'Domain:', domain);
 		console.log('Admin Dashboard - Filter:', restaurantFilter);
 
-		// Get today's date range - use PocketBase date format for local timezone
+		// Get today's date range - use local timezone dates
 		const now = new Date();
 		const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
 		const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
 
-		console.log('Date range:', {
-			startOfDay: startOfDay.toISOString(),
-			endOfDay: endOfDay.toISOString(),
-			localStart: startOfDay.toString(),
-			localEnd: endOfDay.toString()
-		});
+		// Format dates for PocketBase filter (YYYY-MM-DD HH:mm:ss)
+		const startStr = startOfDay.toISOString().replace('T', ' ').split('.')[0];
+		const endStr = endOfDay.toISOString().replace('T', ' ').split('.')[0];
 
-		// Fetch today's revenue - all delivered orders (to ensure we capture any completed orders)
+		console.log('Date range:', { startStr, endStr, now: now.toISOString() });
+
+		// Fetch today's revenue - completed orders for today
 		const todayOrdersResult = await locals.pb.collection('orders').getFullList({
-			filter: `${restaurantFilter}status = "Delivered"`
+			filter: `${restaurantFilter}status = "Delivered" && created >= "${startStr}" && created < "${endStr}"`
 		});
 
 		console.log(
@@ -43,7 +42,8 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 				id: o.id,
 				restaurantId: o.restaurantId,
 				status: o.status,
-				totalAmount: o.totalAmount
+				totalAmount: o.totalAmount,
+				created: o.created
 			}))
 		);
 
@@ -56,9 +56,9 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 
 		console.log('Today Revenue:', todayRevenue);
 
-		// Fetch pending orders for potential revenue (all pending orders, not just today's)
+		// Fetch pending orders for potential revenue (orders taken today that are pending/preparing/ready)
 		const pendingOrdersResult = await locals.pb.collection('orders').getFullList({
-			filter: `${restaurantFilter}(status = "Pending" || status = "Preparing" || status = "Ready")`
+			filter: `${restaurantFilter}(status = "Pending" || status = "Preparing" || status = "Ready") && created >= "${startStr}" && created < "${endStr}"`
 		});
 
 		console.log(
