@@ -61,7 +61,7 @@
 	let cartErrorAlert = $state(false);
 	let locationMismatchAlert = $state(false);
 	let locationMismatchMessage = $state('');
-	let isAddingToCart = $state(false);
+	let isAddingToCart = $state(new Map<string, boolean>());
 	let lastAddedDishId = $state('');
 
 	// Dish favorites state (for super restaurants)
@@ -464,12 +464,12 @@
 		const quantity = Number(dishQuantities[dish.id] || 1);
 		const restaurantName = getRestaurantNameForDish(dish);
 
-		// Prevent rapid duplicate clicks
-		if (isAddingToCart) {
+		// Prevent rapid duplicate clicks for the SAME dish
+		if (isAddingToCart.has(dish.id)) {
 			return;
 		}
 
-		isAddingToCart = true;
+		isAddingToCart.set(dish.id, true);
 		lastAddedDishId = dish.id;
 
 		// Show notification IMMEDIATELY for instant feedback
@@ -521,8 +521,8 @@
 			}
 		} finally {
 			setTimeout(() => {
-				isAddingToCart = false;
-			}, 500);
+				isAddingToCart.delete(dish.id);
+			}, 300);
 		}
 	}
 
