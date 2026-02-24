@@ -50,6 +50,8 @@
 	let dishToDelete: any = $state(null);
 	let loading = $state(true);
 	let showDetails = $state(false);
+	let isClearingCart = $state(false);
+	let itemsBeingUpdated = $state(new Map<string, boolean>());
 	let unsubscribeDish: () => void;
 	let unsubscribeCart: () => void;
 
@@ -209,17 +211,22 @@
 	}
 
 	export async function removeFromCart(id: string) {
+		itemsBeingUpdated.set(id, true);
 		try {
 			await pb.collection('cart').delete(id);
 			await fetchCart();
 		} catch (err) {
 			console.error('Failed to remove item:', err);
+		} finally {
+			itemsBeingUpdated.set(id, false);
 		}
 	}
 
 	export async function clearCart() {
 		const userId = get(user)?.id;
 		if (!userId) return;
+
+		isClearingCart = true;
 		try {
 			const items = await pb.collection('cart').getFullList({ filter: `user="${userId}"` });
 			await Promise.all(items.map((item) => pb.collection('cart').delete(item.id)));
@@ -227,6 +234,8 @@
 			clearModal?.close();
 		} catch (err) {
 			console.error('Failed to clear cart:', err);
+		} finally {
+			isClearingCart = false;
 		}
 	}
 
@@ -246,11 +255,15 @@
 			await removeFromCart(itemId);
 			return;
 		}
+
+		itemsBeingUpdated.set(itemId, true);
 		try {
 			await pb.collection('cart').update(itemId, { quantity: newQty, amount: unitPrice * newQty });
 			await fetchCart();
 		} catch (err) {
 			console.error('Failed to update quantity:', err);
+		} finally {
+			itemsBeingUpdated.set(itemId, false);
 		}
 	}
 
@@ -661,9 +674,33 @@
 																	}
 																}}
 																class="bg-base-100 hover:bg-base-300 text-primary flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-50"
-																disabled={item.expand.dish.availability !== 'Available'}
+																disabled={item.expand.dish.availability !== 'Available' ||
+																	itemsBeingUpdated.get(item.id)}
 															>
-																{@html iconMinus}
+																{#if itemsBeingUpdated.get(item.id)}
+																	<svg
+																		class="h-4 w-4 animate-spin"
+																		xmlns="http://www.w3.org/2000/svg"
+																		fill="none"
+																		viewBox="0 0 24 24"
+																	>
+																		<circle
+																			class="opacity-25"
+																			cx="12"
+																			cy="12"
+																			r="10"
+																			stroke="currentColor"
+																			stroke-width="4"
+																		></circle>
+																		<path
+																			class="opacity-75"
+																			fill="currentColor"
+																			d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+																		></path>
+																	</svg>
+																{:else}
+																	{@html iconMinus}
+																{/if}
 															</button>
 															<span class="w-10 text-center font-semibold">{item.quantity}</span>
 															<button
@@ -677,9 +714,33 @@
 																	});
 																}}
 																class="bg-base-100 hover:bg-base-300 text-primary flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-50"
-																disabled={item.expand.dish.availability !== 'Available'}
+																disabled={item.expand.dish.availability !== 'Available' ||
+																	itemsBeingUpdated.get(item.id)}
 															>
-																{@html iconPlus}
+																{#if itemsBeingUpdated.get(item.id)}
+																	<svg
+																		class="h-4 w-4 animate-spin"
+																		xmlns="http://www.w3.org/2000/svg"
+																		fill="none"
+																		viewBox="0 0 24 24"
+																	>
+																		<circle
+																			class="opacity-25"
+																			cx="12"
+																			cy="12"
+																			r="10"
+																			stroke="currentColor"
+																			stroke-width="4"
+																		></circle>
+																		<path
+																			class="opacity-75"
+																			fill="currentColor"
+																			d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+																		></path>
+																	</svg>
+																{:else}
+																	{@html iconPlus}
+																{/if}
 															</button>
 														</div>
 													</div>
@@ -1214,11 +1275,34 @@
 			<form method="dialog"><button class="btn btn-ghost">Cancel</button></form>
 			<button
 				class="btn btn-error text-white"
+				disabled={dishToDelete && itemsBeingUpdated.get(dishToDelete.id)}
 				onclick={async () => {
-					await removeFromCart(dishToDelete.id);
-					deleteModal.close();
-				}}>Remove Item</button
+					if (dishToDelete) {
+						await removeFromCart(dishToDelete.id);
+						deleteModal.close();
+					}
+				}}
 			>
+				{#if dishToDelete && itemsBeingUpdated.get(dishToDelete.id)}
+					<svg
+						class="mr-2 h-4 w-4 animate-spin"
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+					>
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+						></circle>
+						<path
+							class="opacity-75"
+							fill="currentColor"
+							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+						></path>
+					</svg>
+					Removing...
+				{:else}
+					Remove Item
+				{/if}
+			</button>
 		</div>
 	</div>
 </dialog>
@@ -1235,8 +1319,34 @@
 			Are you sure you want to remove all items from your cart?
 		</p>
 		<div class="flex justify-center gap-3">
-			<form method="dialog"><button class="btn btn-ghost">Cancel</button></form>
-			<button class="btn btn-error text-white" onclick={() => clearCart()}>Clear All</button>
+			<form method="dialog">
+				<button class="btn btn-ghost" disabled={isClearingCart}>Cancel</button>
+			</form>
+			<button
+				class="btn btn-error text-white"
+				onclick={() => clearCart()}
+				disabled={isClearingCart}
+			>
+				{#if isClearingCart}
+					<svg
+						class="mr-2 h-4 w-4 animate-spin"
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+					>
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+						></circle>
+						<path
+							class="opacity-75"
+							fill="currentColor"
+							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+						></path>
+					</svg>
+					Clearing...
+				{:else}
+					Clear All
+				{/if}
+			</button>
 		</div>
 	</div>
 </dialog>

@@ -63,6 +63,7 @@
 	let locationMismatchAlert = $state(false);
 	let locationMismatchMessage = $state('');
 	let isAddingToCart = $state(new Map<string, boolean>());
+	let isClearingCart = $state(false);
 	let lastAddedDishId = $state('');
 
 	// Dish favorites state (for super restaurants)
@@ -541,6 +542,7 @@
 		const userId = $user?.id;
 		if (!userId) return;
 
+		isClearingCart = true;
 		try {
 			const items = await pb.collection('cart').getFullList({
 				filter: `user="${userId}"`
@@ -552,6 +554,8 @@
 			clearModal?.close();
 		} catch (err) {
 			console.error('Failed to clear cart:', err);
+		} finally {
+			isClearingCart = false;
 		}
 	}
 
@@ -2096,8 +2100,40 @@
 				Are you sure you want to remove all items from your cart?
 			</p>
 			<div class="flex justify-center gap-3">
-				<button onclick={() => clearModal.close()} class="btn btn-ghost">Cancel</button>
-				<button onclick={() => clearCart(clearModal)} class="btn btn-error"> Clear All </button>
+				<button onclick={() => clearModal.close()} class="btn btn-ghost" disabled={isClearingCart}
+					>Cancel</button
+				>
+				<button
+					onclick={() => clearCart(clearModal)}
+					class="btn btn-error"
+					disabled={isClearingCart}
+				>
+					{#if isClearingCart}
+						<svg
+							class="mr-2 h-4 w-4 animate-spin"
+							xmlns="http://www.w3.org/2000/svg"
+							fill="none"
+							viewBox="0 0 24 24"
+						>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
+						</svg>
+						Clearing...
+					{:else}
+						Clear All
+					{/if}
+				</button>
 			</div>
 		</div>
 	</dialog>
