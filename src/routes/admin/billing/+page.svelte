@@ -16,6 +16,7 @@
 	let paymentSuccess = $state(false);
 	let paymentError = $state('');
 	let renewalMessage = $state('');
+	let isLoadingSuperData = $state(false);
 
 	// Real-time updates for progress and days remaining
 	let currentTime = $state(Date.now());
@@ -27,6 +28,28 @@
 		}, 1000);
 
 		return () => clearInterval(interval);
+	});
+
+	// For super restaurants, show loading on initial mount if data might be slow
+	let hasCheckedSuperData = $state(false);
+
+	$effect(() => {
+		// Only run once when component mounts
+		if (data.isSuper && !hasCheckedSuperData) {
+			hasCheckedSuperData = true;
+
+			// If no subscriptions loaded yet, show loading briefly
+			if (!data.subscriptions || data.subscriptions.length === 0) {
+				isLoadingSuperData = true;
+
+				// Auto-hide loading after a delay and force refresh
+				setTimeout(() => {
+					isLoadingSuperData = false;
+					// Force page reload to get data
+					window.location.reload();
+				}, 2000);
+			}
+		}
 	});
 
 	// Force reactivity when currentTime changes
@@ -764,7 +787,32 @@
 
 	<!-- Content -->
 	<main class="container mx-auto px-4 py-8">
-		{#if !data.isSuper && (data.subscriptionStatus === 'not_subscribed' || data.subscriptionStatus === 'expired' || data.subscriptionStatus === 'cancelled' || data.subscriptionStatus === 'pending')}
+		<!-- Loading state for super restaurants -->
+		{#if data.isSuper && isLoadingSuperData}
+			<div class="flex flex-col items-center justify-center py-20">
+				<div class="bg-primary/10 mb-6 flex h-16 w-16 items-center justify-center rounded-full">
+					<svg
+						class="text-primary h-8 w-8 animate-spin"
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+					>
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+						></circle>
+						<path
+							class="opacity-75"
+							fill="currentColor"
+							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+						></path>
+					</svg>
+				</div>
+				<h3 class="text-xl font-semibold text-slate-800">Loading Subscription Data</h3>
+				<p class="mt-2 max-w-md text-center text-slate-500">
+					We're fetching all subscription data for your restaurants. This may take a moment as
+					there's a lot of data to load.
+				</p>
+			</div>
+		{:else if !data.isSuper && (data.subscriptionStatus === 'not_subscribed' || data.subscriptionStatus === 'expired' || data.subscriptionStatus === 'cancelled' || data.subscriptionStatus === 'pending')}
 			<!-- Subscription plans for non-super restaurants -->
 			<div class="mx-auto max-w-3xl">
 				<div class="rounded-2xl bg-white p-6 shadow-sm">
