@@ -2,40 +2,169 @@ import type { PageServerLoad } from '../$types';
 
 export const load: PageServerLoad = async ({ locals, request }) => {
 	const host = request.headers.get('host') || '';
-	const domain = host.split(':')[0];
+	const domainOnly = host.split(':')[0].replace('www.', '').toLowerCase();
+
+	let restaurant: any = null;
+	let restaurantId: string | null = null;
 
 	try {
-		const restaurant = await locals.pb
-			.collection('restaurants')
-			.getFirstListItem(`domain = "${domain}"`);
-		const restaurantId = restaurant.id;
+		// Try to find restaurant by exact domain match
+		try {
+			restaurant = await locals.pb
+				.collection('restaurants')
+				.getFirstListItem(`domain = "${domainOnly}"`);
+		} catch {
+			// Try partial match
+			try {
+				const results = await locals.pb.collection('restaurants').getList(1, 5, {
+					filter: `domain ~ "${domainOnly}"`
+				});
+				if (results.items.length > 0) {
+					restaurant = results.items[0];
+				}
+			} catch {
+				// Fallback to super restaurant
+				try {
+					restaurant = await locals.pb.collection('restaurants').getFirstListItem('isSuper = true');
+				} catch {
+					console.log('No restaurant found');
+				}
+			}
+		}
 
-		const isAdmin = locals.user?.isAdmin === true;
-		const restaurantFilter = isAdmin ? '' : `restaurantId = "${restaurantId}" && `;
+		restaurantId = restaurant?.id || null;
+		console.log('User Analysis - Restaurant ID:', restaurantId);
+	} catch (err) {
+		console.error('Error finding restaurant:', err);
+	}
 
-		// Get all delivered orders
+	if (!restaurantId) {
+		console.log('No restaurant ID found, returning empty data');
+		return getEmptyData();
+	}
+
+	const isAdmin = locals.user?.isAdmin === true;
+	const restaurantFilter = isAdmin ? '' : `restaurantId = "${restaurantId}" && `;
+
+	try {
+		// Get all delivered orders for this restaurant
+		console.log('Fetching orders with filter:', `${restaurantFilter}status = "Delivered"`);
 		const deliveredOrders = await locals.pb.collection('orders').getFullList({
 			filter: `${restaurantFilter}status = "Delivered"`,
 			sort: '-created'
 		});
+		console.log('Found delivered orders:', deliveredOrders.length);
 
-		// Get all users for this restaurant
-		const allUsers = await locals.pb.collection('users').getFullList({
-			filter: `restaurantIds ?= "${restaurantId}"`
-		});
+		// Log sample order to see structure
+		if (deliveredOrders.length > 0) {
+			console.log('Sample order fields:', Object.keys(deliveredOrders[0]));
+			console.log(
+				'Sample order:',
+				JSON.stringify({
+					id: deliveredOrders[0].id,
+					user: deliveredOrders[0].user,
+					restaurantId: deliveredOrders[0].restaurantId,
+					orderTotal: deliveredOrders[0].orderTotal,
+					totalAmount: deliveredOrders[0].totalAmount,
+					created: deliveredOrders[0].created
+				})
+			);
+		}
 
-		// Group orders by user
+		// Get all users - try filtering by restaurantIds, but if that returns nothing, get all users
+		let allUsers: any[] = [];
+
+		// First, get all users
+		try {
+			allUsers = await locals.pb.collection('users').getFullList({
+				sort: '-created'
+			});
+			console.log('Found all users:', allUsers.length);
+
+			// Log sample user to see structure
+			if (allUsers.length > 0) {
+				console.log('Sample user fields:', Object.keys(allUsers[0]));
+				console.log(
+					'Sample user:',
+					JSON.stringify({
+						id: allUsers[0].id,
+						name: allUsers[0].name,
+						email: allUsers[0].email,
+						restaurantIds: allUsers[0].restaurantIds
+					})
+				);
+			}
+		} catch (err) {
+			console.log('Error getting users:', err);
+		}
+
+		// Check what user IDs are in orders
+		const orderUserIds = [...new Set(deliveredOrders.map((o: any) => o.user).filter(Boolean))];
+		console.log('User IDs in orders:', orderUserIds);
+
+		// If we have users in orders but not from restaurantIds filter, try to find them
+		if (allUsers.length === 0 && orderUserIds.length > 0) {
+			console.log('Getting users from orders directly');
+			const userPromises = orderUserIds.map((userId: string) =>
+				locals.pb
+					.collection('users')
+					.getOne(userId)
+					.catch(() => null)
+			);
+			allUsers = (await Promise.all(userPromises)).filter(Boolean);
+			console.log('Found users from orders:', allUsers.length);
+		}
+
+		// If still no users from filter, use users from orders
+		if (allUsers.length === 0 && deliveredOrders.length > 0) {
+			const userIds = [...new Set(deliveredOrders.map((o: any) => o.user).filter(Boolean))];
+			console.log('Getting users from orders:', userIds.length);
+			const userPromises = userIds.map((userId: string) =>
+				locals.pb
+					.collection('users')
+					.getOne(userId)
+					.catch(() => null)
+			);
+			allUsers = (await Promise.all(userPromises)).filter(Boolean);
+		}
+
+		// Group orders by user - try matching by user ID first, then by email
 		const userOrdersMap: Record<string, any[]> = {};
-		deliveredOrders.forEach((order: any) => {
-			if (order.user) {
-				if (!userOrdersMap[order.user]) {
-					userOrdersMap[order.user] = [];
-				}
-				userOrdersMap[order.user].push(order);
+
+		// Create a map of email to user for matching
+		const emailToUserMap: Record<string, any> = {};
+		allUsers.forEach((user: any) => {
+			if (user.email) {
+				emailToUserMap[user.email.toLowerCase()] = user;
 			}
 		});
 
-		// Build customer stats from all users
+		deliveredOrders.forEach((order: any) => {
+			let userId = order.user;
+
+			// If user field is empty, try to match by email
+			if (!userId && order.email) {
+				const matchedUser = emailToUserMap[order.email.toLowerCase()];
+				if (matchedUser) {
+					userId = matchedUser.id;
+				}
+			}
+
+			if (userId) {
+				if (!userOrdersMap[userId]) {
+					userOrdersMap[userId] = [];
+				}
+				userOrdersMap[userId].push(order);
+			}
+		});
+
+		console.log('User orders map keys:', Object.keys(userOrdersMap));
+		console.log(
+			'Orders per user:',
+			Object.values(userOrdersMap).map((orders: any) => orders.length)
+		);
+
+		// Build customer stats - include ALL users, with their order data if they have orders
 		const customerStats: any[] = allUsers.map((user: any) => {
 			const userOrders = userOrdersMap[user.id] || [];
 			const totalSpent = userOrders.reduce(
@@ -43,33 +172,15 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 				0
 			);
 
-			// Calculate average time between orders
-			let avgDaysBetweenOrders = 0;
-			if (userOrders.length > 1) {
-				const sortedOrders = [...userOrders].sort(
-					(a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()
-				);
-				let totalDays = 0;
-				for (let i = 0; i < sortedOrders.length - 1; i++) {
-					const days =
-						(new Date(sortedOrders[i].created).getTime() -
-							new Date(sortedOrders[i + 1].created).getTime()) /
-						(1000 * 60 * 60 * 24);
-					totalDays += days;
-				}
-				avgDaysBetweenOrders = Math.round(totalDays / (sortedOrders.length - 1));
-			}
-
 			return {
 				id: user.id,
-				name: user.name || user.username || 'Unknown',
+				name: user.name || user.username || user.email?.split('@')[0] || 'Unknown',
 				email: user.email || '',
 				phone: user.phone || user.phoneNumber || '',
 				address: user.address || '',
 				orderCount: userOrders.length,
 				totalOrderCount: userOrders.length,
 				totalSpent,
-				avgDaysBetweenOrders,
 				firstOrder: userOrders.length > 0 ? userOrders[userOrders.length - 1]?.created : null,
 				lastOrder: userOrders.length > 0 ? userOrders[0]?.created : null
 			};
@@ -249,7 +360,7 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			]
 		};
 
-		// Customer retention rate (customers who ordered in both periods)
+		// Customer retention rate
 		const recentCustomerIds = new Set(recentOrders.map((o: any) => o.user).filter(Boolean));
 		const previousCustomerIds = new Set(
 			previousPeriodOrders.map((o: any) => o.user).filter(Boolean)
@@ -262,7 +373,7 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 				? Math.round((retainedCustomers / previousCustomerIds.size) * 100)
 				: 0;
 
-		// Churned customers (no orders in last 30 days but ordered before)
+		// Churned customers
 		const churnedCustomers = customerStats.filter((c: any) => {
 			if (c.orderCount === 0) return false;
 			const lastOrder = new Date(c.lastOrder);
@@ -272,7 +383,7 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			return daysSinceLastOrder > 30;
 		}).length;
 
-		// Top customers by revenue
+		// Top customers
 		const topCustomers = customerStats.slice(0, 5).map((c: any) => ({
 			id: c.id,
 			name: c.name,
@@ -281,7 +392,7 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			orderCount: c.orderCount
 		}));
 
-		// Most valuable customers (by LTV - lifetime value)
+		// Most valuable customers
 		const mostValuableCustomers = customerStats.slice(0, 10).map((c: any) => ({
 			id: c.id,
 			name: c.name,
@@ -292,17 +403,22 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			lastOrder: c.lastOrder
 		}));
 
-		// Calculate LTV (Lifetime Value) - average customer value
-		const totalRevenue = customerStats.reduce((sum: number, c: any) => sum + c.totalSpent, 0);
-		const avgCustomerLTV =
-			customerStats.length > 0 ? Math.round(totalRevenue / customerStats.length) : 0;
-
-		// Customer growth (new users in last 30 days)
+		// Customer growth
 		const thirtyDaysAgoDate = new Date();
 		thirtyDaysAgoDate.setDate(thirtyDaysAgoDate.getDate() - 30);
 		const newUsersLast30Days = allUsers.filter(
 			(u: any) => new Date(u.created) >= thirtyDaysAgoDate
 		).length;
+
+		const totalRevenue = customerStats.reduce((sum: number, c: any) => sum + c.totalSpent, 0);
+		const avgCustomerLTV =
+			customerStats.length > 0 ? Math.round(totalRevenue / customerStats.length) : 0;
+
+		console.log('Returning data:', {
+			customers: customerStats.length,
+			orders: deliveredOrders.length,
+			revenue: totalRevenue
+		});
 
 		return {
 			customerStats,
@@ -337,35 +453,39 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 		};
 	} catch (error) {
 		console.error('Error loading user analysis:', error);
-		return {
-			customerStats: [],
-			userOrdersMap: {},
-			charts: {
-				revenueOverTime: { labels: [], datasets: [] },
-				tierDistribution: { labels: [], datasets: [] },
-				newVsReturning: { labels: [], datasets: [] },
-				orderTimeDistribution: { labels: [], datasets: [] },
-				deliveryTypeDistribution: { labels: [], datasets: [] }
-			},
-			topCustomers: [],
-			mostValuableCustomers: [],
-			popularDishes: [],
-			stats: {
-				totalCustomers: 0,
-				newCustomers: 0,
-				returningCustomers: 0,
-				vipCount: 0,
-				premiumCount: 0,
-				regularCount: 0,
-				newCount: 0,
-				totalRevenue: 0,
-				avgOrderValue: 0,
-				avgCustomerLTV: 0,
-				retentionRate: 0,
-				churnedCustomers: 0,
-				newUsersLast30Days: 0,
-				totalOrders: 0
-			}
-		};
+		return getEmptyData();
 	}
 };
+
+function getEmptyData() {
+	return {
+		customerStats: [],
+		userOrdersMap: {},
+		charts: {
+			revenueOverTime: { labels: [], datasets: [] },
+			tierDistribution: { labels: [], datasets: [] },
+			newVsReturning: { labels: [], datasets: [] },
+			orderTimeDistribution: { labels: [], datasets: [] },
+			deliveryTypeDistribution: { labels: [], datasets: [] }
+		},
+		topCustomers: [],
+		mostValuableCustomers: [],
+		popularDishes: [],
+		stats: {
+			totalCustomers: 0,
+			newCustomers: 0,
+			returningCustomers: 0,
+			vipCount: 0,
+			premiumCount: 0,
+			regularCount: 0,
+			newCount: 0,
+			totalRevenue: 0,
+			avgOrderValue: 0,
+			avgCustomerLTV: 0,
+			retentionRate: 0,
+			churnedCustomers: 0,
+			newUsersLast30Days: 0,
+			totalOrders: 0
+		}
+	};
+}
