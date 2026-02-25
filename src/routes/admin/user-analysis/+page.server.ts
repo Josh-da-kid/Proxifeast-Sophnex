@@ -8,104 +8,76 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 	let restaurantId: string | null = null;
 
 	try {
-		try {
-			restaurant = await locals.pb
-				.collection('restaurants')
-				.getFirstListItem(`domain = "${domainOnly}"`);
-		} catch {
-			try {
-				const results = await locals.pb.collection('restaurants').getList(1, 5, {
-					filter: `domain ~ "${domainOnly}"`
-				});
-				if (results.items.length > 0) {
-					restaurant = results.items[0];
-				}
-			} catch {
-				try {
-					restaurant = await locals.pb.collection('restaurants').getFirstListItem('isSuper = true');
-				} catch {
-					console.log('No restaurant found');
-				}
-			}
-		}
-
+		restaurant = await locals.pb
+			.collection('restaurants')
+			.getFirstListItem(`domain = "${domainOnly}"`);
 		restaurantId = restaurant?.id || null;
-		console.log('User Analysis - Restaurant ID:', restaurantId);
-	} catch (err) {
-		console.error('Error finding restaurant:', err);
+	} catch {
+		try {
+			const results = await locals.pb
+				.collection('restaurants')
+				.getList(1, 5, { filter: `domain ~ "${domainOnly}"` });
+			if (results.items.length > 0) restaurant = results.items[0];
+		} catch {}
+		if (!restaurant) {
+			try {
+				restaurant = await locals.pb.collection('restaurants').getFirstListItem('isSuper = true');
+			} catch {}
+		}
+		restaurantId = restaurant?.id || null;
 	}
 
-	if (!restaurantId) {
-		return getEmptyData();
-	}
+	console.log('User Analysis - Restaurant ID:', restaurantId);
 
-	const isAdmin = locals.user?.isAdmin === true;
-	const restaurantFilter = isAdmin ? '' : `restaurantId = "${restaurantId}" && `;
+	if (!restaurantId) return getEmptyData();
 
 	try {
-		// Get all delivered orders for this restaurant
+		// Get all users from database
+		const allUsers = await locals.pb.collection('users').getFullList();
+		console.log('Total users in database:', allUsers.length);
+		console.log(
+			'Sample user:',
+			allUsers[0]
+				? { id: allUsers[0].id, email: allUsers[0].email, restaurantIds: allUsers[0].restaurantIds }
+				: 'none'
+		);
+
+		// Get all delivered orders
 		const deliveredOrders = await locals.pb.collection('orders').getFullList({
-			filter: `${restaurantFilter}status = "Delivered"`,
+			filter: `restaurantId = "${restaurantId}" && status = "Delivered"`,
 			sort: '-created'
 		});
 		console.log('Found delivered orders:', deliveredOrders.length);
-
-		// Get ALL users who have this restaurant in their restaurantIds - try different filter approaches
-		let restaurantUsers: any[] = [];
-		try {
-			// Try exact match first
-			let result = await locals.pb.collection('users').getList(1, 500, {
-				filter: `restaurantIds ?= "${restaurantId}"`,
-				sort: '-created'
+		if (deliveredOrders.length > 0) {
+			console.log('Sample order:', {
+				id: deliveredOrders[0].id,
+				user: deliveredOrders[0].user,
+				email: deliveredOrders[0].email,
+				name: deliveredOrders[0].name
 			});
-			restaurantUsers = result.items;
-			console.log('Users with restaurantIds filter:', restaurantUsers.length);
-
-			// If still 0, try getting all users and filter manually
-			if (restaurantUsers.length === 0) {
-				console.log('Trying manual filter...');
-				const allUsers = await locals.pb.collection('users').getFullList();
-				console.log('Total users in DB:', allUsers.length);
-
-				restaurantUsers = allUsers.filter((u: any) => {
-					const ids = u.restaurantIds || [];
-					console.log('User:', u.email, 'restaurantIds:', ids);
-					return ids.includes(restaurantId);
-				});
-				console.log('Users after manual filter:', restaurantUsers.length);
-			}
-		} catch (err) {
-			console.log('Error getting restaurant users:', err);
 		}
 
-		// Build customer list ONLY from registered users (users collection)
+		// Build customer map from all users
 		const customerMap: Record<string, any> = {};
 
-		// Add all registered users
-		restaurantUsers.forEach((user: any) => {
+		allUsers.forEach((user: any) => {
 			customerMap[user.id] = {
 				id: user.id,
 				name: user.name || user.username || user.email?.split('@')[0] || 'Unknown',
 				email: user.email || '',
 				phone: user.phone || '',
 				address: user.address || '',
-				orders: [],
-				isRegistered: true
+				orders: []
 			};
 		});
 
-		// Link orders to users by matching user ID
+		// Link orders to users
 		deliveredOrders.forEach((order: any) => {
-			if (!order.user) return;
-
-			if (customerMap[order.user]) {
+			if (order.user && customerMap[order.user]) {
 				customerMap[order.user].orders.push(order);
 			}
 		});
 
-		console.log('Total registered customers:', Object.keys(customerMap).length);
-
-		// Convert to array and calculate stats
 		const customerStats = Object.values(customerMap).map((customer: any) => {
 			const orders = customer.orders;
 			const totalSpent = orders.reduce(
@@ -130,11 +102,10 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			};
 		});
 
-		// Sort by total spent
 		customerStats.sort((a: any, b: any) => b.totalSpent - a.totalSpent);
 		console.log('Total customers:', customerStats.length);
 
-		// Calculate tier distribution
+		// Tiers
 		let vipCount = 0,
 			premiumCount = 0,
 			regularCount = 0,
@@ -188,7 +159,6 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			]
 		};
 
-		// Tier distribution
 		const tierDistribution = {
 			labels: ['VIP (₦100k+)', 'Premium (₦50k+)', 'Regular (5+ orders)', 'New'],
 			datasets: [
@@ -199,7 +169,6 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			]
 		};
 
-		// New vs Returning
 		const newCustomers = customerStats.filter((c: any) => c.orderCount === 1).length;
 		const returningCustomers = customerStats.filter((c: any) => c.orderCount > 1).length;
 
@@ -213,7 +182,7 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			]
 		};
 
-		// Order time distribution
+		// Order time
 		const ordersByHour: number[] = new Array(24).fill(0);
 		deliveredOrders.forEach((order: any) => {
 			ordersByHour[new Date(order.created).getHours()]++;
@@ -294,17 +263,14 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 		};
 
 		// Retention
-		const recentCustomerIds = new Set(
-			recentOrders.map((o: any) => o.user || o.email).filter(Boolean)
-		);
+		const recentCustomerIds = new Set(recentOrders.map((o: any) => o.user).filter(Boolean));
 		const previousCustomerIds = new Set(
-			previousPeriodOrders.map((o: any) => o.user || o.email).filter(Boolean)
+			previousPeriodOrders.map((o: any) => o.user).filter(Boolean)
 		);
 		const retained = [...recentCustomerIds].filter((id) => previousCustomerIds.has(id)).length;
 		const retentionRate =
 			previousCustomerIds.size > 0 ? Math.round((retained / previousCustomerIds.size) * 100) : 0;
 
-		// Churned
 		const churnedCustomers = customerStats.filter((c: any) => {
 			if (c.orderCount === 0 || !c.lastOrder) return false;
 			const daysSince = Math.floor(
@@ -313,7 +279,6 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			return daysSince > 30;
 		}).length;
 
-		// Top customers
 		const topCustomers = customerStats.slice(0, 5).map((c: any) => ({
 			id: c.id,
 			name: c.name,
