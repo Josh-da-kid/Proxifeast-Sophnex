@@ -754,9 +754,9 @@
 	<!-- Tabs -->
 	{#if data.isSuper}
 		<section class="container mx-auto mt-8 px-4">
-			<div class="flex gap-2 border-b border-slate-200">
+			<div class="flex gap-2 overflow-x-auto border-b border-slate-200 pb-px">
 				<button
-					class="border-b-2 px-4 py-2 text-sm font-medium transition-colors {activeTab ===
+					class="border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors {activeTab ===
 					'overview'
 						? 'border-primary text-primary'
 						: 'border-transparent text-slate-500 hover:text-slate-700'}"
@@ -765,7 +765,7 @@
 					Overview
 				</button>
 				<button
-					class="border-b-2 px-4 py-2 text-sm font-medium transition-colors {activeTab ===
+					class="border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors {activeTab ===
 					'subscriptions'
 						? 'border-primary text-primary'
 						: 'border-transparent text-slate-500 hover:text-slate-700'}"
@@ -774,7 +774,8 @@
 					All Subscriptions
 				</button>
 				<button
-					class="border-b-2 px-4 py-2 text-sm font-medium transition-colors {activeTab === 'add'
+					class="border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors {activeTab ===
+					'add'
 						? 'border-primary text-primary'
 						: 'border-transparent text-slate-500 hover:text-slate-700'}"
 					onclick={() => (activeTab = 'add')}
@@ -831,7 +832,7 @@
 					<div class="space-y-4">
 						<div>
 							<label class="mb-2 block text-sm font-medium text-slate-700">Select Plan</label>
-							<div class="grid gap-4 md:grid-cols-{getAvailablePlans(data.restaurant).length}">
+							<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 								{#each getAvailablePlans(data.restaurant) as plan}
 									<button
 										class="relative rounded-xl border-2 p-4 text-left transition-all {selectedPlan ===
@@ -1780,7 +1781,7 @@
 						{#if selectedRestaurant}
 							<div>
 								<label class="mb-2 block text-sm font-medium text-slate-700">Select Plan</label>
-								<div class="grid gap-4 md:grid-cols-{getAvailablePlans(selectedRestaurant).length}">
+								<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 									{#each getAvailablePlans(selectedRestaurant) as plan}
 										<button
 											class="relative rounded-xl border-2 p-4 text-left transition-all {selectedPlan ===
