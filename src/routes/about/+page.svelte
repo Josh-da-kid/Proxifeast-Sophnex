@@ -661,6 +661,34 @@
 							Flexible subscription plans for restaurants with test periods and easy renewals.
 						</p>
 					</div>
+
+					<!-- User Analysis -->
+					<div
+						class="group relative overflow-hidden rounded-2xl bg-white/10 p-6 backdrop-blur-sm transition-all hover:bg-white/20"
+					>
+						<div
+							class="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-amber-500 shadow-lg"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-7 w-7 text-white"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path d="M3 3v18h18" /><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" /><circle
+									cx="18.7"
+									cy="8"
+									r="2"
+								/>
+							</svg>
+						</div>
+						<h3 class="font-playfair mb-2 text-xl font-semibold">User Analysis</h3>
+						<p class="text-sm leading-relaxed text-slate-300">
+							Track user behavior, spending patterns, and customer tiers with detailed analytics.
+						</p>
+					</div>
 				</div>
 			</article>
 
