@@ -664,28 +664,30 @@
 	<!-- Stats Cards -->
 	<section class="container mx-auto -mt-6 px-4">
 		{#if data.isSuper}
-			<div class="grid grid-cols-2 gap-4 md:grid-cols-5">
-				<div class="rounded-xl bg-white p-4 shadow-lg shadow-slate-200">
-					<div class="text-2xl font-bold text-slate-800">{data.stats.total}</div>
-					<div class="text-sm text-slate-500">Total Restaurants</div>
+			<div class="grid grid-cols-2 gap-3 md:grid-cols-5">
+				<div class="rounded-xl bg-white p-3 shadow-lg shadow-slate-200 md:p-4">
+					<div class="text-xl font-bold text-slate-800 md:text-2xl">{data.stats.total}</div>
+					<div class="text-xs text-slate-500 md:text-sm">Total</div>
 				</div>
-				<div class="rounded-xl bg-white p-4 shadow-lg shadow-slate-200">
-					<div class="text-2xl font-bold text-emerald-600">{data.stats.active}</div>
-					<div class="text-sm text-slate-500">Active Subscriptions</div>
+				<div class="rounded-xl bg-white p-3 shadow-lg shadow-slate-200 md:p-4">
+					<div class="text-xl font-bold text-emerald-600 md:text-2xl">{data.stats.active}</div>
+					<div class="text-xs text-slate-500 md:text-sm">Active</div>
 				</div>
-				<div class="rounded-xl bg-white p-4 shadow-lg shadow-slate-200">
-					<div class="text-2xl font-bold text-blue-600">{data.stats.testCount}</div>
-					<div class="text-sm text-slate-500">Test Subscriptions</div>
+				<div class="rounded-xl bg-white p-3 shadow-lg shadow-slate-200 md:p-4">
+					<div class="text-xl font-bold text-blue-600 md:text-2xl">{data.stats.testCount}</div>
+					<div class="text-xs text-slate-500 md:text-sm">Trial</div>
 				</div>
-				<div class="rounded-xl bg-white p-4 shadow-lg shadow-slate-200">
-					<div class="text-2xl font-bold text-amber-600">{data.stats.expiringSoon}</div>
-					<div class="text-sm text-slate-500">Expiring Soon</div>
+				<div class="rounded-xl bg-white p-3 shadow-lg shadow-slate-200 md:p-4">
+					<div class="text-xl font-bold text-amber-600 md:text-2xl">{data.stats.expiringSoon}</div>
+					<div class="text-xs text-slate-500 md:text-sm">Expiring</div>
 				</div>
-				<div class="rounded-xl bg-white p-4 shadow-lg shadow-slate-200">
-					<div class="text-2xl font-bold text-slate-800">
+				<div
+					class="col-span-2 rounded-xl bg-white p-3 shadow-lg shadow-slate-200 md:col-span-1 md:p-4"
+				>
+					<div class="text-xl font-bold text-slate-800 md:text-2xl">
 						₦{(data.stats.totalRevenue || 0).toLocaleString()}
 					</div>
-					<div class="text-sm text-slate-500">Total Revenue</div>
+					<div class="text-xs text-slate-500 md:text-sm">Revenue</div>
 				</div>
 			</div>
 		{:else}
@@ -1377,14 +1379,16 @@
 				</div>
 			</div>
 		{:else if data.isSuper && activeTab === 'overview'}
-			<div class="grid gap-6 lg:grid-cols-2">
+			<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 				<!-- Active Subscriptions -->
 				<div class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-					<div class="border-b border-slate-100 px-6 py-4">
+					<div class="border-b border-slate-100 px-4 py-3 md:px-6 md:py-4">
 						<div class="flex items-center gap-3">
-							<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100">
+							<div
+								class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 md:h-10 md:w-10"
+							>
 								<svg
-									class="h-5 w-5 text-emerald-600"
+									class="h-4 w-4 text-emerald-600 md:h-5 md:w-5"
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
@@ -1399,42 +1403,45 @@
 								</svg>
 							</div>
 							<div>
-								<h3 class="text-lg font-semibold text-slate-900">Active Subscriptions</h3>
-								<p class="text-sm text-slate-500">
+								<h3 class="text-base font-semibold text-slate-900 md:text-lg">Active</h3>
+								<p class="text-xs text-slate-500 md:text-sm">
 									{data.subscriptions.filter(
 										(s: any) => s.status === 'active' || s.status === 'test'
-									).length} active subscriptions
+									).length} subscriptions
 								</p>
 							</div>
 						</div>
 					</div>
-					<div class="max-h-[500px] overflow-y-auto p-6">
-						<div class="space-y-4">
+					<div class="max-h-[300px] overflow-y-auto p-3 md:max-h-[500px] md:p-6">
+						<div class="space-y-3 md:space-y-4">
 							{#each data.subscriptions.filter((s: any) => s.status === 'active' || s.status === 'test') as subscription}
 								{@const restaurant = data.restaurants.find(
 									(r: any) => r.id === subscription.restaurantId
 								)}
 								<div
-									class="rounded-lg border border-slate-200 p-4 transition-all hover:border-slate-300 hover:shadow-sm"
+									class="rounded-lg border border-slate-200 p-3 transition-all hover:border-slate-300 hover:shadow-sm md:p-4"
 								>
-									<div class="flex items-start justify-between">
+									<div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
 										<div class="flex-1">
-											<div class="flex items-center gap-2">
-												<p class="font-semibold text-slate-900">
+											<div class="flex flex-wrap items-center gap-1 md:gap-2">
+												<p class="text-sm font-semibold text-slate-900 md:text-base">
 													{restaurant?.name || 'Restaurant'}
 												</p>
 												{#if subscription.plan === 'weekly' || subscription.status === 'test'}
 													<span
 														class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700"
-														>Free Trial</span
+														>Trial</span
 													>
 												{/if}
 											</div>
-											<p class="mt-1 text-sm text-slate-600">
-												{subscription.plan === 'weekly' ? '7-Day Free Trial' : subscription.plan} plan
-												• ₦{(subscription.amount || 0).toLocaleString()}
+											<p class="mt-1 text-xs text-slate-600 md:text-sm">
+												{subscription.plan === 'weekly' ? '7-Day Trial' : subscription.plan} • ₦{(
+													subscription.amount || 0
+												).toLocaleString()}
 											</p>
-											<div class="mt-2 flex items-center gap-4 text-xs text-slate-500">
+											<div
+												class="mt-1 flex flex-col gap-1 text-xs text-slate-500 md:mt-2 md:flex-row md:items-center md:gap-4"
+											>
 												<span class="flex items-center gap-1">
 													<svg
 														class="h-3.5 w-3.5"
@@ -1475,34 +1482,32 @@
 												</span>
 											</div>
 										</div>
-										<div class="flex flex-col items-end gap-2">
+										<div
+											class="mt-2 flex flex-row flex-wrap items-center gap-2 sm:mt-0 sm:flex-col sm:items-end"
+										>
 											<span
 												class="rounded-full {subscription.status === 'test'
 													? 'bg-blue-100 text-blue-700'
-													: 'bg-emerald-100 text-emerald-700'} px-3 py-1 text-xs font-medium"
+													: 'bg-emerald-100 text-emerald-700'} px-2 py-0.5 text-xs font-medium md:px-3 md:py-1"
 											>
 												{subscription.status === 'test' ? 'Trial' : 'Active'}
 											</span>
 											{#if subscription.plan !== 'weekly' && subscription.status !== 'test'}
 												<button
-													class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50"
+													class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50 md:px-3 md:py-1.5"
 													onclick={() => toggleAutoRenew(subscription)}
 													disabled={isProcessing}
 												>
-													{isProcessing
-														? '...'
-														: subscription.autoRenew
-															? 'Disable Auto-Renew'
-															: 'Enable Auto-Renew'}
+													{isProcessing ? '...' : subscription.autoRenew ? 'Auto-Renew' : 'Enable'}
 												</button>
 											{/if}
 											{#if subscription.plan === 'weekly' || subscription.status === 'test'}
 												<button
-													class="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 shadow-sm transition-all hover:border-red-300 hover:bg-red-50 disabled:opacity-50"
+													class="rounded-md border border-red-200 bg-white px-2 py-1 text-xs font-medium text-red-600 shadow-sm transition-all hover:border-red-300 hover:bg-red-50 disabled:opacity-50 md:px-3 md:py-1.5"
 													onclick={() => deleteSubscription(subscription)}
 													disabled={isProcessing}
 												>
-													{isProcessing ? '...' : 'Delete Subscription'}
+													{isProcessing ? '...' : 'Delete'}
 												</button>
 											{/if}
 										</div>
@@ -1533,11 +1538,13 @@
 
 				<!-- Expiring Soon -->
 				<div class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-					<div class="border-b border-slate-100 px-6 py-4">
+					<div class="border-b border-slate-100 px-4 py-3 md:px-6 md:py-4">
 						<div class="flex items-center gap-3">
-							<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
+							<div
+								class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 md:h-10 md:w-10"
+							>
 								<svg
-									class="h-5 w-5 text-amber-600"
+									class="h-4 w-4 text-amber-600 md:h-5 md:w-5"
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
@@ -1552,78 +1559,78 @@
 								</svg>
 							</div>
 							<div>
-								<h3 class="text-lg font-semibold text-slate-900">Expiring Soon</h3>
-								<p class="text-sm text-slate-500">
+								<h3 class="text-base font-semibold text-slate-900 md:text-lg">Expiring Soon</h3>
+								<p class="text-xs text-slate-500 md:text-sm">
 									{data.subscriptions.filter(
 										(s: any) =>
 											(s.status === 'active' || s.status === 'test') && isExpiringSoon(s.endDate)
-									).length} subscriptions expiring within 30 days
+									).length} within 30 days
 								</p>
 							</div>
 						</div>
 					</div>
-					<div class="max-h-[500px] overflow-y-auto p-6">
+					<div class="max-h-[300px] overflow-y-auto p-3 md:max-h-[500px] md:p-6">
 						<div class="space-y-4">
 							{#each data.subscriptions.filter((s: any) => (s.status === 'active' || s.status === 'test') && isExpiringSoon(s.endDate)) as subscription}
 								{@const restaurant = data.restaurants.find(
 									(r: any) => r.id === subscription.restaurantId
 								)}
 								<div
-									class="rounded-lg border border-amber-200 bg-amber-50 p-4 transition-all hover:border-amber-300 hover:shadow-sm"
+									class="rounded-lg border border-amber-200 bg-amber-50 p-3 transition-all hover:border-amber-300 hover:shadow-sm md:p-4"
 								>
-									<div class="flex items-start justify-between">
+									<div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
 										<div class="flex-1">
-											<div class="flex items-center gap-2">
-												<p class="font-semibold text-slate-900">
+											<div class="flex flex-wrap items-center gap-1 md:gap-2">
+												<p class="text-sm font-semibold text-slate-900 md:text-base">
 													{restaurant?.name || 'Restaurant'}
 												</p>
 												{#if subscription.plan === 'weekly' || subscription.status === 'test'}
 													<span
 														class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700"
-														>Free Trial</span
+														>Trial</span
 													>
 												{/if}
 											</div>
-											<p class="mt-1 text-sm text-slate-600">
+											<p class="mt-1 text-xs text-slate-600 md:text-sm">
 												Expires: {new Date(subscription.endDate).toLocaleDateString()}
 											</p>
-											<div class="mt-3 flex items-center gap-2">
+											<div class="mt-2 flex flex-wrap items-center gap-2 md:mt-3">
 												{#if subscription.plan !== 'weekly' && subscription.status !== 'test'}
 													<button
-														class="rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-700"
+														class="rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-amber-700 md:px-4 md:py-2 md:text-sm"
 														onclick={() => renewSubscription(subscription)}
 													>
-														Renew Now
+														Renew
 													</button>
 												{:else}
 													<button
-														class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700"
+														class="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-700 md:px-4 md:py-2 md:text-sm"
 														onclick={() => {
 															activeTab = 'add';
 															selectedRestaurant = restaurant?.id;
 														}}
 													>
-														Upgrade Plan
+														Upgrade
 													</button>
 												{/if}
 												{#if subscription.plan !== 'weekly' && subscription.status !== 'test'}
 													<button
-														class="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50"
+														class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50 md:px-3 md:py-2"
 														onclick={() => toggleAutoRenew(subscription)}
 														disabled={isProcessing}
 													>
 														{isProcessing
 															? '...'
 															: subscription.autoRenew
-																? 'Disable Auto-Renew'
-																: 'Enable Auto-Renew'}
+																? 'Auto-Renew'
+																: 'Enable'}
 													</button>
 												{/if}
 											</div>
 										</div>
-										<div class="flex flex-col items-end gap-2">
+										<div class="mt-2 sm:mt-0">
 											<span
-												class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700"
+												class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 md:px-3 md:py-1"
 											>
 												{getDaysUntilExpiry(subscription.endDate)} days left
 											</span>
