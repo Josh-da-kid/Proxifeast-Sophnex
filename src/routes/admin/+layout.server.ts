@@ -132,29 +132,38 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
 			// Determine subscription status
-			// IMPORTANT: Database status takes precedence - if not 'active' in DB, treat as not active
+			// Test subscriptions (free trial) - treat as active for access (as long as not expired)
 			if (subs.status === 'test') {
-				// Test subscriptions (free trial) - treat as active for access
 				if (endDate <= now) {
 					subscriptionStatus = 'expired';
 				} else {
-					subscriptionStatus = 'active'; // Treat as active for access
+					subscriptionStatus = 'active'; // Treat test as active for access
 				}
 			} else if (subs.status === 'pending') {
 				subscriptionStatus = 'pending';
 			} else if (subs.status === 'cancelled' || subs.status === 'inactive') {
 				subscriptionStatus = 'cancelled';
-			} else if (subs.status !== 'active') {
-				// Any other status that's not 'active'
-				subscriptionStatus = 'not_subscribed';
-			} else if (endDate <= now) {
-				// Only check endDate if status is 'active'
-				subscriptionStatus = 'expired';
-			} else if (endDate <= sevenDaysFromNow) {
-				subscriptionStatus = 'expiring_soon';
+			} else if (subs.status === 'active') {
+				// Only check endDate for active subscriptions
+				if (endDate <= now) {
+					subscriptionStatus = 'expired';
+				} else if (endDate <= sevenDaysFromNow) {
+					subscriptionStatus = 'expiring_soon';
+				} else {
+					subscriptionStatus = 'active';
+				}
 			} else {
-				subscriptionStatus = 'active';
+				// Any other status
+				subscriptionStatus = 'not_subscribed';
 			}
+
+			console.log('=== SUBSCRIPTION CHECK ===');
+			console.log('Subscription status from DB:', subs.status);
+			console.log('End date:', endDate);
+			console.log('Now:', now);
+			console.log('Is expired:', endDate <= now);
+			console.log('Final subscriptionStatus:', subscriptionStatus);
+			console.log('=========================');
 		} catch (err) {
 			subscriptionStatus = 'not_subscribed';
 			subscription = null;
@@ -162,11 +171,12 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 
 		// Block access if subscription is not active
 		// Only allow access to billing page
-		// Test subscriptions are treated as active
+		// Test subscriptions and pending subscriptions are treated as valid (allow access)
 		const isSubscriptionActive =
 			subscriptionStatus === 'active' ||
 			subscriptionStatus === 'expiring_soon' ||
-			subscriptionStatus === 'test';
+			subscriptionStatus === 'test' ||
+			subscriptionStatus === 'pending';
 
 		// Always allow access to billing page - never redirect from there
 		if (!isSubscriptionActive && !isBillingPage) {

@@ -122,6 +122,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		locals.user = record;
 
 		// Export auth store to cookie
+		const authCookie = locals.pb.authStore.exportToCookie({ httpOnly: false });
+
+		// Make sure we include all necessary cookie attributes
+		const cookieHeader = authCookie.includes('SameSite')
+			? authCookie
+			: `${authCookie}; SameSite=Lax; Path=/; Max-Age=${60 * 60 * 24 * 7}`;
+
 		return json(
 			{
 				error: false,
@@ -130,7 +137,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			},
 			{
 				headers: {
-					'set-cookie': `pb_auth=${locals.pb.authStore.exportToCookie()}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
+					'set-cookie': cookieHeader
 				}
 			}
 		);

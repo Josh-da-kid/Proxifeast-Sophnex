@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { fly, fade } from 'svelte/transition';
+	import { goto } from '$app/navigation';
 
 	let showSuccess = $state(false);
 	let logoutSuccess = $state(false);
@@ -71,7 +72,15 @@
 				}
 			} else {
 				success = result.message || 'Login successful!';
-				window.location.href = '/';
+				// Disable button during redirect delay
+				isLoading = true;
+				// Small delay to show success message before redirecting
+				setTimeout(async () => {
+					// Use goto to navigate - this will properly handle the cookie
+					await goto('/', { replaceState: true, noScroll: true });
+					// Force a hard reload to ensure auth state is updated
+					window.location.reload();
+				}, 800);
 			}
 		} catch (err) {
 			console.error('Fetch failed:', err);
