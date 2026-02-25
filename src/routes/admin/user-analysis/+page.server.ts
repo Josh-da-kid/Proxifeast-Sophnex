@@ -329,7 +329,9 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 						dishCounts[name] = { count: 0, revenue: 0 };
 					}
 					dishCounts[name].count++;
-					dishCounts[name].revenue += dish.price || 0;
+					// Use 'amount' field (the actual price field)
+					const price = dish.amount || dish.price || dish.itemPrice || 0;
+					dishCounts[name].revenue += price * (dish.quantity || 1);
 				});
 			}
 		});
