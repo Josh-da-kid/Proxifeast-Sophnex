@@ -50,27 +50,60 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 		});
 		console.log('Found delivered orders:', deliveredOrders.length);
 
-		// Build customer list directly from orders - get unique customers by user ID
+		// Get ALL users who have this restaurant in their restaurantIds - try different filter approaches
+		let restaurantUsers: any[] = [];
+		try {
+			// Try exact match first
+			let result = await locals.pb.collection('users').getList(1, 500, {
+				filter: `restaurantIds ?= "${restaurantId}"`,
+				sort: '-created'
+			});
+			restaurantUsers = result.items;
+			console.log('Users with restaurantIds filter:', restaurantUsers.length);
+
+			// If still 0, try getting all users and filter manually
+			if (restaurantUsers.length === 0) {
+				console.log('Trying manual filter...');
+				const allUsers = await locals.pb.collection('users').getFullList();
+				console.log('Total users in DB:', allUsers.length);
+
+				restaurantUsers = allUsers.filter((u: any) => {
+					const ids = u.restaurantIds || [];
+					console.log('User:', u.email, 'restaurantIds:', ids);
+					return ids.includes(restaurantId);
+				});
+				console.log('Users after manual filter:', restaurantUsers.length);
+			}
+		} catch (err) {
+			console.log('Error getting restaurant users:', err);
+		}
+
+		// Build customer list ONLY from registered users (users collection)
 		const customerMap: Record<string, any> = {};
 
-		deliveredOrders.forEach((order: any) => {
-			if (!order.user && !order.email) return;
-
-			// Use user ID if available, otherwise use email as key
-			const key = order.user || order.email;
-
-			if (!customerMap[key]) {
-				customerMap[key] = {
-					id: order.user || key,
-					name: order.name || order.email?.split('@')[0] || 'Unknown',
-					email: order.email || '',
-					phone: order.phone || '',
-					address: order.homeAddress || '',
-					orders: []
-				};
-			}
-			customerMap[key].orders.push(order);
+		// Add all registered users
+		restaurantUsers.forEach((user: any) => {
+			customerMap[user.id] = {
+				id: user.id,
+				name: user.name || user.username || user.email?.split('@')[0] || 'Unknown',
+				email: user.email || '',
+				phone: user.phone || '',
+				address: user.address || '',
+				orders: [],
+				isRegistered: true
+			};
 		});
+
+		// Link orders to users by matching user ID
+		deliveredOrders.forEach((order: any) => {
+			if (!order.user) return;
+
+			if (customerMap[order.user]) {
+				customerMap[order.user].orders.push(order);
+			}
+		});
+
+		console.log('Total registered customers:', Object.keys(customerMap).length);
 
 		// Convert to array and calculate stats
 		const customerStats = Object.values(customerMap).map((customer: any) => {
