@@ -19,18 +19,25 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			throw redirect(303, `/admin/admin-login?redirectTo=${pathname}&not_admin=1`);
 		}
 
+		// If no user and token, redirect to login
+		if (!locals.user && !isAdminLoginPage) {
+			throw redirect(302, `/admin/admin-login?redirectTo=${pathname}`);
+		}
+
+		// If user is logged in but we're on login page, redirect to admin menu
+		if (locals.user && isAdminLoginPage) {
+			throw redirect(303, '/admin/admin-menu');
+		}
+
 		const fullHost = request.headers.get('host') || '';
 		const domainOnly = fullHost.split(':')[0].replace('www.', '').toLowerCase();
 
-		// Find the restaurant by domain - use targeted query
 		let restaurant: any = null;
 		try {
-			// Try exact match first
 			restaurant = await locals.pb
 				.collection('restaurants')
 				.getFirstListItem(`domain = "${domainOnly}"`);
 		} catch {
-			// Try partial match
 			try {
 				const results = await locals.pb.collection('restaurants').getList(1, 5, {
 					filter: `domain ~ "${domainOnly}"`
@@ -40,7 +47,6 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 				}
 			} catch {}
 
-			// Fallback to super restaurant
 			if (!restaurant) {
 				try {
 					restaurant = await locals.pb.collection('restaurants').getFirstListItem('isSuper = true');
@@ -49,7 +55,6 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		}
 
 		if (!restaurant) {
-			console.error(`Restaurant not found for domain: ${domainOnly}, host: ${fullHost}`);
 			return {
 				user: locals.user,
 				restaurant: null,
@@ -65,39 +70,25 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		locals.restaurant = restaurant;
 		locals.isSuper = !!restaurant?.isSuper;
 
-		console.log('=== ADMIN LAYOUT DEBUG ===');
-		console.log('Domain:', domainOnly);
-		console.log('Restaurant found:', restaurant?.name, restaurant?.id);
-		console.log('isSuper raw:', restaurant?.isSuper);
-		console.log('isSuper converted:', locals.isSuper);
-		console.log('===========================');
-
-		// Check if user is admin for this specific restaurant
-		// Use adminRestaurantIds if available (granular admin), fall back to global isAdmin + restaurantIds for backward compatibility
 		const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
 		const userRestaurantIds = locals.user?.restaurantIds || [];
 
 		let isAdminForRestaurant = false;
 
-		// If user has specific adminRestaurantIds, check those
 		if (adminRestaurantIds.length > 0) {
 			isAdminForRestaurant = adminRestaurantIds.includes(restaurant.id);
 		} else {
-			// Fallback: use global isAdmin flag with restaurantIds (backward compatibility)
 			isAdminForRestaurant =
 				locals.user?.isAdmin === true && userRestaurantIds.includes(restaurant.id);
 		}
 
-		// Redirect if not admin for this restaurant (but allow login page)
 		if (!isAdminForRestaurant && !isAdminLoginPage) {
 			locals.pb.authStore.clear();
 			cookies.delete('pb_auth', { path: '/' });
 			throw redirect(303, `/admin/admin-login?redirectTo=${pathname}&not_admin=1`);
 		}
 
-		// For super restaurants, skip all subscription checks
 		if (locals.isSuper) {
-			// Fetch all restaurants including super for dropdown
 			let allRestaurantsIncludingSuper: any[] = [];
 			try {
 				allRestaurantsIncludingSuper = await locals.pb.collection('restaurants').getFullList();
@@ -116,7 +107,6 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			};
 		}
 
-		// Check subscription for non-super restaurants
 		let subscription = null;
 		let subscriptionStatus = 'not_subscribed';
 
@@ -131,20 +121,17 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			const sevenDaysFromNow = new Date();
 			sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
-			// Determine subscription status
-			// Test subscriptions (free trial) - treat as active for access (as long as not expired)
 			if (subs.status === 'test') {
 				if (endDate <= now) {
 					subscriptionStatus = 'expired';
 				} else {
-					subscriptionStatus = 'active'; // Treat test as active for access
+					subscriptionStatus = 'active';
 				}
 			} else if (subs.status === 'pending') {
 				subscriptionStatus = 'pending';
 			} else if (subs.status === 'cancelled' || subs.status === 'inactive') {
 				subscriptionStatus = 'cancelled';
 			} else if (subs.status === 'active') {
-				// Only check endDate for active subscriptions
 				if (endDate <= now) {
 					subscriptionStatus = 'expired';
 				} else if (endDate <= sevenDaysFromNow) {
@@ -152,35 +139,19 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 				} else {
 					subscriptionStatus = 'active';
 				}
-			} else {
-				// Any other status
-				subscriptionStatus = 'not_subscribed';
 			}
-
-			console.log('=== SUBSCRIPTION CHECK ===');
-			console.log('Subscription status from DB:', subs.status);
-			console.log('End date:', endDate);
-			console.log('Now:', now);
-			console.log('Is expired:', endDate <= now);
-			console.log('Final subscriptionStatus:', subscriptionStatus);
-			console.log('=========================');
-		} catch (err) {
+		} catch {
 			subscriptionStatus = 'not_subscribed';
 			subscription = null;
 		}
 
-		// Block access if subscription is not active
-		// Only allow access to billing page
-		// Test subscriptions and pending subscriptions are treated as valid (allow access)
 		const isSubscriptionActive =
 			subscriptionStatus === 'active' ||
 			subscriptionStatus === 'expiring_soon' ||
 			subscriptionStatus === 'test' ||
 			subscriptionStatus === 'pending';
 
-		// Always allow access to billing page - never redirect from there
 		if (!isSubscriptionActive && !isBillingPage) {
-			// Not on billing page and subscription is not active - redirect to billing
 			throw redirect(307, '/admin/billing?expired=1');
 		}
 
@@ -195,7 +166,6 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			subscriptionStatus
 		};
 	} catch (err: any) {
-		// Rethrow redirects
 		if (err.status === 302 || err.status === 303 || err.status === 307) {
 			throw err;
 		}

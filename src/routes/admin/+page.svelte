@@ -3,10 +3,11 @@
 	import Footer from '$lib/Footer.svelte';
 	import { onMount } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
+	import Notification from '$lib/Notification.svelte';
 
 	let { data } = $props();
-	const user = data.user;
-	const stats = data.stats ?? { todayRevenue: 0, pendingOrdersCount: 0, completedOrdersCount: 0 };
+	const user = data?.user;
+	const stats = data?.stats ?? { todayRevenue: 0, pendingOrdersCount: 0, completedOrdersCount: 0 };
 
 	let successAlert = $state(false);
 	let errorAlert = $state(false);
@@ -37,74 +38,26 @@
 	<title>Admin Dashboard - Proxifeast</title>
 </svelte:head>
 
-{#if successAlert}
-	<div
-		class="alert alert-success fixed top-4 left-1/2 z-50 w-[90%] max-w-md -translate-x-1/2 shadow-lg"
-		in:fly={{ y: -20, duration: 300 }}
-	>
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			class="h-5 w-5 shrink-0"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-		>
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-			/>
-		</svg>
-		<span>Dish created successfully!</span>
-	</div>
-{/if}
+<Notification
+	show={successAlert}
+	type="success"
+	title="Success!"
+	message="Dish created successfully!"
+/>
 
-{#if errorAlert}
-	<div
-		class="alert alert-error fixed top-4 left-1/2 z-50 w-[90%] max-w-md -translate-x-1/2 shadow-lg"
-		in:fly={{ y: -20, duration: 300 }}
-	>
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			class="h-5 w-5 shrink-0"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-		>
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-			/>
-		</svg>
-		<span>{$page.form.error}</span>
-	</div>
-{/if}
+<Notification
+	show={errorAlert}
+	type="error"
+	title="Error"
+	message={$page.form?.error || 'Something went wrong'}
+/>
 
-{#if showError}
-	<div
-		class="alert alert-error fixed top-4 left-1/2 z-50 w-[90%] max-w-md -translate-x-1/2 shadow-lg"
-		in:fly={{ y: -20, duration: 300 }}
-	>
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			class="h-5 w-5 shrink-0"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-		>
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-			/>
-		</svg>
-		<span>You must be an admin to access the admin panel.</span>
-	</div>
-{/if}
+<Notification
+	show={showError}
+	type="error"
+	title="Access Denied"
+	message="You must be an admin to access the admin panel."
+/>
 
 <div class="min-h-screen bg-slate-50">
 	<!-- Header -->

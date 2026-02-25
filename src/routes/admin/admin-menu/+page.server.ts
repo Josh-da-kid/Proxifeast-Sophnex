@@ -13,21 +13,16 @@ function isUserAdminForRestaurant(user: any, restaurantId: string): boolean {
 	return user?.isAdmin === true && userRestaurantIds.includes(restaurantId);
 }
 
-export const load: PageServerLoad = async ({ locals, url, request }) => {
+export const load: PageServerLoad = async ({ locals, url, parent }) => {
 	if (!locals.user) {
 		return { dishes: [], categories: [] };
 	}
 
-	const host = request.headers.get('host') || '';
-	const domain = host.split(':')[0];
+	// Get restaurant from layout data instead of making separate query
+	const layoutData = await parent();
+	const restaurantId = layoutData.restaurantId;
 
-	let restaurantId: string;
-	try {
-		const restaurant = await locals.pb
-			.collection('restaurants')
-			.getFirstListItem(`domain = "${domain}"`);
-		restaurantId = restaurant.id;
-	} catch {
+	if (!restaurantId) {
 		return { dishes: [], categories: [] };
 	}
 

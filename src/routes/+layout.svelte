@@ -7,6 +7,7 @@
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import { afterNavigate } from '$app/navigation';
+	import { navigating } from '$app/stores';
 	import { get } from 'svelte/store';
 	import { page } from '$app/stores';
 
@@ -14,6 +15,16 @@
 
 	let showNotificationPrompt = $state(false);
 	let isEnablingNotifications = $state(false);
+
+	let isNavigating = $state(false);
+
+	$effect(() => {
+		isNavigating = get(navigating) !== null;
+		const unsub = navigating.subscribe((n) => {
+			isNavigating = n !== null;
+		});
+		return unsub;
+	});
 
 	function closeSideBar() {
 		const drawerToggle = document.getElementById('my-drawer-4');
@@ -35,53 +46,45 @@
 		isAdmin = val;
 	});
 
-	let loading = $state(true);
 	onMount(() => {
-		try {
-			loading = false;
-
-			// Register service worker for PWA
-			if ('serviceWorker' in navigator) {
-				navigator.serviceWorker
-					.register('/service-worker.js', {
-						updateViaCache: 'all'
-					})
-					.then((registration) => {
-						console.log('SW registered:', registration);
-						// Check for updates
-						registration.addEventListener('updatefound', () => {
-							const newWorker = registration.installing;
-							if (newWorker) {
-								newWorker.addEventListener('statechange', () => {
-									if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-										console.log('New SW available');
-									}
-								});
-							}
-						});
-					})
-					.catch((error) => {
-						console.log('SW registration failed:', error);
+		// Register service worker for PWA
+		if ('serviceWorker' in navigator) {
+			navigator.serviceWorker
+				.register('/service-worker.js', {
+					updateViaCache: 'all'
+				})
+				.then((registration) => {
+					console.log('SW registered:', registration);
+					// Check for updates
+					registration.addEventListener('updatefound', () => {
+						const newWorker = registration.installing;
+						if (newWorker) {
+							newWorker.addEventListener('statechange', () => {
+								if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+									console.log('New SW available');
+								}
+							});
+						}
 					});
-			}
+				})
+				.catch((error) => {
+					console.log('SW registration failed:', error);
+				});
+		}
 
-			// Check if user is logged in and should be prompted for notifications
-			const user = data.user;
+		// Check if user is logged in and should be prompted for notifications
+		const user = data.user;
 
-			// Show notification prompt for ALL logged-in users (not just standalone)
-			// This ensures notifications work for both PWA and web users
-			if (user?.id) {
-				const alreadyPrompted = localStorage.getItem('notificationPrompted');
-				if (!alreadyPrompted) {
-					// Check if notifications are not yet granted
-					if (Notification.permission === 'default' || Notification.permission === 'denied') {
-						showNotificationPrompt = true;
-					}
+		// Show notification prompt for ALL logged-in users (not just standalone)
+		// This ensures notifications work for both PWA and web users
+		if (user?.id) {
+			const alreadyPrompted = localStorage.getItem('notificationPrompted');
+			if (!alreadyPrompted) {
+				// Check if notifications are not yet granted
+				if (Notification.permission === 'default' || Notification.permission === 'denied') {
+					showNotificationPrompt = true;
 				}
 			}
-		} catch (err) {
-			console.error('Layout mount error:', err);
-			loading = false;
 		}
 	});
 
@@ -161,9 +164,7 @@
 		return outputArray;
 	}
 
-	afterNavigate(() => {
-		loading = false;
-	});
+	afterNavigate(() => {});
 
 	const restaurantName = $page.data.restaurant?.name || 'Proxifeast';
 	const restaurantLogo = $page.data.restaurant?.faviconUrl || '/favicon.png';
@@ -222,20 +223,46 @@
 	</div>
 {/if}
 
-{#if loading}
-	<div class="bg-opacity-70 fixed inset-0 z-50 flex items-center justify-center bg-white">
-		<div class="border-secondary h-12 w-12 animate-spin rounded-full border-t-4 border-b-4"></div>
-	</div>
-{:else}
-	<div class="flex min-h-screen flex-col">
-		<!-- Fixed Navbar (not part of flow) -->
-		<div class="fixed top-0 z-20 w-full">
-			<Nav />
+{#if isNavigating}
+	<div
+		class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
+	>
+		<div class="relative">
+			<div
+				class="h-20 w-20 animate-spin rounded-full border-4 border-slate-700 border-t-amber-500"
+			></div>
+			<div class="absolute inset-0 flex items-center justify-center">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-8 w-8 text-amber-500"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+					<path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+					<line x1="6" y1="1" x2="6" y2="4"></line>
+					<line x1="10" y1="1" x2="10" y2="4"></line>
+					<line x1="14" y1="1" x2="14" y2="4"></line>
+				</svg>
+			</div>
 		</div>
-
-		<main class="flex-grow pt-20">{@render children()}</main>
+		<p class="mt-6 font-serif text-lg tracking-widest text-slate-300">LOADING</p>
+		<p class="mt-2 text-sm text-slate-500">Proxifeast</p>
 	</div>
 {/if}
+
+<div class="flex min-h-screen flex-col">
+	<!-- Fixed Navbar (not part of flow) -->
+	<div class="fixed top-0 z-20 w-full">
+		<Nav />
+	</div>
+
+	<main class="flex-grow pt-20">{@render children()}</main>
+</div>
 
 {#if $isAdminPage && $page.url.pathname === '/admin/admin-menu'}
 	<!-- Add Dish -->

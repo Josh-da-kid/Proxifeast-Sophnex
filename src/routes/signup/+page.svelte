@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { fly, fade } from 'svelte/transition';
+	import Notification from '$lib/Notification.svelte';
 
 	let showSuccess = $derived($page.url.searchParams.get('signup') === 'success');
 
@@ -94,28 +95,12 @@
 	<title>Sign Up - Proxifeast</title>
 </svelte:head>
 
-{#if showSuccess}
-	<div
-		class="alert alert-success fixed top-4 left-1/2 z-50 w-[90%] max-w-md -translate-x-1/2 shadow-lg"
-		in:fly={{ y: -20, duration: 300 }}
-	>
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			class="h-5 w-5 shrink-0"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-		>
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-			/>
-		</svg>
-		<span>Account created! Please check your email to verify before logging in.</span>
-	</div>
-{/if}
+<Notification
+	show={showSuccess}
+	type="success"
+	title="Account Created!"
+	message="Please check your email to verify before logging in."
+/>
 
 <div
 	class="flex min-h-screen items-center justify-center bg-gradient-to-br from-amber-50 via-white to-amber-100 px-4 py-8"

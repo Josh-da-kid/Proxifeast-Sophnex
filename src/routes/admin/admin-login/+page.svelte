@@ -2,6 +2,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
+	import Notification from '$lib/Notification.svelte';
 
 	let redirectTo = $state('');
 
@@ -92,51 +93,14 @@
 	<title>Admin Login - Proxifeast</title>
 </svelte:head>
 
-{#if showError}
-	<div
-		class="alert alert-error fixed top-4 left-1/2 z-50 w-[90%] max-w-md -translate-x-1/2 shadow-lg"
-		in:fly={{ y: -20, duration: 300 }}
-	>
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			class="h-5 w-5 shrink-0"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-		>
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-			/>
-		</svg>
-		<span>You must be an admin to access the admin panel.</span>
-	</div>
-{/if}
+<Notification
+	show={showError}
+	type="error"
+	title="Access Denied"
+	message="You must be an admin to access the admin panel."
+/>
 
-{#if logoutSuccess}
-	<div
-		class="alert alert-success fixed top-4 left-1/2 z-50 w-[90%] max-w-md -translate-x-1/2 shadow-lg"
-		in:fly={{ y: -20, duration: 300 }}
-	>
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			class="h-5 w-5 shrink-0"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-		>
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-			/>
-		</svg>
-		<span>Logout successful!</span>
-	</div>
-{/if}
+<Notification show={logoutSuccess} type="success" title="Logged Out" message="Logout successful!" />
 
 <div
 	class="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 py-8"

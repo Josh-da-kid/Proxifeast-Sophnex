@@ -6,6 +6,7 @@
 	import { onMount } from 'svelte';
 	import { derived, get } from 'svelte/store';
 	import { fly, fade } from 'svelte/transition';
+	import Notification from '$lib/Notification.svelte';
 
 	export const user = derived(page, ($page) => $page.data.user);
 
@@ -219,28 +220,12 @@
 	<title>Pending Orders - Proxifeast</title>
 </svelte:head>
 
-{#if successMessage}
-	<div
-		class="alert alert-success fixed top-4 left-1/2 z-50 w-[90%] max-w-md -translate-x-1/2 shadow-lg"
-		in:fly={{ y: -20, duration: 300 }}
-	>
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			class="h-5 w-5 shrink-0"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-		>
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-			/>
-		</svg>
-		<span>{successMessage}</span>
-	</div>
-{/if}
+<Notification
+	show={!!successMessage}
+	type="success"
+	title="Success!"
+	message={successMessage || ''}
+/>
 
 <div class="min-h-screen bg-slate-50">
 	<!-- Header -->

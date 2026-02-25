@@ -26,7 +26,11 @@ export async function handle({ event, resolve }) {
 	const response = await resolve(event);
 
 	// send updated cookie back
-	response.headers.append('set-cookie', event.locals.pb.authStore.exportToCookie());
+	const authCookie = event.locals.pb.authStore.exportToCookie();
+	const cookieHeader = authCookie.includes('SameSite')
+		? authCookie
+		: `${authCookie}; SameSite=Lax; Path=/; Max-Age=${60 * 60 * 24 * 7}`;
+	response.headers.append('set-cookie', cookieHeader);
 
 	// Add cache headers for static assets
 	const url = event.request.url;

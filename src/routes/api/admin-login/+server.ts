@@ -156,13 +156,11 @@ export const POST: RequestHandler = async ({ request, locals, cookies, url }) =>
 		}
 
 		// Export auth store to cookie
-		const cookieOptions = {
-			path: '/',
-			httpOnly: true,
-			sameSite: 'lax' as const,
-			secure: false, // Set to true in production with HTTPS
-			maxAge: 60 * 60 * 24 * 7 // 7 days
-		};
+		const authCookie = locals.pb.authStore.exportToCookie();
+
+		const cookieHeader = authCookie.includes('SameSite')
+			? authCookie
+			: `${authCookie}; SameSite=Lax; Path=/; Max-Age=${60 * 60 * 24 * 7}`;
 
 		return json(
 			{
@@ -173,7 +171,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies, url }) =>
 			},
 			{
 				headers: {
-					'set-cookie': `pb_auth=${locals.pb.authStore.exportToCookie()}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
+					'set-cookie': cookieHeader
 				}
 			}
 		);

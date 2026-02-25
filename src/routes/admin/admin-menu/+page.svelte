@@ -6,6 +6,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { derived, get } from 'svelte/store';
 	import { fly, fade } from 'svelte/transition';
+	import Notification from '$lib/Notification.svelte';
 
 	let dishes = $state($page.form?.dishes ?? $page.data.dishes ?? []);
 	const categories = $page.data.categories ?? [];
@@ -172,28 +173,33 @@
 	<title>Menu Management - Proxifeast</title>
 </svelte:head>
 
-{#if successAlert}
-	<div
-		class="alert alert-success fixed top-4 left-1/2 z-50 w-[90%] max-w-md -translate-x-1/2 shadow-lg"
-		in:fly={{ y: -20, duration: 300 }}
-	>
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			class="h-5 w-5 shrink-0"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-		>
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-			/>
-		</svg>
-		<span>Dish edited successfully!</span>
-	</div>
-{/if}
+<Notification
+	show={successAlert}
+	type="success"
+	title="Success!"
+	message="Dish edited successfully!"
+/>
+
+<Notification
+	show={errorAlert}
+	type="error"
+	title="Error"
+	message={$page.form?.error || 'Something went wrong'}
+/>
+
+<Notification
+	show={deleteSuccessful}
+	type="success"
+	title="Deleted!"
+	message="Dish deleted successfully!"
+/>
+
+<Notification
+	show={deleteUnsuccessful}
+	type="error"
+	title="Error"
+	message="Failed to delete dish. Please try again."
+/>
 
 {#if errorAlert}
 	<div
@@ -214,7 +220,7 @@
 				d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
 			/>
 		</svg>
-		<span>{$page.form.error}</span>
+		<span>{$page.form?.error}</span>
 	</div>
 {/if}
 

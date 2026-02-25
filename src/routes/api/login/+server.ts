@@ -122,7 +122,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		locals.user = record;
 
 		// Export auth store to cookie
-		const authCookie = locals.pb.authStore.exportToCookie({ httpOnly: false });
+		const authCookie = locals.pb.authStore.exportToCookie();
 
 		// Make sure we include all necessary cookie attributes
 		const cookieHeader = authCookie.includes('SameSite')
