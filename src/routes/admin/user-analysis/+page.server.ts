@@ -36,7 +36,13 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 	}
 
 	try {
-		// Get all orders for this restaurant (all statuses)
+		// Get all users for this restaurant
+		const allUsers = await locals.pb.collection('users').getFullList({
+			filter: `restaurantIds ?= "${restaurantId}"`,
+			sort: '-created'
+		});
+
+		// Get all orders for this restaurant
 		const orders = await locals.pb.collection('orders').getFullList({
 			filter: `restaurantId = "${restaurantId}"`,
 			sort: '-created'
@@ -53,39 +59,28 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			}
 		});
 
-		// Get unique users and their stats
-		const userIds = Object.keys(userOrdersMap);
-		const customerStats: any[] = [];
-
-		for (const userId of userIds) {
-			const userOrders = userOrdersMap[userId];
+		// Build customer stats from all users
+		const customerStats: any[] = allUsers.map((user: any) => {
+			const userOrders = userOrdersMap[user.id] || [];
 			const deliveredOrders = userOrders.filter((o: any) => o.status === 'Delivered');
 			const totalSpent = deliveredOrders.reduce(
 				(sum: number, o: any) => sum + (o.orderTotal || o.totalAmount || 0),
 				0
 			);
 
-			// Try to get user details
-			let userDetails: any = null;
-			try {
-				userDetails = await locals.pb.collection('users').getOne(userId);
-			} catch {
-				// User might have been deleted
-			}
-
-			customerStats.push({
-				id: userId,
-				name: userDetails?.name || userDetails?.username || 'Unknown',
-				email: userDetails?.email || '',
-				phone: userDetails?.phone || userDetails?.phoneNumber || '',
-				address: userDetails?.address || '',
+			return {
+				id: user.id,
+				name: user.name || user.username || 'Unknown',
+				email: user.email || '',
+				phone: user.phone || user.phoneNumber || '',
+				address: user.address || '',
 				orderCount: deliveredOrders.length,
 				totalOrderCount: userOrders.length,
 				totalSpent,
-				firstOrder: userOrders[userOrders.length - 1]?.created,
-				lastOrder: userOrders[0]?.created
-			});
-		}
+				firstOrder: userOrders.length > 0 ? userOrders[userOrders.length - 1]?.created : null,
+				lastOrder: userOrders.length > 0 ? userOrders[0]?.created : null
+			};
+		});
 
 		// Sort by total spent (highest first)
 		customerStats.sort((a, b) => b.totalSpent - a.totalSpent);
