@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { fly, fade } from 'svelte/transition';
+	import { fly } from 'svelte/transition';
 	import Chart from 'chart.js/auto';
 
 	let { data } = $props();
@@ -9,9 +9,15 @@
 	let searchQuery = $state('');
 	let selectedCustomer = $state<any>(null);
 	let showCustomerModal = $state(false);
+	let activeTab = $state('overview');
 
 	const customers = data.customerStats ?? [];
 	const userOrdersMap = data.userOrdersMap ?? {};
+	const charts = data.charts ?? {};
+	const stats = data.stats ?? {};
+	const topCustomers = data.topCustomers ?? [];
+	const mostValuableCustomers = data.mostValuableCustomers ?? [];
+	const popularDishes = data.popularDishes ?? [];
 
 	function getCustomerMetrics(customer: any) {
 		const orders = userOrdersMap[customer.id] || [];
@@ -80,19 +86,126 @@
 		selectedCustomer = null;
 	}
 
-	const stats = $derived({
-		totalCustomers: customers.length,
-		newCustomers: customers.filter((c: any) => c.orderCount === 1).length,
-		returningCustomers: customers.filter((c: any) => c.orderCount > 1).length,
-		vipCustomers: customers.filter((c: any) => getCustomerMetrics(c).totalSpent >= 100000).length,
-		totalRevenue: customers.reduce((sum: number, c: any) => sum + (c.totalSpent || 0), 0),
-		avgOrderValue:
-			customers.length > 0
-				? Math.round(
-						customers.reduce((sum: number, c: any) => sum + (c.totalSpent || 0), 0) /
-							customers.length
-					)
-				: 0
+	let revenueChart: Chart | null = null;
+	let tierChart: Chart | null = null;
+	let newReturningChart: Chart | null = null;
+	let orderTimeChart: Chart | null = null;
+	let deliveryChart: Chart | null = null;
+
+	onMount(() => {
+		// Revenue over time chart
+		const revenueEl = document.getElementById('revenueChart');
+		const revenueCtx = revenueEl?.getContext('2d');
+		if (revenueCtx && charts.revenueOverTime?.labels?.length > 0) {
+			revenueChart = new Chart(revenueCtx, {
+				type: 'line',
+				data: charts.revenueOverTime,
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					plugins: { legend: { display: false } },
+					scales: {
+						y: {
+							beginAtZero: true,
+							ticks: { callback: (value) => '₦' + Number(value).toLocaleString() }
+						}
+					}
+				}
+			});
+		}
+
+		// Tier distribution chart
+		const tierEl = document.getElementById('tierChart');
+		const tierCtx = tierEl?.getContext('2d');
+		if (tierCtx && charts.tierDistribution?.labels?.length > 0) {
+			const totalTiers =
+				charts.tierDistribution.datasets[0]?.data?.reduce((a: number, b: number) => a + b, 0) || 0;
+			if (totalTiers > 0) {
+				tierChart = new Chart(tierCtx, {
+					type: 'doughnut',
+					data: charts.tierDistribution,
+					options: {
+						responsive: true,
+						maintainAspectRatio: false,
+						plugins: {
+							legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+						}
+					}
+				});
+			}
+		}
+
+		// New vs Returning chart
+		const newReturningEl = document.getElementById('newReturningChart');
+		const newReturningCtx = newReturningEl?.getContext('2d');
+		if (newReturningCtx && charts.newVsReturning?.labels?.length > 0) {
+			const total =
+				charts.newVsReturning.datasets[0]?.data?.reduce((a: number, b: number) => a + b, 0) || 0;
+			if (total > 0) {
+				newReturningChart = new Chart(newReturningCtx, {
+					type: 'pie',
+					data: charts.newVsReturning,
+					options: {
+						responsive: true,
+						maintainAspectRatio: false,
+						plugins: {
+							legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+						}
+					}
+				});
+			}
+		}
+
+		// Order time distribution chart
+		const orderTimeEl = document.getElementById('orderTimeChart');
+		const orderTimeCtx = orderTimeEl?.getContext('2d');
+		if (orderTimeCtx && charts.orderTimeDistribution?.labels?.length > 0) {
+			orderTimeChart = new Chart(orderTimeCtx, {
+				type: 'bar',
+				data: charts.orderTimeDistribution,
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					plugins: { legend: { display: false } },
+					scales: {
+						x: { display: true, ticks: { maxRotation: 45, minRotation: 45, font: { size: 9 } } },
+						y: { beginAtZero: true }
+					}
+				}
+			});
+		}
+
+		// Delivery type chart
+		const deliveryEl = document.getElementById('deliveryChart');
+		const deliveryCtx = deliveryEl?.getContext('2d');
+		if (deliveryCtx && charts.deliveryTypeDistribution?.labels?.length > 0) {
+			const total =
+				charts.deliveryTypeDistribution.datasets[0]?.data?.reduce(
+					(a: number, b: number) => a + b,
+					0
+				) || 0;
+			if (total > 0) {
+				deliveryChart = new Chart(deliveryCtx, {
+					type: 'doughnut',
+					data: charts.deliveryTypeDistribution,
+					options: {
+						responsive: true,
+						maintainAspectRatio: false,
+						plugins: {
+							legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+						}
+					}
+				});
+			}
+		}
+
+		return () => {
+			revenueChart?.destroy();
+			tierChart?.destroy();
+			newReturningChart?.destroy();
+			orderTimeChart?.destroy();
+			deliveryChart?.destroy();
+		};
 	});
 </script>
 
@@ -103,193 +216,446 @@
 <div class="min-h-screen bg-slate-50">
 	<!-- Header -->
 	<section
-		class="bg-gradient-to-b from-slate-900 via-slate-800 to-slate-700 py-6 text-center text-white md:py-8"
+		class="bg-gradient-to-b from-slate-900 via-slate-800 to-slate-700 px-4 py-5 text-white md:py-8"
 	>
-		<div class="container mx-auto px-4">
-			<h1 class="font-playfair text-2xl font-bold md:text-4xl">User Analysis</h1>
-			<p class="mt-2 text-white/80">Understand your customers better</p>
+		<div class="mx-auto max-w-7xl">
+			<h1 class="font-playfair text-center text-2xl font-bold md:text-4xl">User Analysis</h1>
+			<p class="mt-1 text-center text-sm text-white/80 md:mt-2 md:text-base">
+				Understand your customers better
+			</p>
 		</div>
 	</section>
 
-	<!-- Stats -->
-	<section class="container mx-auto -mt-4 px-4">
-		<div class="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-			<div class="rounded-xl bg-white p-3 shadow-lg shadow-slate-200 md:p-4">
-				<div class="text-xl font-bold text-slate-800 md:text-2xl">{stats.totalCustomers}</div>
-				<div class="text-xs text-slate-500 md:text-sm">Total Users</div>
-			</div>
-			<div class="rounded-xl bg-white p-3 shadow-lg shadow-slate-200 md:p-4">
-				<div class="text-xl font-bold text-emerald-600 md:text-2xl">{stats.newCustomers}</div>
-				<div class="text-xs text-slate-500 md:text-sm">New Users</div>
-			</div>
-			<div class="rounded-xl bg-white p-3 shadow-lg shadow-slate-200 md:p-4">
-				<div class="text-xl font-bold text-blue-600 md:text-2xl">{stats.returningCustomers}</div>
-				<div class="text-xs text-slate-500 md:text-sm">Returning</div>
-			</div>
-			<div class="rounded-xl bg-white p-3 shadow-lg shadow-slate-200 md:p-4">
-				<div class="text-xl font-bold text-purple-600 md:text-2xl">{stats.vipCustomers}</div>
-				<div class="text-xs text-slate-500 md:text-sm">VIP</div>
-			</div>
-			<div
-				class="col-span-2 rounded-xl bg-white p-3 shadow-lg shadow-slate-200 md:col-span-1 md:p-4"
+	<!-- Tab Navigation -->
+	<section class="sticky top-0 z-10 border-b border-slate-200 bg-white">
+		<div class="mx-auto flex max-w-7xl overflow-x-auto px-4">
+			<button
+				onclick={() => (activeTab = 'overview')}
+				class="border-b-2 px-3 py-3 text-sm font-medium whitespace-nowrap transition-colors md:px-4 md:text-base {activeTab ===
+				'overview'
+					? 'border-amber-500 text-amber-600'
+					: 'border-transparent text-slate-500 hover:text-slate-700'}"
 			>
-				<div class="text-xl font-bold text-slate-800 md:text-2xl">
-					₦{(stats.totalRevenue || 0).toLocaleString()}
-				</div>
-				<div class="text-xs text-slate-500 md:text-sm">Total Revenue</div>
-			</div>
-			<div
-				class="col-span-2 rounded-xl bg-white p-3 shadow-lg shadow-slate-200 md:col-span-1 md:p-4"
+				Overview
+			</button>
+			<button
+				onclick={() => (activeTab = 'customers')}
+				class="border-b-2 px-3 py-3 text-sm font-medium whitespace-nowrap transition-colors md:px-4 md:text-base {activeTab ===
+				'customers'
+					? 'border-amber-500 text-amber-600'
+					: 'border-transparent text-slate-500 hover:text-slate-700'}"
 			>
-				<div class="text-xl font-bold text-slate-800 md:text-2xl">
-					₦{stats.avgOrderValue.toLocaleString()}
+				Customers
+			</button>
+			<button
+				onclick={() => (activeTab = 'insights')}
+				class="border-b-2 px-3 py-3 text-sm font-medium whitespace-nowrap transition-colors md:px-4 md:text-base {activeTab ===
+				'insights'
+					? 'border-amber-500 text-amber-600'
+					: 'border-transparent text-slate-500 hover:text-slate-700'}"
+			>
+				Insights
+			</button>
+		</div>
+	</section>
+
+	<div class="mx-auto max-w-7xl px-4 pb-8">
+		{#if activeTab === 'overview'}
+			<!-- Stats Cards -->
+			<section class="mt-4">
+				<div class="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6">
+					<div class="rounded-xl bg-white p-3 shadow-sm md:p-4">
+						<div class="text-lg font-bold text-slate-800 md:text-2xl">
+							{stats.totalCustomers || 0}
+						</div>
+						<div class="truncate text-xs text-slate-500 md:text-sm">Total Users</div>
+					</div>
+					<div class="rounded-xl bg-white p-3 shadow-sm md:p-4">
+						<div class="text-lg font-bold text-emerald-600 md:text-2xl">
+							{stats.newCustomers || 0}
+						</div>
+						<div class="truncate text-xs text-slate-500 md:text-sm">New</div>
+					</div>
+					<div class="rounded-xl bg-white p-3 shadow-sm md:p-4">
+						<div class="text-lg font-bold text-blue-600 md:text-2xl">
+							{stats.returningCustomers || 0}
+						</div>
+						<div class="truncate text-xs text-slate-500 md:text-sm">Returning</div>
+					</div>
+					<div class="rounded-xl bg-white p-3 shadow-sm md:p-4">
+						<div class="text-lg font-bold text-purple-600 md:text-2xl">{stats.vipCount || 0}</div>
+						<div class="truncate text-xs text-slate-500 md:text-sm">VIP</div>
+					</div>
+					<div class="col-span-2 rounded-xl bg-white p-3 shadow-sm md:col-span-1 md:p-4">
+						<div class="truncate text-lg font-bold text-slate-800 md:text-2xl">
+							₦{(stats.totalRevenue || 0).toLocaleString()}
+						</div>
+						<div class="truncate text-xs text-slate-500 md:text-sm">Total Revenue</div>
+					</div>
+					<div class="col-span-2 rounded-xl bg-white p-3 shadow-sm md:col-span-1 md:p-4">
+						<div class="truncate text-lg font-bold text-slate-800 md:text-2xl">
+							₦{(stats.avgOrderValue || 0).toLocaleString()}
+						</div>
+						<div class="truncate text-xs text-slate-500 md:text-sm">Avg Order</div>
+					</div>
 				</div>
-				<div class="text-xs text-slate-500 md:text-sm">Avg Order</div>
-			</div>
-		</div>
-	</section>
+			</section>
 
-	<!-- Search & Filters -->
-	<section class="container mx-auto mt-6 px-4">
-		<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-			<div class="relative flex-1">
-				<svg
-					class="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-slate-400"
-					xmlns="http://www.w3.org/2000/svg"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-					/>
-				</svg>
-				<input
-					type="text"
-					bind:value={searchQuery}
-					placeholder="Search by name, email, or phone..."
-					class="focus:border-primary w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-4 pl-10 text-sm focus:outline-none md:py-3 md:text-base"
-				/>
-			</div>
-			<div class="flex gap-2">
-				<select
-					bind:value={selectedPeriod}
-					class="focus:border-primary rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:outline-none"
-				>
-					<option value="last7">Last 7 Days</option>
-					<option value="last30">Last 30 Days</option>
-					<option value="last90">Last 90 Days</option>
-					<option value="all">All Time</option>
-				</select>
-			</div>
-		</div>
-	</section>
+			<!-- Charts Grid -->
+			<section class="mt-4 grid gap-4 md:mt-6 md:grid-cols-2 lg:grid-cols-3">
+				<!-- Revenue Over Time -->
+				<div class="rounded-xl bg-white p-4 shadow-sm md:rounded-2xl md:p-6">
+					<h2 class="mb-2 text-sm font-semibold text-slate-900 md:mb-3 md:text-base">
+						Revenue Over Time
+					</h2>
+					{#if charts.revenueOverTime?.labels?.length > 0}
+						<div class="h-40 md:h-48">
+							<canvas id="revenueChart"></canvas>
+						</div>
+					{:else}
+						<div class="flex h-32 items-center justify-center">
+							<p class="text-sm text-slate-400">No data</p>
+						</div>
+					{/if}
+				</div>
 
-	<!-- Customer List -->
-	<section class="container mx-auto mt-6 px-4 pb-12">
-		<div class="overflow-x-auto rounded-xl bg-white shadow-md">
-			<table class="w-full min-w-[600px]">
-				<thead class="bg-slate-50">
-					<tr>
-						<th
-							class="px-4 py-3 text-left text-xs font-semibold tracking-wider text-slate-600 uppercase"
-							>Customer</th
-						>
-						<th
-							class="px-4 py-3 text-left text-xs font-semibold tracking-wider text-slate-600 uppercase"
-							>Orders</th
-						>
-						<th
-							class="px-4 py-3 text-left text-xs font-semibold tracking-wider text-slate-600 uppercase"
-							>Total Spent</th
-						>
-						<th
-							class="px-4 py-3 text-left text-xs font-semibold tracking-wider text-slate-600 uppercase"
-							>Avg Order</th
-						>
-						<th
-							class="px-4 py-3 text-left text-xs font-semibold tracking-wider text-slate-600 uppercase"
-							>Tier</th
-						>
-						<th
-							class="px-4 py-3 text-left text-xs font-semibold tracking-wider text-slate-600 uppercase"
-							>Last Order</th
-						>
-						<th
-							class="px-4 py-3 text-right text-xs font-semibold tracking-wider text-slate-600 uppercase"
-							>Action</th
-						>
-					</tr>
-				</thead>
-				<tbody class="divide-y divide-slate-100">
-					{#each filteredCustomers() as customer}
-						{@const metrics = getCustomerMetrics(customer)}
-						{@const tierInfo = getCustomerTier(customer)}
-						<tr class="hover:bg-slate-50">
-							<td class="px-4 py-3">
-								<div class="flex items-center gap-3">
-									<div
-										class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 font-semibold text-slate-600"
-									>
-										{customer.name?.charAt(0)?.toUpperCase() || 'U'}
-									</div>
-									<div>
-										<p class="font-medium text-slate-900">{customer.name || 'Unknown'}</p>
-										<p class="text-xs text-slate-500">{customer.email || 'No email'}</p>
-									</div>
-								</div>
-							</td>
-							<td class="px-4 py-3">
-								<span class="font-medium text-slate-900">{metrics.totalOrders}</span>
-							</td>
-							<td class="px-4 py-3">
-								<span class="font-medium text-slate-900"
-									>₦{(metrics.totalSpent || 0).toLocaleString()}</span
-								>
-							</td>
-							<td class="px-4 py-3">
-								<span class="text-slate-600">₦{metrics.avgOrderValue.toLocaleString()}</span>
-							</td>
-							<td class="px-4 py-3">
-								<span
-									class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium {tierInfo.color}"
-								>
-									<span>{tierInfo.icon}</span>
-									{tierInfo.tier}
-								</span>
-							</td>
-							<td class="px-4 py-3">
-								<span class="text-sm text-slate-600">
-									{metrics.lastOrderDate ? getTimeSince(metrics.lastOrderDate) : 'Never'}
-								</span>
-							</td>
-							<td class="px-4 py-3 text-right">
+				<!-- Customer Tiers -->
+				<div class="rounded-xl bg-white p-4 shadow-sm md:rounded-2xl md:p-6">
+					<h2 class="mb-2 text-sm font-semibold text-slate-900 md:mb-3 md:text-base">
+						Customer Tiers
+					</h2>
+					{#if charts.tierDistribution?.labels?.length > 0 && (stats.totalCustomers || 0) > 0}
+						<div class="flex h-40 items-center justify-center md:h-48">
+							<div class="h-32 w-32 md:h-40 md:w-40">
+								<canvas id="tierChart"></canvas>
+							</div>
+						</div>
+					{:else}
+						<div class="flex h-32 items-center justify-center">
+							<p class="text-sm text-slate-400">No data</p>
+						</div>
+					{/if}
+				</div>
+
+				<!-- New vs Returning -->
+				<div class="rounded-xl bg-white p-4 shadow-sm md:rounded-2xl md:p-6">
+					<h2 class="mb-2 text-sm font-semibold text-slate-900 md:mb-3 md:text-base">
+						New vs Returning
+					</h2>
+					{#if charts.newVsReturning?.labels?.length > 0 && (stats.totalCustomers || 0) > 0}
+						<div class="flex h-40 items-center justify-center md:h-48">
+							<div class="h-32 w-32 md:h-40 md:w-40">
+								<canvas id="newReturningChart"></canvas>
+							</div>
+						</div>
+					{:else}
+						<div class="flex h-32 items-center justify-center">
+							<p class="text-sm text-slate-400">No data</p>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Order Time -->
+				<div class="rounded-xl bg-white p-4 shadow-sm md:col-span-2 md:rounded-2xl md:p-6">
+					<h2 class="mb-2 text-sm font-semibold text-slate-900 md:mb-3 md:text-base">
+						Orders by Time of Day
+					</h2>
+					{#if charts.orderTimeDistribution?.labels?.length > 0}
+						<div class="h-40 md:h-48">
+							<canvas id="orderTimeChart"></canvas>
+						</div>
+					{:else}
+						<div class="flex h-32 items-center justify-center">
+							<p class="text-sm text-slate-400">No data</p>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Delivery Type -->
+				<div class="rounded-xl bg-white p-4 shadow-sm md:rounded-2xl md:p-6">
+					<h2 class="mb-2 text-sm font-semibold text-slate-900 md:mb-3 md:text-base">
+						Order Types
+					</h2>
+					{#if charts.deliveryTypeDistribution?.labels?.length > 0}
+						<div class="flex h-40 items-center justify-center md:h-48">
+							<div class="h-32 w-32 md:h-40 md:w-40">
+								<canvas id="deliveryChart"></canvas>
+							</div>
+						</div>
+					{:else}
+						<div class="flex h-32 items-center justify-center">
+							<p class="text-sm text-slate-400">No data</p>
+						</div>
+					{/if}
+				</div>
+			</section>
+
+			<!-- Top Customers -->
+			{#if topCustomers.length > 0}
+				<section class="mt-6">
+					<div class="rounded-xl bg-white p-4 shadow-sm md:rounded-2xl md:p-6">
+						<h2 class="mb-3 text-base font-semibold text-slate-900 md:mb-4">
+							Top Customers by Revenue
+						</h2>
+						<div class="space-y-2 md:space-y-3">
+							{#each topCustomers as customer, i}
 								<button
 									onclick={() => viewCustomerDetails(customer)}
-									class="bg-primary hover:bg-primary/90 rounded-lg px-3 py-1.5 text-sm font-medium text-white transition-colors"
+									class="flex w-full items-center justify-between rounded-lg bg-slate-50 p-2 text-left transition-colors hover:bg-slate-100 md:p-3"
 								>
-									View
+									<div class="flex items-center gap-2 md:gap-3">
+										<div
+											class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white md:h-8 md:w-8 md:text-sm"
+										>
+											{i + 1}
+										</div>
+										<div class="min-w-0">
+											<p class="truncate font-medium text-slate-900">{customer.name}</p>
+											<p class="truncate text-xs text-slate-500">{customer.orderCount} orders</p>
+										</div>
+									</div>
+									<p class="shrink-0 font-semibold text-emerald-600">
+										₦{customer.totalSpent.toLocaleString()}
+									</p>
 								</button>
-							</td>
-						</tr>
-					{:else}
+							{/each}
+						</div>
+					</div>
+				</section>
+			{/if}
+		{:else if activeTab === 'customers'}
+			<!-- Search -->
+			<section class="mt-4">
+				<div class="relative">
+					<svg
+						class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400 md:h-5 md:w-5"
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+						/>
+					</svg>
+					<input
+						type="text"
+						bind:value={searchQuery}
+						placeholder="Search customers..."
+						class="w-full rounded-xl border border-slate-200 bg-white py-2 pr-4 pl-9 text-sm focus:border-amber-500 focus:outline-none md:py-3 md:text-base"
+					/>
+				</div>
+			</section>
+
+			<!-- Customer List -->
+			<section class="mt-4 overflow-x-auto rounded-xl bg-white shadow-sm">
+				<table class="w-full min-w-[500px]">
+					<thead class="bg-slate-50">
 						<tr>
-							<td colspan="7" class="px-4 py-8 text-center text-slate-500">
-								{#if searchQuery}
-									No customers found matching "{searchQuery}"
-								{:else}
-									No customer data available yet
-								{/if}
-							</td>
+							<th
+								class="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase md:px-4 md:py-3"
+								>Customer</th
+							>
+							<th
+								class="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase md:px-4 md:py-3"
+								>Orders</th
+							>
+							<th
+								class="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase md:px-4 md:py-3"
+								>Spent</th
+							>
+							<th
+								class="hidden px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase md:table-cell md:px-4 md:py-3"
+								>Tier</th
+							>
+							<th
+								class="hidden px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase md:table-cell md:px-4 md:py-3"
+								>Last Order</th
+							>
+							<th
+								class="px-3 py-2 text-right text-xs font-semibold text-slate-600 uppercase md:px-4 md:py-3"
+								>Action</th
+							>
 						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
-	</section>
+					</thead>
+					<tbody class="divide-y divide-slate-100">
+						{#each filteredCustomers() as customer}
+							{@const metrics = getCustomerMetrics(customer)}
+							{@const tierInfo = getCustomerTier(customer)}
+							<tr class="hover:bg-slate-50">
+								<td class="px-3 py-2 md:px-4 md:py-3">
+									<div class="flex items-center gap-2 md:gap-3">
+										<div
+											class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-600"
+										>
+											{customer.name?.charAt(0)?.toUpperCase() || 'U'}
+										</div>
+										<div class="min-w-0">
+											<p class="truncate font-medium text-slate-900">
+												{customer.name || 'Unknown'}
+											</p>
+											<p class="truncate text-xs text-slate-500 md:hidden">
+												{customer.email || ''}
+											</p>
+										</div>
+									</div>
+								</td>
+								<td class="px-3 py-2 md:px-4 md:py-3">
+									<span class="font-medium text-slate-900">{metrics.totalOrders}</span>
+								</td>
+								<td class="px-3 py-2 md:px-4 md:py-3">
+									<span class="font-medium text-slate-900"
+										>₦{(metrics.totalSpent || 0).toLocaleString()}</span
+									>
+								</td>
+								<td class="hidden px-3 py-2 md:table-cell md:px-4 md:py-3">
+									<span
+										class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {tierInfo.color}"
+									>
+										{tierInfo.tier}
+									</span>
+								</td>
+								<td class="hidden px-3 py-2 text-sm text-slate-600 md:table-cell md:px-4 md:py-3">
+									{metrics.lastOrderDate ? getTimeSince(metrics.lastOrderDate) : 'Never'}
+								</td>
+								<td class="px-3 py-2 text-right md:px-4 md:py-3">
+									<button
+										onclick={() => viewCustomerDetails(customer)}
+										class="rounded-lg bg-amber-500 px-2 py-1 text-xs font-medium text-white hover:bg-amber-600 md:px-3 md:py-1.5 md:text-sm"
+									>
+										View
+									</button>
+								</td>
+							</tr>
+						{:else}
+							<tr>
+								<td colspan="6" class="px-4 py-8 text-center text-slate-500">
+									{searchQuery ? `No customers found` : 'No customer data available'}
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</section>
+		{:else if activeTab === 'insights'}
+			<!-- Key Metrics -->
+			<section class="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+				<div class="rounded-xl bg-white p-4 shadow-sm">
+					<div class="text-xs text-slate-500 md:text-sm">Customer LTV</div>
+					<div class="mt-1 text-xl font-bold text-slate-800 md:text-2xl">
+						₦{(stats.avgCustomerLTV || 0).toLocaleString()}
+					</div>
+					<div class="mt-1 text-xs text-slate-400">Avg. lifetime value</div>
+				</div>
+				<div class="rounded-xl bg-white p-4 shadow-sm">
+					<div class="text-xs text-slate-500 md:text-sm">Retention Rate</div>
+					<div class="mt-1 text-xl font-bold text-emerald-600 md:text-2xl">
+						{stats.retentionRate || 0}%
+					</div>
+					<div class="mt-1 text-xs text-slate-400">Returning customers</div>
+				</div>
+				<div class="rounded-xl bg-white p-4 shadow-sm">
+					<div class="text-xs text-slate-500 md:text-sm">Churned</div>
+					<div class="mt-1 text-xl font-bold text-red-500 md:text-2xl">
+						{stats.churnedCustomers || 0}
+					</div>
+					<div class="mt-1 text-xs text-slate-400">Inactive 30+ days</div>
+				</div>
+				<div class="rounded-xl bg-white p-4 shadow-sm">
+					<div class="text-xs text-slate-500 md:text-sm">New Users (30d)</div>
+					<div class="mt-1 text-xl font-bold text-blue-600 md:text-2xl">
+						{stats.newUsersLast30Days || 0}
+					</div>
+					<div class="mt-1 text-xs text-slate-400">Last 30 days</div>
+				</div>
+			</section>
+
+			<!-- Popular Dishes -->
+			{#if popularDishes.length > 0}
+				<section class="mt-6">
+					<div class="rounded-xl bg-white p-4 shadow-sm md:rounded-2xl md:p-6">
+						<h2 class="mb-3 text-base font-semibold text-slate-900">Most Popular Dishes</h2>
+						<div class="space-y-2 md:space-y-3">
+							{#each popularDishes as dish, i}
+								<div class="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+									<div class="flex items-center gap-3">
+										<div
+											class="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600"
+										>
+											{i + 1}
+										</div>
+										<div>
+											<p class="font-medium text-slate-900">{dish.name}</p>
+											<p class="text-xs text-slate-500">{dish.count} orders</p>
+										</div>
+									</div>
+									<p class="font-semibold text-emerald-600">₦{dish.revenue.toLocaleString()}</p>
+								</div>
+							{/each}
+						</div>
+					</div>
+				</section>
+			{/if}
+
+			<!-- Most Valuable Customers -->
+			{#if mostValuableCustomers.length > 0}
+				<section class="mt-6">
+					<div class="rounded-xl bg-white p-4 shadow-sm md:rounded-2xl md:p-6">
+						<h2 class="mb-3 text-base font-semibold text-slate-900">
+							Most Valuable Customers (LTV)
+						</h2>
+						<div class="space-y-2 md:space-y-3">
+							{#each mostValuableCustomers as customer}
+								<button
+									onclick={() => viewCustomerDetails(customer)}
+									class="flex w-full items-center justify-between rounded-lg bg-slate-50 p-3 text-left transition-colors hover:bg-slate-100"
+								>
+									<div class="min-w-0">
+										<p class="truncate font-medium text-slate-900">{customer.name}</p>
+										<p class="truncate text-xs text-slate-500">{customer.email}</p>
+									</div>
+									<div class="text-right">
+										<p class="font-semibold text-emerald-600">
+											₦{customer.totalSpent.toLocaleString()}
+										</p>
+										<p class="text-xs text-slate-500">{customer.orderCount} orders</p>
+									</div>
+								</button>
+							{/each}
+						</div>
+					</div>
+				</section>
+			{/if}
+
+			<!-- Tier Breakdown -->
+			<section class="mt-6">
+				<div class="rounded-xl bg-white p-4 shadow-sm md:rounded-2xl md:p-6">
+					<h2 class="mb-3 text-base font-semibold text-slate-900">Customer Tier Breakdown</h2>
+					<div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+						<div class="rounded-lg bg-purple-50 p-3 text-center">
+							<div class="text-xl font-bold text-purple-600">{stats.vipCount || 0}</div>
+							<div class="text-xs text-purple-700">VIP (₦100k+)</div>
+						</div>
+						<div class="rounded-lg bg-amber-50 p-3 text-center">
+							<div class="text-xl font-bold text-amber-600">{stats.premiumCount || 0}</div>
+							<div class="text-xs text-amber-700">Premium (₦50k+)</div>
+						</div>
+						<div class="rounded-lg bg-blue-50 p-3 text-center">
+							<div class="text-xl font-bold text-blue-600">{stats.regularCount || 0}</div>
+							<div class="text-xs text-blue-700">Regular (5+ orders)</div>
+						</div>
+						<div class="rounded-lg bg-slate-50 p-3 text-center">
+							<div class="text-xl font-bold text-slate-600">{stats.newCount || 0}</div>
+							<div class="text-xs text-slate-600">New</div>
+						</div>
+					</div>
+				</div>
+			</section>
+		{/if}
+	</div>
 </div>
 
 <!-- Customer Details Modal -->
@@ -297,29 +663,30 @@
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
 		onclick={closeCustomerModal}
+		role="dialog"
+		aria-modal="true"
 	>
 		<div
-			class="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-2xl bg-white"
+			class="max-h-[90vh] w-full max-w-lg overflow-auto rounded-2xl bg-white"
 			onclick={(e) => e.stopPropagation()}
+			role="document"
 		>
-			<!-- Modal Header -->
-			<div class="flex items-center justify-between border-b border-slate-100 p-4 md:p-6">
+			<div class="flex items-center justify-between border-b border-slate-100 p-4">
 				<div class="flex items-center gap-3">
 					<div
-						class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 font-bold text-slate-600"
+						class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 font-bold text-slate-600"
 					>
 						{selectedCustomer.name?.charAt(0)?.toUpperCase() || 'U'}
 					</div>
 					<div>
-						<h3 class="text-lg font-bold text-slate-900">
-							{selectedCustomer.name || 'Unknown User'}
-						</h3>
+						<h3 class="font-bold text-slate-900">{selectedCustomer.name || 'Unknown User'}</h3>
 						<p class="text-sm text-slate-500">{selectedCustomer.email || 'No email'}</p>
 					</div>
 				</div>
 				<button
 					onclick={closeCustomerModal}
 					class="rounded-lg p-2 text-slate-400 hover:bg-slate-100"
+					aria-label="Close"
 				>
 					<svg
 						class="h-5 w-5"
@@ -338,92 +705,64 @@
 				</button>
 			</div>
 
-			<!-- Customer Metrics -->
-			<div class="grid grid-cols-2 gap-3 border-b border-slate-100 p-4 md:grid-cols-4 md:p-6">
-				<div class="rounded-xl bg-slate-50 p-3">
+			<div class="grid grid-cols-2 gap-2 border-b border-slate-100 p-4">
+				<div class="rounded-lg bg-slate-50 p-3">
 					<div class="text-lg font-bold text-slate-900">{selectedCustomer.metrics.totalOrders}</div>
-					<div class="text-xs text-slate-500">Total Orders</div>
+					<div class="text-xs text-slate-500">Orders</div>
 				</div>
-				<div class="rounded-xl bg-slate-50 p-3">
+				<div class="rounded-lg bg-slate-50 p-3">
 					<div class="text-lg font-bold text-emerald-600">
 						₦{selectedCustomer.metrics.totalSpent.toLocaleString()}
 					</div>
 					<div class="text-xs text-slate-500">Total Spent</div>
 				</div>
-				<div class="rounded-xl bg-slate-50 p-3">
+				<div class="rounded-lg bg-slate-50 p-3">
 					<div class="text-lg font-bold text-slate-900">
 						₦{selectedCustomer.metrics.avgOrderValue.toLocaleString()}
 					</div>
 					<div class="text-xs text-slate-500">Avg Order</div>
 				</div>
-				<div class="rounded-xl bg-slate-50 p-3">
+				<div class="rounded-lg bg-slate-50 p-3">
 					<div class="text-lg font-bold text-purple-600">{selectedCustomer.tier.tier}</div>
-					<div class="text-xs text-slate-500">Customer Tier</div>
+					<div class="text-xs text-slate-500">Tier</div>
 				</div>
 			</div>
 
-			<!-- Contact Info -->
-			<div class="border-b border-slate-100 p-4 md:p-6">
-				<h4 class="mb-3 font-semibold text-slate-900">Contact Information</h4>
-				<div class="grid gap-3 md:grid-cols-2">
-					<div>
-						<p class="text-xs text-slate-500">Phone</p>
-						<p class="font-medium text-slate-900">{selectedCustomer.phone || 'Not provided'}</p>
-					</div>
-					<div>
-						<p class="text-xs text-slate-500">Email</p>
-						<p class="font-medium text-slate-900">{selectedCustomer.email || 'Not provided'}</p>
-					</div>
-					{#if selectedCustomer.address}
-						<div class="md:col-span-2">
-							<p class="text-xs text-slate-500">Address</p>
-							<p class="font-medium text-slate-900">{selectedCustomer.address}</p>
-						</div>
-					{/if}
-				</div>
+			<div class="border-b border-slate-100 p-4">
+				<h4 class="mb-2 font-semibold text-slate-900">Contact</h4>
+				<p class="text-sm text-slate-600">{selectedCustomer.phone || 'No phone'}</p>
+				{#if selectedCustomer.address}
+					<p class="mt-1 text-sm text-slate-600">{selectedCustomer.address}</p>
+				{/if}
 			</div>
 
-			<!-- Order History -->
-			<div class="p-4 md:p-6">
-				<h4 class="mb-3 font-semibold text-slate-900">Order History</h4>
+			<div class="p-4">
+				<h4 class="mb-2 font-semibold text-slate-900">Recent Orders</h4>
 				{#if selectedCustomer.orders?.length > 0}
-					<div class="space-y-3">
+					<div class="max-h-48 space-y-2 overflow-y-auto">
 						{#each selectedCustomer.orders.slice(0, 10) as order}
-							<div class="flex items-center justify-between rounded-lg border border-slate-100 p-3">
+							<div class="flex items-center justify-between rounded-lg border border-slate-100 p-2">
 								<div>
-									<p class="font-medium text-slate-900">
+									<p class="text-sm font-medium text-slate-900">
 										#{order.id?.slice(0, 8) || 'N/A'}
 									</p>
 									<p class="text-xs text-slate-500">
-										{new Date(order.created).toLocaleDateString('en-US', {
-											year: 'numeric',
-											month: 'short',
-											day: 'numeric',
-											hour: '2-digit',
-											minute: '2-digit'
-										})}
+										{new Date(order.created).toLocaleDateString()}
 									</p>
 								</div>
 								<div class="text-right">
-									<p class="font-medium text-slate-900">
+									<p class="text-sm font-medium text-slate-900">
 										₦{(order.orderTotal || order.totalAmount || 0).toLocaleString()}
 									</p>
-									<span
-										class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700"
+									<span class="rounded-full bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-700"
+										>{order.status}</span
 									>
-										{order.status || 'Delivered'}
-									</span>
 								</div>
 							</div>
 						{/each}
-						{#if selectedCustomer.orders.length > 10}
-							<p class="text-center text-sm text-slate-500">
-								+ {selectedCustomer.orders.length - 10} more orders
-							</p>
-						{/if}
 					</div>
 				{:else}
-					<p class="text-center text-slate-500">No orders found</p>
+					<p class="text-sm text-slate-500">No orders</p>
 				{/if}
 			</div>
 		</div>
