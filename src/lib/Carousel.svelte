@@ -28,7 +28,7 @@
 
 	function scroll(direction: 'left' | 'right') {
 		if (!containerRef) return;
-		const scrollAmount = containerRef.clientWidth * 0.8;
+		const scrollAmount = containerRef.clientWidth * 0.85;
 		if (direction === 'left') {
 			containerRef.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
 		} else {
@@ -59,12 +59,12 @@
 		<button
 			onclick={() => scroll('left')}
 			disabled={!canScrollLeft}
-			class="absolute top-1/2 left-0 z-10 flex h-12 w-12 -translate-x-6 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition-all hover:border-amber-500 hover:bg-amber-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-400"
+			class="absolute top-1/2 left-0 z-10 hidden h-10 w-10 -translate-x-2 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition-all hover:border-amber-500 hover:bg-amber-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-400 sm:flex sm:h-12 sm:w-12 sm:-translate-x-6"
 			aria-label="Scroll left"
 		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
-				class="h-5 w-5"
+				class="h-4 w-4 sm:h-5 sm:w-5"
 				fill="none"
 				viewBox="0 0 24 24"
 				stroke="currentColor"
@@ -78,7 +78,7 @@
 	<!-- Carousel Container -->
 	<div
 		bind:this={containerRef}
-		class="scrollbar-hide flex snap-x snap-mandatory gap-6 overflow-x-auto px-14 pb-4"
+		class="scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:gap-6 sm:px-6 md:px-14"
 		style="scrollbar-width: none; -ms-overflow-style: none;"
 	>
 		<slot />
@@ -89,12 +89,12 @@
 		<button
 			onclick={() => scroll('right')}
 			disabled={!canScrollRight}
-			class="absolute top-1/2 right-0 z-10 flex h-12 w-12 translate-x-6 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition-all hover:border-amber-500 hover:bg-amber-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-400"
+			class="absolute top-1/2 right-0 z-10 hidden h-10 w-10 translate-x-2 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition-all hover:border-amber-500 hover:bg-amber-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-400 sm:flex sm:h-12 sm:w-12 sm:translate-x-6"
 			aria-label="Scroll right"
 		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
-				class="h-5 w-5"
+				class="h-4 w-4 sm:h-5 sm:w-5"
 				fill="none"
 				viewBox="0 0 24 24"
 				stroke="currentColor"
