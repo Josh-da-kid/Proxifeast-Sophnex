@@ -16,6 +16,29 @@
 	// Loading state
 	let isLoading = $state(true);
 
+	// Carousel state
+	let specialsScrollPos = $state(0);
+	let restaurantsScrollPos = $state(0);
+	let specialsContainer: HTMLDivElement;
+	let restaurantsContainer: HTMLDivElement;
+
+	function scrollCarousel(container: HTMLDivElement, direction: 'left' | 'right') {
+		const scrollAmount = container.offsetWidth * 0.8;
+		if (direction === 'left') {
+			container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+		} else {
+			container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+		}
+	}
+
+	function scrollSpecials(direction: 'left' | 'right') {
+		if (specialsContainer) scrollCarousel(specialsContainer, direction);
+	}
+
+	function scrollRestaurants(direction: 'left' | 'right') {
+		if (restaurantsContainer) scrollCarousel(restaurantsContainer, direction);
+	}
+
 	// Watch for navigation changes
 	$effect(() => {
 		const unsubscribe = navigating.subscribe((nav) => {
@@ -1093,147 +1116,190 @@
 					<p class="text-base-content/60 mt-3 text-lg">Handpicked dishes just for you</p>
 				</div>
 
-				<div class="mx-auto grid max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-					{#each featuredDishes as dish}
-						<div
-							class="group cursor-pointer"
-							onclick={() => selectRestaurantFromDish(dish)}
-							onkeydown={(e) => e.key === 'Enter' && selectRestaurantFromDish(dish)}
-							role="button"
-							tabindex="0"
+				<div class="container mx-auto px-6">
+					<!-- Navigation Arrows -->
+					<div class="relative">
+						<!-- Left Arrow -->
+						<button
+							onclick={() => scrollSpecials('left')}
+							class="absolute top-1/2 left-0 z-10 -translate-x-2 -translate-y-1/2 rounded-full bg-white p-3 shadow-lg transition-all hover:bg-amber-500 hover:text-white disabled:opacity-30"
+							aria-label="Previous"
 						>
-							<article
-								class="relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-6 w-6"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
 							>
-								<!-- Image -->
-								<div class="relative h-48 shrink-0 overflow-hidden">
-									<img
-										src={dish.image}
-										alt={dish.name}
-										class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-									/>
-									<!-- Gradient -->
-									<div
-										class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"
-									></div>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M15 19l-7-7 7-7"
+								/>
+							</svg>
+						</button>
 
-									<!-- Restaurant Tag - Only show for super restaurants -->
-									{#if isSuper}
-										<div class="absolute top-3 left-3">
-											<span
-												class="flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
-											>
-												<svg
-													xmlns="http://www.w3.org/2000/svg"
-													class="h-3 w-3"
-													viewBox="0 0 24 24"
-													fill="currentColor"
-												>
-													<path
-														d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-													/>
-												</svg>
-												{getRestaurantNameForDish(dish)}
-											</span>
-										</div>
-									{/if}
-
-									<!-- Discount Badge -->
-									{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
-										<div class="absolute top-3 right-3">
-											<span
-												class="rounded-full bg-gradient-to-r from-red-500 to-red-600 px-3 py-1.5 text-xs font-bold text-white shadow-lg"
-											>
-												-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
-											</span>
-										</div>
-									{/if}
-								</div>
-
-								<!-- Content -->
-								<div class="flex flex-1 flex-col p-5">
-									<h3
-										class="font-playfair mb-2 text-lg leading-tight font-semibold text-slate-900 transition-colors group-hover:text-amber-600"
-									>
-										{dish.name}
-									</h3>
-									<p class="mb-4 line-clamp-2 text-sm leading-relaxed text-slate-500">
-										{dish.description}
-									</p>
-
-									<div class="mt-auto flex flex-col gap-3">
-										<div class="flex items-baseline justify-between">
-											{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
-												<span class="text-xl font-bold text-amber-600">
-													₦{Number(dish.promoAmount).toLocaleString()}
-												</span>
-												<span class="text-sm text-slate-400 line-through">
-													₦{Number(dish.defaultAmount).toLocaleString()}
-												</span>
-											{:else}
-												<span class="text-xl font-bold text-slate-900">
-													₦{Number(dish.defaultAmount).toLocaleString()}
-												</span>
-											{/if}
-										</div>
-										<div class="flex items-center gap-2">
-											{#if isSuper}
-												<button
-													class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border-2 border-amber-500 text-amber-500 transition-all hover:bg-amber-500 hover:text-white"
-													class:bg-amber-500={dishFavorites.includes(dish.id)}
-													class:text-white={dishFavorites.includes(dish.id)}
-													onclick={(e) => toggleDishFavorite(dish.id, e)}
-													title={dishFavorites.includes(dish.id)
-														? 'Remove from favorites'
-														: 'Add to favorites'}
-												>
-													<svg
-														xmlns="http://www.w3.org/2000/svg"
-														class="h-5 w-5"
-														viewBox="0 0 24 24"
-														fill={dishFavorites.includes(dish.id) ? 'currentColor' : 'none'}
-														stroke="currentColor"
-														stroke-width="2"
-													>
-														<path
-															d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-														/>
-													</svg>
-												</button>
-											{/if}
-											<button
-												class="flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 transition-all hover:from-amber-600 hover:to-amber-700 hover:shadow-xl"
-												onclick={(e) => {
-													e.stopPropagation();
-													handleAddToCart(dish);
-												}}
-											>
-												Order
-											</button>
-										</div>
-									</div>
-								</div>
-							</article>
-						</div>
-					{/each}
-				</div>
-
-				<div class="mt-12 text-center">
-					<a href="#menu" class="btn btn-outline btn-primary btn-lg rounded-full px-8">
-						View Full Menu
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							width="20"
-							height="20"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							class="ml-2"><path d="M5 12h14M12 5l7 7-7 7" /></svg
+						<!-- Carousel Container -->
+						<div
+							bind:this={specialsContainer}
+							class="scrollbar-hide flex snap-x snap-mandatory gap-6 overflow-x-auto px-8 pb-4"
+							style="scrollbar-width: none; -ms-overflow-style: none;"
 						>
-					</a>
+							{#each featuredDishes as dish}
+								<div
+									class="group w-72 shrink-0 cursor-pointer snap-start"
+									onclick={() => selectRestaurantFromDish(dish)}
+									onkeydown={(e) => e.key === 'Enter' && selectRestaurantFromDish(dish)}
+									role="button"
+									tabindex="0"
+								>
+									<article
+										class="relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+									>
+										<!-- Image -->
+										<div class="relative h-48 shrink-0 overflow-hidden">
+											<img
+												src={dish.image}
+												alt={dish.name}
+												class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+											/>
+											<!-- Gradient -->
+											<div
+												class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"
+											></div>
+
+											<!-- Restaurant Tag - Only show for super restaurants -->
+											{#if isSuper}
+												<div class="absolute top-3 left-3">
+													<span
+														class="flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
+													>
+														<svg
+															xmlns="http://www.w3.org/2000/svg"
+															class="h-3 w-3"
+															viewBox="0 0 24 24"
+															fill="currentColor"
+														>
+															<path
+																d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+															/>
+														</svg>
+														{getRestaurantNameForDish(dish)}
+													</span>
+												</div>
+											{/if}
+
+											<!-- Discount Badge -->
+											{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
+												<div class="absolute top-3 right-3">
+													<span
+														class="rounded-full bg-gradient-to-r from-red-500 to-red-600 px-3 py-1.5 text-xs font-bold text-white shadow-lg"
+													>
+														-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
+													</span>
+												</div>
+											{/if}
+										</div>
+
+										<!-- Content -->
+										<div class="flex flex-1 flex-col p-5">
+											<h3
+												class="font-playfair mb-2 text-lg leading-tight font-semibold text-slate-900 transition-colors group-hover:text-amber-600"
+											>
+												{dish.name}
+											</h3>
+											<p class="mb-4 line-clamp-2 text-sm leading-relaxed text-slate-500">
+												{dish.description}
+											</p>
+
+											<div class="mt-auto flex flex-col gap-3">
+												<div class="flex items-baseline justify-between">
+													{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
+														<span class="text-xl font-bold text-amber-600">
+															₦{Number(dish.promoAmount).toLocaleString()}
+														</span>
+														<span class="text-sm text-slate-400 line-through">
+															₦{Number(dish.defaultAmount).toLocaleString()}
+														</span>
+													{:else}
+														<span class="text-xl font-bold text-slate-900">
+															₦{Number(dish.defaultAmount).toLocaleString()}
+														</span>
+													{/if}
+												</div>
+												<div class="flex items-center gap-2">
+													{#if isSuper}
+														<button
+															class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border-2 border-amber-500 text-amber-500 transition-all hover:bg-amber-500 hover:text-white"
+															class:bg-amber-500={dishFavorites.includes(dish.id)}
+															class:text-white={dishFavorites.includes(dish.id)}
+															onclick={(e) => toggleDishFavorite(dish.id, e)}
+															title={dishFavorites.includes(dish.id)
+																? 'Remove from favorites'
+																: 'Add to favorites'}
+														>
+															<svg
+																xmlns="http://www.w3.org/2000/svg"
+																class="h-5 w-5"
+																viewBox="0 0 24 24"
+																fill={dishFavorites.includes(dish.id) ? 'currentColor' : 'none'}
+																stroke="currentColor"
+																stroke-width="2"
+															>
+																<path
+																	d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+																/>
+															</svg>
+														</button>
+													{/if}
+													<button
+														class="flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 transition-all hover:from-amber-600 hover:to-amber-700 hover:shadow-xl"
+														onclick={(e) => {
+															e.stopPropagation();
+															handleAddToCart(dish);
+														}}
+													>
+														Order
+													</button>
+												</div>
+											</div>
+										</div>
+									</article>
+								</div>
+							{/each}
+						</div>
+
+						<!-- Right Arrow -->
+						<button
+							onclick={() => scrollSpecials('right')}
+							class="absolute top-1/2 right-0 z-10 -translate-y-1/2 translate-x-2 rounded-full bg-white p-3 shadow-lg transition-all hover:bg-amber-500 hover:text-white disabled:opacity-30"
+							aria-label="Next"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+							</svg>
+						</button>
+					</div>
+
+						<div class="mt-12 text-center">
+							<a href="#menu" class="btn btn-outline btn-primary btn-lg rounded-full px-8">
+								View Full Menu
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									class="ml-2"><path d="M5 12h14M12 5l7 7-7 7" /></svg
+								>
+							</a>
+						</div>
+					</div>
 				</div>
-			</div>
 		</section>
 	{/if}
 
@@ -1444,10 +1510,28 @@
 					</h3>
 				{/if}
 
-				<div class="mx-auto grid max-w-7xl grid-cols-1 gap-8 pb-12 sm:grid-cols-2 lg:grid-cols-3">
+				<!-- Restaurant Carousel -->
+			<div class="relative mx-auto max-w-7xl pb-12">
+				<!-- Left Arrow -->
+				<button
+					onclick={() => scrollRestaurants('left')}
+					class="absolute top-1/2 left-0 z-10 -translate-y-1/2 -translate-x-4 rounded-full bg-white p-3 shadow-lg transition-all hover:bg-amber-500 hover:text-white disabled:opacity-30"
+					aria-label="Previous restaurant"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+					</svg>
+				</button>
+
+				<!-- Carousel Container -->
+				<div
+					bind:this={restaurantsContainer}
+					class="flex gap-6 overflow-x-auto px-12 pb-4 scrollbar-hide snap-x snap-mandatory"
+					style="scrollbar-width: none; -ms-overflow-style: none;"
+				>
 					{#each filteredRestaurants as r}
 						<article
-							class="group relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+							class="group w-80 shrink-0 snap-start relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
 						>
 							<!-- Background Pattern -->
 							<div class="absolute inset-0 opacity-5">
@@ -1532,8 +1616,20 @@
 						</article>
 					{/each}
 				</div>
-			{/if}
-		</section>
+
+				<!-- Right Arrow -->
+				<button
+					onclick={() => scrollRestaurants('right')}
+					class="absolute top-1/2 right-0 z-10 -translate-y-1/2 translate-x-4 rounded-full bg-white p-3 shadow-lg transition-all hover:bg-amber-500 hover:text-white disabled:opacity-30"
+					aria-label="Next restaurant"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+					</svg>
+				</button>
+			</div>
+		{/if}
+	</section>
 	{:else}
 		<!-- Menu View -->
 		{#if isLoading}
@@ -1818,7 +1914,19 @@
 								</article>
 							</div>
 						{/each}
-					</div>
+						</div>
+
+						<!-- Right Arrow -->
+						<button
+							onclick={() => scrollRestaurants('right')}
+							class="absolute top-1/2 right-0 z-10 -translate-y-1/2 translate-x-2 rounded-full bg-white p-3 shadow-lg transition-all hover:bg-amber-500 hover:text-white disabled:opacity-30"
+							aria-label="Next restaurant"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+							</svg>
+						</button>
+					
 				</section>
 			{/each}
 		{/if}
