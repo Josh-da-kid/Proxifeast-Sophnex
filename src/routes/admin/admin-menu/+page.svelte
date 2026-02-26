@@ -7,6 +7,7 @@
 	import { derived, get } from 'svelte/store';
 	import { fly, fade } from 'svelte/transition';
 	import Notification from '$lib/Notification.svelte';
+	import Carousel from '$lib/Carousel.svelte';
 
 	let dishes = $state($page.form?.dishes ?? $page.data.dishes ?? []);
 	const categories = $page.data.categories ?? [];
@@ -370,10 +371,10 @@
 						>
 					</h2>
 
-					<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+					<Carousel>
 						{#each dishesInCategory as dish}
 							<article
-								class="group rounded-2xl bg-white shadow-md transition-all hover:shadow-xl"
+								class="w-72 shrink-0 snap-start rounded-xl bg-white shadow-md transition-all hover:shadow-xl"
 								in:fly={{ y: 20, duration: 300 }}
 							>
 								<!-- Image Modal -->
@@ -523,7 +524,7 @@
 								</div>
 							</article>
 						{/each}
-					</div>
+					</Carousel>
 				</section>
 			{/each}
 		{/if}

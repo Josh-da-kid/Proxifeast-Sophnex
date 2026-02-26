@@ -9,6 +9,7 @@
 	import pb from '$lib/pb';
 	import { addToCartPB } from '$lib/addToCart';
 	import Footer from '$lib/Footer.svelte';
+	import Carousel from '$lib/Carousel.svelte';
 
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 	const user = derived(page, ($page) => $page.data.user);
@@ -1729,11 +1730,11 @@
 						<div class="border-2 underline"></div>
 					</div>
 
-					<div class="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 sm:grid-cols-2 lg:grid-cols-3">
+					<Carousel>
 						{#each dishesInCategory as dish}
-							<div class="group" in:fly={{ y: 50, duration: 600 }}>
+							<div class="group w-80 shrink-0 snap-start" in:fly={{ y: 50, duration: 600 }}>
 								<article
-									class="relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+									class="relative flex h-full flex-col overflow-hidden rounded-xl border border-slate-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
 									onclick={() => (
 										(modalImage = dish.image),
 										(modalDish = dish.name),
@@ -1947,29 +1948,7 @@
 								</article>
 							</div>
 						{/each}
-					</div>
-
-					<!-- Right Arrow -->
-					<button
-						onclick={() => scrollRestaurants('right')}
-						class="absolute top-1/2 right-0 z-10 translate-x-2 -translate-y-1/2 rounded-full bg-white p-3 shadow-lg transition-all hover:bg-amber-500 hover:text-white disabled:opacity-30"
-						aria-label="Next restaurant"
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-6 w-6"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 5l7 7-7 7"
-							/>
-						</svg>
-					</button>
+					</Carousel>
 				</section>
 			{/each}
 		{/if}
