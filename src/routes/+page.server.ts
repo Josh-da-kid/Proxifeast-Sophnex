@@ -44,9 +44,21 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			allRestaurants = [currentRestaurant];
 		}
 
+		// Determine which restaurant to filter featured dishes by
+		// If selectedRestaurantId is in URL, use that; otherwise use currentRestaurant
+		let featuredRestaurant = currentRestaurant;
+		if (selectedRestaurantId) {
+			// If there's a selected restaurant in URL, fetch it and use for featured dishes
+			try {
+				featuredRestaurant = await locals.pb.collection('restaurants').getOne(selectedRestaurantId);
+			} catch {
+				// Keep using currentRestaurant if not found
+			}
+		}
+
 		// Fetch featured dishes - use pagination
 		const featuredFilter = buildRestaurantFilter(
-			currentRestaurant,
+			featuredRestaurant,
 			'isFeatured = true && availability = "Available"',
 			'restaurantId'
 		);
@@ -56,7 +68,12 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			sort: '-created',
 			expand: 'restaurant'
 		});
-		const featuredDishes = featuredResult.items;
+
+		// Filter out Proxifeastt and ProxifeastLocal after fetching
+		const featuredDishes = featuredResult.items.filter((dish: any) => {
+			const restaurantName = dish.expand?.restaurant?.name;
+			return restaurantName !== 'Proxifeastt' && restaurantName !== 'ProxifeastLocal';
+		});
 
 		let filteredRestaurants = allRestaurants;
 		let selectedRestaurant = null;

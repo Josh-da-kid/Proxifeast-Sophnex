@@ -75,6 +75,14 @@
 	const isSuper = $derived($page.data.isSuper ?? false);
 	const currentRestaurant = $derived($page.data.currentRestaurant);
 
+	// Filter featured dishes by selected restaurant when visiting a specific restaurant
+	const filteredFeaturedDishes = $derived.by(() => {
+		if (selectedRestaurant && !isSuper) {
+			return featuredDishes.filter((dish: any) => dish.restaurantId === selectedRestaurant.id);
+		}
+		return featuredDishes;
+	});
+
 	// State management
 	let viewMode = $state('list'); // 'list' or 'menu'
 	let searchInput = $state('');
@@ -1098,7 +1106,7 @@
 				</div>
 			</div>
 		</section>
-	{:else if featuredDishes.length > 0}
+	{:else if filteredFeaturedDishes.length > 0}
 		<section id="specials" class="bg-base-100 relative overflow-hidden py-20">
 			<!-- Decorative -->
 			<div class="absolute top-16 -left-24 h-48 w-48 rounded-full bg-amber-200/20"></div>
@@ -1112,7 +1120,7 @@
 						Hot & Ready
 					</span>
 					<h2 class="font-playfair text-primary mt-4 text-4xl font-bold sm:text-5xl">
-						Today's Specials
+						{selectedRestaurant ? `${selectedRestaurant.name} Specials` : "Today's Specials"}
 					</h2>
 					<p class="text-base-content/60 mt-3 text-lg">Handpicked dishes just for you</p>
 				</div>
@@ -1144,7 +1152,7 @@
 							class="scrollbar-hide flex snap-x snap-mandatory gap-6 overflow-x-auto px-14 pb-4"
 							style="scrollbar-width: none; -ms-overflow-style: none;"
 						>
-							{#each featuredDishes as dish}
+							{#each filteredFeaturedDishes as dish}
 								<div
 									class="group w-72 shrink-0 cursor-pointer snap-start"
 									onclick={() => selectRestaurantFromDish(dish)}
