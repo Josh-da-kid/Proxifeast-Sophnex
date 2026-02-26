@@ -1393,7 +1393,7 @@
 				{#if viewMode === 'menu' && selectedRestaurant}
 					{selectedRestaurant.name}
 				{:else}
-					Our Restaurants
+					Featured Restaurants on Proxifeast
 				{/if}
 			</h2>
 			{#if viewMode !== 'menu' || !selectedRestaurant}
