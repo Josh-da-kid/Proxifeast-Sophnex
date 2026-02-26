@@ -11,6 +11,7 @@
 		checkNotificationStatus,
 		showLocalNotification
 	} from '$lib/notifications';
+	import Carousel from '$lib/Carousel.svelte';
 
 	export const user = derived(page, ($page) => $page.data.user);
 
@@ -449,11 +450,11 @@
 					<p class="mt-1 text-slate-500">You don't have any active orders at the moment.</p>
 				</div>
 			{:else}
-				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+				<Carousel>
 					{#each filteredOrders as order, i}
 						<article
 							id="order-{order.id}"
-							class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:shadow-lg"
+							class="w-96 shrink-0 snap-start rounded-xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:shadow-lg"
 							in:fly={{ y: 20, duration: 300, delay: i * 50 }}
 						>
 							<!-- Header -->
@@ -669,7 +670,7 @@
 							</div>
 						</article>
 					{/each}
-				</div>
+				</Carousel>
 			{/if}
 		{:else}
 			<div class="py-16 text-center">

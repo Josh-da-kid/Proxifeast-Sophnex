@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 	import { derived, get } from 'svelte/store';
 	import { fly } from 'svelte/transition';
+	import Carousel from '$lib/Carousel.svelte';
 
 	export const user = derived(page, ($page) => $page.data.user);
 
@@ -197,11 +198,11 @@
 					<p class="mt-1 text-slate-500">You haven't completed any orders yet.</p>
 				</div>
 			{:else}
-				<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+				<Carousel>
 					{#each filteredOrders as order, i}
 						<article
 							id="order-{order.id}"
-							class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-lg"
+							class="w-96 shrink-0 snap-start rounded-xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-lg"
 							in:fly={{ y: 20, duration: 300, delay: i * 50 }}
 						>
 							<!-- Header -->
@@ -415,7 +416,7 @@
 							</div>
 						</article>
 					{/each}
-				</div>
+				</Carousel>
 			{/if}
 		{:else}
 			<div class="py-16 text-center">

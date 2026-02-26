@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { page } from '$app/stores';
+	import Carousel from '$lib/Carousel.svelte';
 
 	let restaurants: any[] = $state([]);
 	let filteredRestaurants: any[] = $state([]);
@@ -232,11 +233,11 @@
 				<p class="text-slate-500">Please check back later</p>
 			</div>
 		{:else}
-			<!-- Restaurant Grid -->
-			<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+			<!-- Restaurant Carousel -->
+			<Carousel>
 				{#each filteredRestaurants as r, i}
 					<article
-						class="group relative flex flex-col rounded-2xl bg-white p-6 shadow-md transition-all hover:-translate-y-1 hover:shadow-lg"
+						class="relative flex w-80 shrink-0 snap-start flex-col rounded-xl bg-white p-6 shadow-md transition-all hover:-translate-y-1 hover:shadow-lg"
 						in:fly={{ y: 20, duration: 300, delay: i * 50 }}
 					>
 						<!-- Favorite Button -->
@@ -365,7 +366,7 @@
 						</div>
 					</article>
 				{/each}
-			</div>
+			</Carousel>
 		{/if}
 	</section>
 

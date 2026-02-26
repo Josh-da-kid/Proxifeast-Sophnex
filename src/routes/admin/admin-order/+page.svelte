@@ -7,6 +7,7 @@
 	import { derived, get } from 'svelte/store';
 	import { fly, fade } from 'svelte/transition';
 	import Notification from '$lib/Notification.svelte';
+	import Carousel from '$lib/Carousel.svelte';
 
 	export const user = derived(page, ($page) => $page.data.user);
 
@@ -358,10 +359,10 @@
 						<p class="mt-1 text-slate-500">You have no orders at the moment.</p>
 					</div>
 				{:else}
-					<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+					<Carousel>
 						{#each filteredOrders as order}
 							<article
-								class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md transition-all hover:shadow-xl"
+								class="relative w-96 shrink-0 snap-start overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md transition-all hover:shadow-xl"
 								in:fly={{ y: 20, duration: 300 }}
 							>
 								<!-- Status Bar -->
@@ -602,7 +603,7 @@
 								</div>
 							</article>
 						{/each}
-					</div>
+					</Carousel>
 				{/if}
 			{/if}
 		{:else}

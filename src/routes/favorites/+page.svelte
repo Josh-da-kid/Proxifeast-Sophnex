@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
 	import { page } from '$app/stores';
+	import Carousel from '$lib/Carousel.svelte';
 
 	let { data } = $props();
 	let user = $derived($page.data.user);
@@ -81,10 +82,10 @@
 					<span class="text-sm text-slate-500">{data.restaurants.length} saved</span>
 				</div>
 
-				<div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+				<Carousel>
 					{#each data.restaurants as r, i}
 						<article
-							class="group relative flex flex-col rounded-2xl bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
+							class="relative flex w-80 shrink-0 snap-start flex-col rounded-xl bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
 							in:fly={{ y: 20, duration: 400, delay: i * 50 }}
 						>
 							<!-- Header -->
@@ -154,7 +155,7 @@
 							</div>
 						</article>
 					{/each}
-				</div>
+				</Carousel>
 
 				<!-- Add New Restaurant Button - Super restaurants only -->
 				{#if isSuper}
@@ -190,10 +191,10 @@
 					<span class="text-sm text-slate-500">{data.dishFavorites.length} saved</span>
 				</div>
 
-				<div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+				<Carousel>
 					{#each data.dishFavorites as dish, i}
 						<article
-							class="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
+							class="relative flex w-80 shrink-0 snap-start flex-col overflow-hidden rounded-xl bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
 							in:fly={{ y: 20, duration: 400, delay: i * 50 }}
 						>
 							<!-- Image -->
@@ -275,7 +276,7 @@
 							</div>
 						</article>
 					{/each}
-				</div>
+				</Carousel>
 
 				<!-- Add New Dishes Button - Available to all restaurants -->
 				<div class="mt-8 text-center">
