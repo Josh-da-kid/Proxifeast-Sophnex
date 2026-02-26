@@ -1319,6 +1319,36 @@
 		</section>
 	{/if}
 
+	<!-- Floating Back Button -->
+	{#if viewMode === 'menu' && selectedRestaurant}
+		<div class="fixed top-24 left-4 z-40 md:top-28 md:left-6">
+			<button
+				onclick={() => {
+					viewMode = 'list';
+					// Remove restaurant from URL without refreshing
+					const url = new URL(window.location.href);
+					url.searchParams.delete('restaurant');
+					url.searchParams.delete('category');
+					url.hash = '';
+					window.history.pushState({}, '', url.toString());
+				}}
+				class="group flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/95 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-lg backdrop-blur-sm transition-all hover:border-slate-300 hover:bg-white hover:shadow-xl"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-4 w-4 transition-transform group-hover:-translate-x-1"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2"
+				>
+					<path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+				</svg>
+				<span class="hidden sm:inline">Back</span>
+			</button>
+		</div>
+	{/if}
+
 	<!-- Search Section -->
 	<section id="menu" class="container mx-auto mb-8 px-6 py-8">
 		<div class="mb-12 text-center">
