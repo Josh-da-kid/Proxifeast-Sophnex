@@ -268,7 +268,7 @@
 	</div>
 
 	<!-- Floating Back Button -->
-	{#if hasHistory && $page.url.pathname !== '/'}
+	{#if $page.url.pathname !== '/'}
 		<div class="fixed top-24 left-4 z-40 md:top-28 md:left-6">
 			<button
 				onclick={() => window.history.back()}
