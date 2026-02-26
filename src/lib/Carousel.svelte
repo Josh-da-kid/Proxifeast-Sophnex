@@ -11,12 +11,17 @@
 	let canScrollLeft = $state(false);
 	let canScrollRight = $state(false);
 	let itemCount = $state(0);
+	let isMounted = $state(false);
 
 	async function checkScroll() {
 		await tick();
 		if (!containerRef) return;
 
 		const el = containerRef;
+
+		// Wait for content to render
+		await tick();
+
 		const isScrollable = el.scrollWidth > el.clientWidth + 1;
 
 		canScrollLeft = el.scrollLeft > 0;
@@ -34,17 +39,31 @@
 		} else {
 			containerRef.scrollBy({ left: scrollAmount, behavior: 'smooth' });
 		}
-		setTimeout(checkScroll, 150);
+		setTimeout(checkScroll, 200);
+	}
+
+	async function initScroll() {
+		isMounted = true;
+		// Multiple attempts to ensure DOM is ready
+		for (let i = 0; i < 3; i++) {
+			await checkScroll();
+			await new Promise((r) => setTimeout(r, 100));
+		}
 	}
 
 	onMount(() => {
-		checkScroll();
-		const observer = new MutationObserver(checkScroll);
+		initScroll();
+
+		const observer = new MutationObserver(() => {
+			checkScroll();
+		});
+
 		if (containerRef) {
 			observer.observe(containerRef, { childList: true, subtree: true });
 			containerRef.addEventListener('scroll', checkScroll);
 			window.addEventListener('resize', checkScroll);
 		}
+
 		return () => {
 			observer.disconnect();
 			containerRef?.removeEventListener('scroll', checkScroll);
@@ -59,12 +78,15 @@
 		<button
 			onclick={() => scroll('left')}
 			disabled={!canScrollLeft}
-			class="absolute top-1/2 left-0 z-10 hidden h-10 w-10 -translate-x-2 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition-all hover:border-amber-500 hover:bg-amber-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-400 sm:flex sm:h-12 sm:w-12 sm:-translate-x-6"
+			class="absolute top-1/2 left-0 z-10 flex h-10 w-10 -translate-x-2 -translate-y-1/2 items-center justify-center rounded-full border bg-white shadow-md transition-all md:h-12 md:w-12 md:-translate-x-4 lg:-translate-x-6
+				{canScrollLeft
+				? 'border-slate-200 text-slate-600 hover:border-amber-500 hover:bg-amber-500 hover:text-white'
+				: 'cursor-not-allowed border-slate-100 opacity-40'}"
 			aria-label="Scroll left"
 		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
-				class="h-4 w-4 sm:h-5 sm:w-5"
+				class="h-4 w-4 md:h-5 md:w-5 {canScrollLeft ? 'text-slate-600' : 'text-slate-300'}"
 				fill="none"
 				viewBox="0 0 24 24"
 				stroke="currentColor"
@@ -78,7 +100,7 @@
 	<!-- Carousel Container -->
 	<div
 		bind:this={containerRef}
-		class="scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:gap-6 sm:px-6 md:px-14"
+		class="scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto px-12 pb-4 sm:gap-6 sm:px-14 md:px-16"
 		style="scrollbar-width: none; -ms-overflow-style: none;"
 	>
 		<slot />
@@ -89,12 +111,15 @@
 		<button
 			onclick={() => scroll('right')}
 			disabled={!canScrollRight}
-			class="absolute top-1/2 right-0 z-10 hidden h-10 w-10 translate-x-2 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition-all hover:border-amber-500 hover:bg-amber-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-400 sm:flex sm:h-12 sm:w-12 sm:translate-x-6"
+			class="absolute top-1/2 right-0 z-10 flex h-10 w-10 translate-x-2 -translate-y-1/2 items-center justify-center rounded-full border bg-white shadow-md transition-all md:h-12 md:w-12 md:translate-x-4 lg:translate-x-6
+				{canScrollRight
+				? 'border-slate-200 text-slate-600 hover:border-amber-500 hover:bg-amber-500 hover:text-white'
+				: 'cursor-not-allowed border-slate-100 opacity-40'}"
 			aria-label="Scroll right"
 		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
-				class="h-4 w-4 sm:h-5 sm:w-5"
+				class="h-4 w-4 md:h-5 md:w-5 {canScrollRight ? 'text-slate-600' : 'text-slate-300'}"
 				fill="none"
 				viewBox="0 0 24 24"
 				stroke="currentColor"
