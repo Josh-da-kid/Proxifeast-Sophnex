@@ -41,7 +41,7 @@
 	const currentYear = new Date().getFullYear();
 </script>
 
-<footer class="bg-[#0f172a] text-white">
+<footer class="bg-[#0f172a] text-white mt-12">
 	<div class="mx-auto max-w-7xl px-6 py-16">
 		<div class="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-5">
 			<!-- Brand Column -->

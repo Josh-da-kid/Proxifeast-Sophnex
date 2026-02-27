@@ -18,29 +18,6 @@
 	// Loading state
 	let isLoading = $state(true);
 
-	// Carousel state
-	let specialsScrollPos = $state(0);
-	let restaurantsScrollPos = $state(0);
-	let specialsContainer: HTMLDivElement;
-	let restaurantsContainer: HTMLDivElement;
-
-	function scrollCarousel(container: HTMLDivElement, direction: 'left' | 'right') {
-		const scrollAmount = container.offsetWidth * 0.8;
-		if (direction === 'left') {
-			container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-		} else {
-			container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-		}
-	}
-
-	function scrollSpecials(direction: 'left' | 'right') {
-		if (specialsContainer) scrollCarousel(specialsContainer, direction);
-	}
-
-	function scrollRestaurants(direction: 'left' | 'right') {
-		if (restaurantsContainer) scrollCarousel(restaurantsContainer, direction);
-	}
-
 	// Watch for navigation changes
 	$effect(() => {
 		const unsubscribe = navigating.subscribe((nav) => {
@@ -1323,178 +1300,130 @@
 				</div>
 
 				<div class="container mx-auto px-6">
-					<!-- Navigation Arrows -->
-					<div class="relative">
-						<!-- Left Arrow -->
-						<button
-							onclick={() => scrollSpecials('left')}
-							class="absolute top-1/2 left-0 z-10 flex h-12 w-12 -translate-x-6 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition-all hover:border-amber-500 hover:bg-amber-500 hover:text-white disabled:opacity-30"
-							aria-label="Previous"
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								class="h-5 w-5"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								stroke-width="2"
+					<Carousel showArrows={true} showDots={true} autoplay={true} autoplayDelay={5000}>
+						{#each filteredFeaturedDishes as dish}
+							<div
+								class="group w-72 shrink-0 cursor-pointer snap-start"
+								onclick={() => selectRestaurantFromDish(dish)}
+								onkeydown={(e) => e.key === 'Enter' && selectRestaurantFromDish(dish)}
+								role="button"
+								tabindex="0"
 							>
-								<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-							</svg>
-						</button>
-
-						<!-- Carousel Container -->
-						<div
-							bind:this={specialsContainer}
-							class="scrollbar-hide flex snap-x snap-mandatory gap-6 overflow-x-auto px-14 pb-4"
-							style="scrollbar-width: none; -ms-overflow-style: none;"
-						>
-							{#each filteredFeaturedDishes as dish}
-								<div
-									class="group w-72 shrink-0 cursor-pointer snap-start"
-									onclick={() => selectRestaurantFromDish(dish)}
-									onkeydown={(e) => e.key === 'Enter' && selectRestaurantFromDish(dish)}
-									role="button"
-									tabindex="0"
+								<article
+									class="relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
 								>
-									<article
-										class="relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
-									>
-										<!-- Image -->
-										<div class="relative h-48 shrink-0 overflow-hidden">
-											<img
-												src={dish.image}
-												alt={dish.name}
-												class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-											/>
-											<!-- Gradient -->
-											<div
-												class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"
-											></div>
+									<!-- Image -->
+									<div class="relative h-48 shrink-0 overflow-hidden">
+										<img
+											src={dish.image}
+											alt={dish.name}
+											class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+										/>
+										<!-- Gradient -->
+										<div
+											class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"
+										></div>
 
-											<!-- Restaurant Tag - Only show for super restaurants -->
-											{#if isSuper}
-												<div class="absolute top-3 left-3">
-													<span
-														class="flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
+										<!-- Restaurant Tag - Only show for super restaurants -->
+										{#if isSuper}
+											<div class="absolute top-3 left-3">
+												<span
+													class="flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
+												>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														class="h-3 w-3"
+														viewBox="0 0 24 24"
+														fill="currentColor"
+													>
+														<path
+															d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+														/>
+													</svg>
+													{getRestaurantNameForDish(dish)}
+												</span>
+											</div>
+										{/if}
+
+										<!-- Discount Badge -->
+										{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
+											<div class="absolute top-3 right-3">
+												<span
+													class="rounded-full bg-gradient-to-r from-red-500 to-red-600 px-3 py-1.5 text-xs font-bold text-white shadow-lg"
+												>
+													-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
+												</span>
+											</div>
+										{/if}
+									</div>
+
+									<!-- Content -->
+									<div class="flex flex-1 flex-col p-5">
+										<h3
+											class="font-playfair mb-2 text-lg leading-tight font-semibold text-slate-900 transition-colors group-hover:text-amber-600"
+										>
+											{dish.name}
+										</h3>
+										<p class="mb-4 line-clamp-2 text-sm leading-relaxed text-slate-500">
+											{dish.description}
+										</p>
+
+										<div class="mt-auto flex flex-col gap-3">
+											<div class="flex items-baseline justify-between">
+												{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
+													<span class="text-xl font-bold text-amber-600">
+														₦{Number(dish.promoAmount).toLocaleString()}
+													</span>
+													<span class="text-sm text-slate-400 line-through">
+														₦{Number(dish.defaultAmount).toLocaleString()}
+													</span>
+												{:else}
+													<span class="text-xl font-bold text-slate-900">
+														₦{Number(dish.defaultAmount).toLocaleString()}
+													</span>
+												{/if}
+											</div>
+											<div class="flex items-center gap-2">
+												{#if isSuper}
+													<button
+														class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border-2 border-amber-500 text-amber-500 transition-all hover:bg-amber-500 hover:text-white"
+														class:bg-amber-500={dishFavorites.includes(dish.id)}
+														class:text-white={dishFavorites.includes(dish.id)}
+														onclick={(e) => toggleDishFavorite(dish.id, e)}
+														title={dishFavorites.includes(dish.id)
+															? 'Remove from favorites'
+															: 'Add to favorites'}
 													>
 														<svg
 															xmlns="http://www.w3.org/2000/svg"
-															class="h-3 w-3"
+															class="h-5 w-5"
 															viewBox="0 0 24 24"
-															fill="currentColor"
+															fill={dishFavorites.includes(dish.id) ? 'currentColor' : 'none'}
+															stroke="currentColor"
+															stroke-width="2"
 														>
 															<path
-																d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+																d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
 															/>
 														</svg>
-														{getRestaurantNameForDish(dish)}
-													</span>
-												</div>
-											{/if}
-
-											<!-- Discount Badge -->
-											{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
-												<div class="absolute top-3 right-3">
-													<span
-														class="rounded-full bg-gradient-to-r from-red-500 to-red-600 px-3 py-1.5 text-xs font-bold text-white shadow-lg"
-													>
-														-{Math.round((1 - dish.promoAmount / dish.defaultAmount) * 100)}% OFF
-													</span>
-												</div>
-											{/if}
-										</div>
-
-										<!-- Content -->
-										<div class="flex flex-1 flex-col p-5">
-											<h3
-												class="font-playfair mb-2 text-lg leading-tight font-semibold text-slate-900 transition-colors group-hover:text-amber-600"
-											>
-												{dish.name}
-											</h3>
-											<p class="mb-4 line-clamp-2 text-sm leading-relaxed text-slate-500">
-												{dish.description}
-											</p>
-
-											<div class="mt-auto flex flex-col gap-3">
-												<div class="flex items-baseline justify-between">
-													{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
-														<span class="text-xl font-bold text-amber-600">
-															₦{Number(dish.promoAmount).toLocaleString()}
-														</span>
-														<span class="text-sm text-slate-400 line-through">
-															₦{Number(dish.defaultAmount).toLocaleString()}
-														</span>
-													{:else}
-														<span class="text-xl font-bold text-slate-900">
-															₦{Number(dish.defaultAmount).toLocaleString()}
-														</span>
-													{/if}
-												</div>
-												<div class="flex items-center gap-2">
-													{#if isSuper}
-														<button
-															class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border-2 border-amber-500 text-amber-500 transition-all hover:bg-amber-500 hover:text-white"
-															class:bg-amber-500={dishFavorites.includes(dish.id)}
-															class:text-white={dishFavorites.includes(dish.id)}
-															onclick={(e) => toggleDishFavorite(dish.id, e)}
-															title={dishFavorites.includes(dish.id)
-																? 'Remove from favorites'
-																: 'Add to favorites'}
-														>
-															<svg
-																xmlns="http://www.w3.org/2000/svg"
-																class="h-5 w-5"
-																viewBox="0 0 24 24"
-																fill={dishFavorites.includes(dish.id) ? 'currentColor' : 'none'}
-																stroke="currentColor"
-																stroke-width="2"
-															>
-																<path
-																	d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-																/>
-															</svg>
-														</button>
-													{/if}
-													<button
-														class="flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 transition-all hover:from-amber-600 hover:to-amber-700 hover:shadow-xl"
-														onclick={(e) => {
-															e.stopPropagation();
-															handleAddToCart(dish);
-														}}
-													>
-														Order
 													</button>
-												</div>
+												{/if}
+												<button
+													class="flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 transition-all hover:from-amber-600 hover:to-amber-700 hover:shadow-xl"
+													onclick={(e) => {
+														e.stopPropagation();
+														handleAddToCart(dish);
+													}}
+												>
+													Order
+												</button>
 											</div>
 										</div>
-									</article>
-								</div>
-							{/each}
-						</div>
-
-						<!-- Right Arrow -->
-						<button
-							onclick={() => scrollSpecials('right')}
-							class="absolute top-1/2 right-0 z-10 flex h-12 w-12 translate-x-6 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition-all hover:border-amber-500 hover:bg-amber-500 hover:text-white disabled:opacity-30"
-							aria-label="Next"
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								class="h-5 w-5"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M9 5l7 7-7 7"
-								/>
-							</svg>
-						</button>
-					</div>
+									</div>
+								</article>
+							</div>
+						{/each}
+					</Carousel>
 
 					<div class="mt-12 text-center">
 						<a href="#menu" class="btn btn-outline btn-primary btn-lg rounded-full px-8">
@@ -1762,209 +1691,162 @@
 				{/if}
 
 				<!-- Restaurant Carousel -->
-				<div class="relative mx-auto max-w-7xl pb-12">
-					<!-- Left Arrow -->
-					<button
-						onclick={() => scrollRestaurants('left')}
-						class="absolute top-1/2 left-0 z-10 flex h-12 w-12 -translate-x-6 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition-all hover:border-amber-500 hover:bg-amber-500 hover:text-white disabled:opacity-30"
-						aria-label="Previous restaurant"
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-5 w-5"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							stroke-width="2"
+				<Carousel showArrows={true} showDots={true} autoplay={true} autoplayDelay={6000}>
+					{#each filteredRestaurants as r}
+						{@const isOpen = isRestaurantOpen(r)}
+						{@const isNew = isRestaurantNew(r)}
+						<article
+							class="group relative flex w-80 shrink-0 snap-start flex-col overflow-hidden rounded-xl border {isOpen
+								? 'border-slate-200'
+								: 'border-red-200'} bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
 						>
-							<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-						</svg>
-					</button>
+							<!-- Background Pattern -->
+							<div class="absolute inset-0 opacity-5">
+								<svg class="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+									<pattern
+										id="restaurant-pattern-{r.id}"
+										width="20"
+										height="20"
+										patternUnits="userSpaceOnUse"
+									>
+										<circle cx="10" cy="10" r="1" fill="currentColor" />
+									</pattern>
+									<rect width="100" height="100" fill="url(#restaurant-pattern-{r.id})" />
+								</svg>
+							</div>
 
-					<!-- Carousel Container -->
-					<div
-						bind:this={restaurantsContainer}
-						class="scrollbar-hide flex snap-x snap-mandatory gap-6 overflow-x-auto px-14 pb-4"
-						style="scrollbar-width: none; -ms-overflow-style: none;"
-					>
-						{#each filteredRestaurants as r}
-							{@const isOpen = isRestaurantOpen(r)}
-							{@const isNew = isRestaurantNew(r)}
-							<article
-								class="group relative flex w-80 shrink-0 snap-start flex-col overflow-hidden rounded-xl border {isOpen
-									? 'border-slate-200'
-									: 'border-red-200'} bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-							>
-								<!-- Background Pattern -->
-								<div class="absolute inset-0 opacity-5">
-									<svg class="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-										<pattern
-											id="restaurant-pattern-{r.id}"
-											width="20"
-											height="20"
-											patternUnits="userSpaceOnUse"
-										>
-											<circle cx="10" cy="10" r="1" fill="currentColor" />
-										</pattern>
-										<rect width="100" height="100" fill="url(#restaurant-pattern-{r.id})" />
-									</svg>
+							<!-- New Tag -->
+							{#if isNew}
+								<div class="absolute top-4 right-0 z-10">
+									<span
+										class="rounded-l-full bg-green-500 px-3 py-1 text-xs font-bold text-white shadow-md"
+									>
+										NEW
+									</span>
+								</div>
+							{/if}
+
+							<!-- Open/Closed Tag -->
+							<div class="absolute top-4 left-0 z-10">
+								<span
+									class="rounded-r-full {isOpen
+										? 'bg-green-500'
+										: 'bg-red-500'} px-3 py-1 text-xs font-bold text-white shadow-md"
+								>
+									{isOpen ? 'OPEN' : 'CLOSED'}
+								</span>
+							</div>
+
+							<div class="relative flex flex-col p-6">
+								<!-- Header -->
+								<div class="mb-5 flex items-start gap-4">
+									<div class="shrink-0">
+										<img
+											src={r.faviconUrl || r.logoUrl}
+											alt={r.name}
+											class="h-18 w-18 rounded-2xl border-2 border-slate-100 object-contain shadow-sm"
+										/>
+									</div>
+									<div class="min-w-0 flex-1">
+										<h2 class="font-playfair truncate text-xl font-bold text-slate-900">
+											{r.name}
+										</h2>
+										{#if r.motto}
+											<p class="mt-1 truncate text-sm font-medium text-amber-600">{r.motto}</p>
+										{/if}
+									</div>
 								</div>
 
-								<!-- New Tag -->
-								{#if isNew}
-									<div class="absolute top-4 right-0 z-10">
-										<span
-											class="rounded-l-full bg-green-500 px-3 py-1 text-xs font-bold text-white shadow-md"
+								<!-- Description -->
+								{#if r.description}
+									<p class="mb-5 line-clamp-3 text-sm leading-relaxed text-slate-600">
+										{r.description}
+									</p>
+								{/if}
+
+								<!-- Address -->
+								{#if r.restaurantAddress}
+									<div class="mb-5 flex items-start gap-2 text-sm text-slate-500">
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											class="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
 										>
-											NEW
+											<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+											<circle cx="12" cy="10" r="3" />
+										</svg>
+										<span class="line-clamp-2">{r.restaurantAddress}</span>
+									</div>
+								{/if}
+
+								<!-- Opening Hours -->
+								{#if r.openingTime || r.closingTime}
+									<div class="mb-4 flex items-center gap-2 text-sm">
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											class="h-4 w-4 {isOpen ? 'text-green-500' : 'text-red-500'}"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+										>
+											<circle cx="12" cy="12" r="10" />
+											<polyline points="12 6 12 12 16 14" />
+										</svg>
+										<span class="{isOpen ? 'text-green-600' : 'text-red-600'} font-medium">
+											{#if isOpen}
+												Open • {r.openingTime} - {r.closingTime}
+											{:else}
+												Closed • Opens at {r.openingTime}
+											{/if}
 										</span>
 									</div>
 								{/if}
 
-								<!-- Open/Closed Tag -->
-								<div class="absolute top-4 left-0 z-10">
-									<span
-										class="rounded-r-full {isOpen
-											? 'bg-green-500'
-											: 'bg-red-500'} px-3 py-1 text-xs font-bold text-white shadow-md"
-									>
-										{isOpen ? 'OPEN' : 'CLOSED'}
-									</span>
-								</div>
-
-								<div class="relative flex flex-col p-6">
-									<!-- Header -->
-									<div class="mb-5 flex items-start gap-4">
-										<div class="shrink-0">
-											<img
-												src={r.faviconUrl || r.logoUrl}
-												alt={r.name}
-												class="h-18 w-18 rounded-2xl border-2 border-slate-100 object-contain shadow-sm"
-											/>
-										</div>
-										<div class="min-w-0 flex-1">
-											<h2 class="font-playfair truncate text-xl font-bold text-slate-900">
-												{r.name}
-											</h2>
-											{#if r.motto}
-												<p class="mt-1 truncate text-sm font-medium text-amber-600">{r.motto}</p>
-											{/if}
-										</div>
-									</div>
-
-									<!-- Description -->
-									{#if r.description}
-										<p class="mb-5 line-clamp-3 text-sm leading-relaxed text-slate-600">
-											{r.description}
-										</p>
+								<!-- Action -->
+								<button
+									onclick={() => isOpen && selectRestaurant(r)}
+									disabled={!isOpen}
+									class="group/btn mt-auto inline-flex w-full items-center justify-center gap-2 rounded-xl {isOpen
+										? 'bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-lg shadow-slate-500/30 transition-all hover:from-slate-900 hover:to-slate-800 hover:shadow-xl'
+										: 'cursor-not-allowed bg-slate-200 text-slate-400'} px-5 py-3.5 text-sm font-semibold"
+								>
+									{#if isOpen}
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											class="h-5 w-5 transition-transform group-hover/btn:translate-x-1"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+										>
+											<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+											<polyline points="10 17 15 12 10 7" />
+											<line x1="15" x2="3" y1="12" y2="12" />
+										</svg>
+										View Menu
+									{:else}
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											class="h-5 w-5"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+										>
+											<path d="M18 6 6 18" />
+											<path d="m6 6 12 12" />
+										</svg>
+										Closed
 									{/if}
-
-									<!-- Address -->
-									{#if r.restaurantAddress}
-										<div class="mb-5 flex items-start gap-2 text-sm text-slate-500">
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												class="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												stroke-width="2"
-											>
-												<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-												<circle cx="12" cy="10" r="3" />
-											</svg>
-											<span class="line-clamp-2">{r.restaurantAddress}</span>
-										</div>
-									{/if}
-
-									<!-- Opening Hours -->
-									{#if r.openingTime || r.closingTime}
-										<div class="mb-4 flex items-center gap-2 text-sm">
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												class="h-4 w-4 {isOpen ? 'text-green-500' : 'text-red-500'}"
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												stroke-width="2"
-											>
-												<circle cx="12" cy="12" r="10" />
-												<polyline points="12 6 12 12 16 14" />
-											</svg>
-											<span class="{isOpen ? 'text-green-600' : 'text-red-600'} font-medium">
-												{#if isOpen}
-													Open • {r.openingTime} - {r.closingTime}
-												{:else}
-													Closed • Opens at {r.openingTime}
-												{/if}
-											</span>
-										</div>
-									{/if}
-
-									<!-- Action -->
-									<button
-										onclick={() => isOpen && selectRestaurant(r)}
-										disabled={!isOpen}
-										class="group/btn mt-auto inline-flex w-full items-center justify-center gap-2 rounded-xl {isOpen
-											? 'bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-lg shadow-slate-500/30 transition-all hover:from-slate-900 hover:to-slate-800 hover:shadow-xl'
-											: 'cursor-not-allowed bg-slate-200 text-slate-400'} px-5 py-3.5 text-sm font-semibold"
-									>
-										{#if isOpen}
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												class="h-5 w-5 transition-transform group-hover/btn:translate-x-1"
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												stroke-width="2"
-											>
-												<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-												<polyline points="10 17 15 12 10 7" />
-												<line x1="15" x2="3" y1="12" y2="12" />
-											</svg>
-											View Menu
-										{:else}
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												class="h-5 w-5"
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												stroke-width="2"
-											>
-												<path d="M18 6 6 18" />
-												<path d="m6 6 12 12" />
-											</svg>
-											Closed
-										{/if}
-									</button>
-								</div>
-							</article>
-						{/each}
-					</div>
-
-					<!-- Right Arrow -->
-					<button
-						onclick={() => scrollRestaurants('right')}
-						class="absolute top-1/2 right-0 z-10 flex h-12 w-12 translate-x-6 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition-all hover:border-amber-500 hover:bg-amber-500 hover:text-white disabled:opacity-30"
-						aria-label="Next restaurant"
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-6 w-6"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 5l7 7-7 7"
-							/>
-						</svg>
-					</button>
-				</div>
+								</button>
+							</div>
+						</article>
+					{/each}
+				</Carousel>
 			{/if}
 		</section>
 	{:else}
