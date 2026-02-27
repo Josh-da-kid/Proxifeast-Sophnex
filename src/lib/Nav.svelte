@@ -19,6 +19,8 @@
 
 	let previousScrollY = 0;
 	let showHeader = $state(true);
+	let notificationsEnabled = $state(false);
+	let isEnablingNotifications = $state(false);
 
 	// Cart store for mobile
 	const cart = writable<any[]>([]);
@@ -60,8 +62,88 @@
 
 	onMount(() => {
 		window.addEventListener('scroll', handleScroll);
+
+		// Check notification status
+		checkNotificationStatus();
+
 		return () => window.removeEventListener('scroll', handleScroll);
 	});
+
+	async function checkNotificationStatus() {
+		if (!('Notification' in window)) {
+			notificationsEnabled = false;
+			return;
+		}
+
+		if (Notification.permission === 'granted') {
+			notificationsEnabled = true;
+		} else {
+			notificationsEnabled = false;
+		}
+	}
+
+	async function toggleNotifications() {
+		if (notificationsEnabled) {
+			// Unsubscribe
+			try {
+				const registration = await navigator.serviceWorker.ready;
+				const subscription = await registration.pushManager.getSubscription();
+				if (subscription) {
+					await subscription.unsubscribe();
+					await fetch('/api/unsubscribe-push', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ userId: get(user)?.id })
+					});
+				}
+				notificationsEnabled = false;
+			} catch (err) {
+				console.error('Failed to unsubscribe:', err);
+			}
+		} else {
+			// Subscribe
+			isEnablingNotifications = true;
+			try {
+				const permission = await Notification.requestPermission();
+				if (permission === 'granted') {
+					const registration = await navigator.serviceWorker.ready;
+					const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+
+					const subscription = await registration.pushManager.subscribe({
+						userVisibleOnly: true,
+						applicationServerKey: urlBase64ToUint8Array(vapidKey || '')
+					});
+
+					await fetch('/api/subscribe-push', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							userId: get(user)?.id,
+							endpoint: subscription.endpoint,
+							p256dh: subscription.keys?.p256dh,
+							auth: subscription.keys?.auth
+						})
+					});
+
+					notificationsEnabled = true;
+				}
+			} catch (err) {
+				console.error('Failed to enable notifications:', err);
+			}
+			isEnablingNotifications = false;
+		}
+	}
+
+	function urlBase64ToUint8Array(base64String: string): Uint8Array {
+		const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+		const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+		const rawData = atob(base64);
+		const outputArray = new Uint8Array(rawData.length);
+		for (let i = 0; i < rawData.length; ++i) {
+			outputArray[i] = rawData.charCodeAt(i);
+		}
+		return outputArray;
+	}
 
 	const user = derived(page, ($page) => $page.data.user);
 	const isSuper = derived(page, ($page) => $page.data.isSuper ?? false);
@@ -797,6 +879,51 @@
 							<p class="text-sm font-medium">{$user.name}</p>
 							<p class="text-base-content/60 text-xs">{$user.email}</p>
 						</div>
+
+						<!-- Notification Toggle -->
+						<button
+							onclick={toggleNotifications}
+							disabled={isEnablingNotifications}
+							class="btn btn-outline mb-2 w-full"
+						>
+							{#if isEnablingNotifications}
+								<span class="loading loading-spinner loading-sm"></span>
+							{:else if notificationsEnabled}
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="18"
+									height="18"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								>
+									<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+									<path d="M13.73 21a2 2 0 0 1-3.46 0" />
+									<line x1="1" y1="1" x2="23" y2="23" />
+								</svg>
+								Disable Notifications
+							{:else}
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="18"
+									height="18"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								>
+									<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+									<path d="M13.73 21a2 2 0 0 1-3.46 0" />
+								</svg>
+								Enable Notifications
+							{/if}
+						</button>
+
 						<button
 							onclick={() => logoutModalUser.showModal()}
 							class="btn btn-error btn-outline w-full"

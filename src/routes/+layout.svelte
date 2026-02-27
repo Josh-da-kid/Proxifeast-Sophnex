@@ -85,7 +85,8 @@
 		// This ensures notifications work for both PWA and web users
 		if (user?.id) {
 			const alreadyPrompted = localStorage.getItem('notificationPrompted');
-			if (!alreadyPrompted) {
+			// Show prompt if never prompted OR if notifications were denied (to allow retry)
+			if (!alreadyPrompted || Notification.permission === 'denied') {
 				// Check if notifications are not yet granted
 				if (Notification.permission === 'default' || Notification.permission === 'denied') {
 					showNotificationPrompt = true;
