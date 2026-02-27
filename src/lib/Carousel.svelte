@@ -284,12 +284,6 @@
 		right: -20px;
 	}
 
-	@media (max-width: 768px) {
-		.carousel-ordr-btn {
-			display: none;
-		}
-	}
-
 	.carousel-dot {
 		width: 8px;
 		height: 8px;

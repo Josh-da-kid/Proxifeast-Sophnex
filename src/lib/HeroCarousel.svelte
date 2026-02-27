@@ -150,9 +150,13 @@
 						<!-- Title -->
 						<div class="mb-4 overflow-hidden md:mb-6">
 							<h1
-								class="text-3xl leading-tight font-bold text-white transition-all duration-700 sm:text-4xl md:text-5xl lg:text-6xl
-								{i === currentIndex ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}"
-								style="transition-delay: {i === currentIndex ? '100ms' : '0ms'}"
+								class="text-3xl leading-tight font-bold sm:text-4xl md:text-5xl lg:text-6xl"
+								style="color: #ffffff; {i === currentIndex
+									? 'transform: translateY(0); opacity: 1;'
+									: 'transform: translateY(32px); opacity: 0;'} transition: all 700ms ease; transition-delay: {i ===
+								currentIndex
+									? '100ms'
+									: '0ms'}"
 							>
 								{slide.title}
 							</h1>
@@ -160,18 +164,25 @@
 
 						<!-- Description -->
 						<p
-							class="mx-auto mb-8 max-w-xl text-base text-white/80 transition-all duration-700 md:mx-0 md:text-lg lg:text-xl
-							{i === currentIndex ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}"
-							style="transition-delay: {i === currentIndex ? '200ms' : '0ms'}"
+							class="mx-auto mb-8 max-w-xl text-base md:mx-0 md:text-lg lg:text-xl"
+							style="color: rgba(255, 255, 255, 0.8); {i === currentIndex
+								? 'transform: translateY(0); opacity: 1;'
+								: 'transform: translateY(32px); opacity: 0;'} transition: all 700ms ease; transition-delay: {i ===
+							currentIndex
+								? '200ms'
+								: '0ms'}"
 						>
 							{slide.description}
 						</p>
 
 						<!-- Buttons -->
 						<div
-							class="flex flex-col gap-4 transition-all duration-700 sm:flex-row sm:justify-center md:justify-start
-							{i === currentIndex ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}"
-							style="transition-delay: {i === currentIndex ? '300ms' : '0ms'}"
+							class="flex flex-col gap-4 sm:flex-row sm:justify-center md:justify-start"
+							style="{i === currentIndex
+								? 'transform: translateY(0); opacity: 1;'
+								: 'transform: translateY(32px); opacity: 0;'} transition-delay: {i === currentIndex
+								? '300ms'
+								: '0ms'}"
 						>
 							<a
 								href={slide.primaryBtn.href}
