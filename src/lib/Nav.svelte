@@ -22,48 +22,15 @@
 	let notificationsEnabled = $state(false);
 	let isEnablingNotifications = $state(false);
 
-	// Cart store for mobile
-	const cart = writable<any[]>([]);
-
-	async function fetchCart() {
-		const currentUser = get(page).data.user;
-		if (!currentUser?.id) return;
-		try {
-			const records = await pb.collection('cart').getFullList({
-				filter: `user="${currentUser.id}"`
-			});
-			cart.set(records);
-		} catch (err) {
-			console.error('Failed to fetch cart:', err);
-		}
-	}
-
-	// Reactively fetch cart when user changes
-	$effect(() => {
-		const currentUser = get(page).data.user;
-		if (currentUser?.id) {
-			fetchCart();
-		}
-	});
-
 	function handleScroll() {
 		const currentScrollY = window.scrollY;
 		showHeader = currentScrollY < previousScrollY || currentScrollY < 50;
 		previousScrollY = currentScrollY;
 	}
 
-	function closeSideBar() {
-		const drawerToggle = document.getElementById('my-drawer');
-		if (drawerToggle) {
-			// @ts-ignore
-			drawerToggle.checked = false;
-		}
-	}
-
 	onMount(() => {
 		window.addEventListener('scroll', handleScroll);
 
-		// Check notification status
 		checkNotificationStatus();
 
 		return () => window.removeEventListener('scroll', handleScroll);
@@ -84,7 +51,6 @@
 
 	async function toggleNotifications() {
 		if (notificationsEnabled) {
-			// Unsubscribe
 			try {
 				const registration = await navigator.serviceWorker.ready;
 				const subscription = await registration.pushManager.getSubscription();
@@ -101,7 +67,6 @@
 				console.error('Failed to unsubscribe:', err);
 			}
 		} else {
-			// Subscribe
 			isEnablingNotifications = true;
 			try {
 				const permission = await Notification.requestPermission();
@@ -155,57 +120,87 @@
 	let logoutModalUser: HTMLDialogElement;
 	let isLoggingOut = $state(false);
 	let isLoggingOutAdmin = $state(false);
+
+	// Cart store for mobile
+	const cart = writable<any[]>([]);
+
+	async function fetchCart() {
+		const currentUser = get(page).data.user;
+		if (!currentUser?.id) return;
+		try {
+			const records = await pb.collection('cart').getFullList({
+				filter: `user="${currentUser.id}"`,
+				expand: 'dish'
+			});
+			cart.set(records);
+		} catch (err) {
+			console.error('Failed to fetch cart:', err);
+		}
+	}
+
+	onMount(() => {
+		fetchCart();
+	});
+
+	const cartCount = $derived($cart.length);
 </script>
 
 <nav
-	class="navbar bg-primary text-primary-content sticky top-0 z-[60] flex h-16 items-center justify-between px-4 shadow-lg transition-transform duration-300 ease-in-out md:px-6"
-	class:translate-y-[-100%]={!showHeader}
-	class:translate-y-0={showHeader}
+	class="navbar sticky top-0 z-[60] flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 text-gray-700 shadow-sm transition-all duration-300 ease-in-out md:px-6"
+	class:shadow-md={!showHeader}
 >
 	<!-- Logo Section -->
 	<div class="flex items-center gap-3">
-		<a href="/" class="flex flex-col">
-			<span class="font-playfair text-xl leading-tight font-bold md:text-2xl">
-				{restaurantName}
+		<a href="/" class="flex items-center gap-2">
+			<div
+				class="flex h-10 w-10 items-center justify-center rounded-lg"
+				style="background-color: #0f4c38;"
+			>
+				<span class="text-lg font-bold text-white">P</span>
+			</div>
+			<span class="font-heading hidden text-xl font-bold text-gray-900 sm:block">
+				{restaurantName || 'Proxifeast'}
 			</span>
 		</a>
 	</div>
 
 	<!-- Desktop Navigation -->
 	<div class="hidden items-center gap-1 lg:flex">
-		<a href="/install-guide" class="btn btn-ghost btn-sm gap-2 hover:bg-white">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="18"
-				height="18"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"><path d="M12 2v20M2 12h20" /></svg
-			>
-			Install App
+		<a href="/install-guide" class="nav-link-ordr">
+			<span class="flex items-center gap-2">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+				>
+					<path d="M12 2v20M2 12h20" />
+				</svg>
+				Install App
+			</span>
 		</a>
-		<a href="/subscriptions" class="btn btn-ghost btn-sm gap-2 hover:bg-white">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="18"
-				height="18"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
-				<rect x="2" y="5" width="20" height="14" rx="2" />
-				<line x1="2" y1="10" x2="22" y2="10" />
-			</svg>
-			Pricing
+		<a href="/subscriptions" class="nav-link">
+			<span class="flex items-center gap-2">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+				>
+					<rect x="2" y="5" width="20" height="14" rx="2" />
+					<line x1="2" y1="10" x2="22" y2="10" />
+				</svg>
+				Pricing
+			</span>
 		</a>
 		{#if $user}
-			<a href="/checkout" class="btn btn-ghost btn-sm gap-2">
+			<a href="/checkout" class="nav-link relative">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="18"
@@ -214,15 +209,20 @@
 					fill="none"
 					stroke="currentColor"
 					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path
-						d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
-					/></svg
 				>
-				Cart
+					<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+					<path d="M3 6h18" />
+					<path d="M16 10a4 4 0 0 1-8 0" />
+				</svg>
+				{#if cartCount > 0}
+					<span
+						class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-xs text-white"
+					>
+						{cartCount}
+					</span>
+				{/if}
 			</a>
-			<a href="/favorites" class="btn btn-ghost btn-sm gap-2">
+			<a href="/favorites" class="nav-link">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="18"
@@ -231,594 +231,344 @@
 					fill="none"
 					stroke="currentColor"
 					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
 				>
 					<path
-						d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+						d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
 					/>
 				</svg>
-				Favorites
 			</a>
+			<a href="/pending" class="nav-link">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="18"
+					height="18"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+				>
+					<path
+						d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+					/>
+				</svg>
+			</a>
+			<div class="dropdown dropdown-end">
+				<button tabindex="0" class="btn btn-ghost btn-circle avatar">
+					<div
+						class="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 font-semibold text-white"
+					>
+						{$user.name?.charAt(0).toUpperCase() || 'U'}
+					</div>
+				</button>
+				<ul
+					tabindex="0"
+					class="dropdown-content menu rounded-box mt-2 w-52 border border-slate-100 bg-white p-2 shadow-lg"
+				>
+					<li class="menu-title px-3 py-2">
+						<span class="font-semibold text-slate-900">{$user.name}</span>
+						<span class="text-xs text-slate-500">{$user.email}</span>
+					</li>
+					<li><a href="/history" class="text-slate-700">Order History</a></li>
+					{#if $isSuper || $isAdminForRestaurant}
+						<li><a href="/admin" class="text-slate-700">Admin Dashboard</a></li>
+					{/if}
+					<li>
+						<button onclick={toggleNotifications} class="w-full text-left text-slate-700">
+							{notificationsEnabled ? 'Disable Notifications' : 'Enable Notifications'}
+						</button>
+					</li>
+					<li>
+						<button onclick={() => logoutModalUser.showModal()} class="text-red-600">Logout</button>
+					</li>
+				</ul>
+			</div>
+		{:else}
+			<a href="/login" class="btn-ghost-custom">Login</a>
+			<a href="/signup" class="btn-primary-custom !px-4 !py-2 !text-sm">Sign Up</a>
 		{/if}
 	</div>
 
 	<!-- Mobile Menu Button -->
-	<div class="flex items-center gap-1">
-		<!-- Cart Button for Mobile - Links to checkout page (only visible on smaller screens) -->
+	<div class="flex items-center gap-2 lg:hidden">
 		{#if $user}
-			<a href="/checkout" class="btn btn-ghost btn-circle relative lg:hidden">
+			<a href="/checkout" class="btn btn-ghost btn-circle relative">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
-					width="24"
-					height="24"
+					width="20"
+					height="20"
 					viewBox="0 0 24 24"
 					fill="none"
 					stroke="currentColor"
 					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
 				>
-					<circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path
-						d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
-					/>
+					<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+					<path d="M3 6h18" />
+					<path d="M16 10a4 4 0 0 1-8 0" />
 				</svg>
-				<!-- This is shrinking the svg icon on mobile view -->
-				<!-- {#if $cart.length > 0}
-					<span class="indicator-item badge badge-sm badge-primary font-bold">{$cart.length}</span>
-				{/if} -->
+				{#if cartCount > 0}
+					<span
+						class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-xs text-white"
+					>
+						{cartCount}
+					</span>
+				{/if}
 			</a>
 		{/if}
-		<label for="my-drawer" class="btn btn-ghost btn-circle drawer-button">
-			<svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24"
-				><path
-					fill="none"
-					stroke="currentColor"
-					stroke-linecap="round"
-					stroke-width="1.5"
-					d="M4 7h3m13 0h-9m9 10h-3M4 17h9m-9-5h16"
-				/></svg
+		<button onclick={() => (isMenuOpen = true)} class="btn btn-ghost btn-circle">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="24"
+				height="24"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
 			>
-		</label>
+				<line x1="4" x2="20" y1="12" y2="12" />
+				<line x1="4" x2="20" y1="6" y2="6" />
+				<line x1="4" x2="20" y1="18" y2="18" />
+			</svg>
+		</button>
 	</div>
 </nav>
 
-{#if $isAdminPage}
-	<div class="drawer drawer-end relative z-[70]">
-		<input id="my-drawer" type="checkbox" class="drawer-toggle" />
-		<div class="drawer-side z-[80]">
-			<label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
-			<div class="bg-base-100 flex h-full w-80 flex-col">
-				<!-- Drawer Header -->
-				<div class="bg-primary text-primary-content p-6">
-					<h2 class="font-playfair text-xl font-bold">{restaurantName}</h2>
-					<p class="text-primary-content/80 text-sm">Admin Panel</p>
-				</div>
+<!-- Mobile Drawer -->
+{#if isMenuOpen}
+	<div class="fixed inset-0 z-[70] lg:hidden">
+		<!-- Backdrop -->
+		<button
+			class="absolute inset-0 bg-slate-900/50"
+			onclick={() => (isMenuOpen = false)}
+			aria-label="Close menu"
+		></button>
 
-				<!-- Navigation Links -->
-				<ul class="menu flex-1 gap-1 p-4">
-					<li>
-						<a
-							onclick={closeSideBar}
-							href="/admin"
-							class={$page.url.pathname === '/admin' ? 'active' : ''}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><rect width="7" height="9" x="3" y="3" rx="1" /><rect
-									width="7"
-									height="5"
-									x="14"
-									y="3"
-									rx="1"
-								/><rect width="7" height="9" x="14" y="12" rx="1" /><rect
-									width="7"
-									height="5"
-									x="3"
-									y="16"
-									rx="1"
-								/></svg
-							>
-							Dashboard
-						</a>
-					</li>
-					<li>
-						<a
-							onclick={closeSideBar}
-							href="/admin/analytics"
-							class={$page.url.pathname === '/admin/analytics' ? 'active' : ''}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><line x1="18" y1="20" x2="18" y2="10" /><line
-									x1="12"
-									y1="20"
-									x2="12"
-									y2="4"
-								/><line x1="6" y1="20" x2="6" y2="14" /></svg
-							>
-							Analytics
-						</a>
-					</li>
-					<li>
-						<a
-							onclick={closeSideBar}
-							href="/admin/admin-menu"
-							class={$page.url.pathname === '/admin/admin-menu' ? 'active' : ''}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><path d="M3 7v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7" /><path d="M3 7h18" /><path
-									d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-								/></svg
-							>
-							Menu
-						</a>
-					</li>
-					<li>
-						<a
-							onclick={closeSideBar}
-							href="/admin/admin-order"
-							class={$page.url.pathname === '/admin/admin-order' ? 'active' : ''}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg
-							>
-							Pending Orders
-						</a>
-					</li>
-					<li>
-						<a
-							onclick={closeSideBar}
-							href="/admin/admin-history"
-							class={$page.url.pathname === '/admin/admin-history' ? 'active' : ''}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><path d="M3 3v18h18" /><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" /></svg
-							>
-							Order History
-						</a>
-					</li>
-					<li>
-						<a
-							onclick={closeSideBar}
-							href="/admin/admin-reservation"
-							class={$page.url.pathname === '/admin/admin-reservation' ? 'active' : ''}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><path d="M8 2v4" /><path d="M16 2v4" /><rect
-									width="18"
-									height="18"
-									x="3"
-									y="4"
-									rx="2"
-								/><path d="M3 10h18" /></svg
-							>
-							Reservations
-						</a>
-					</li>
-					<li>
-						<a
-							onclick={closeSideBar}
-							href="/admin/billing"
-							class={$page.url.pathname === '/admin/billing' ? 'active' : ''}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><rect width="20" height="14" x="2" y="5" rx="2" /><line
-									x1="2"
-									x2="22"
-									y1="10"
-									y2="10"
-								/></svg
-							>
-							Billing
-						</a>
-					</li>
-					<li>
-						<a
-							onclick={closeSideBar}
-							href="/admin/user-analysis"
-							class={$page.url.pathname === '/admin/user-analysis' ? 'active' : ''}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><path d="M3 3v18h18" /><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" /></svg
-							>
-							User Analysis
-						</a>
-					</li>
-				</ul>
-
-				<!-- Drawer Footer -->
-				<div class="border-base-300 border-t p-4">
-					{#if $user}
-						<div class="mb-4">
-							<p class="text-sm font-medium">{$user.name}</p>
-							<p class="text-base-content/60 text-xs">{$user.email}</p>
-						</div>
-						<button
-							onclick={() => logoutModalAdmin.showModal()}
-							class="btn btn-error btn-outline w-full"
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline
-									points="16 17 21 12 16 7"
-								/><line x1="21" y1="12" x2="9" y2="12" /></svg
-							>
-							Logout
-						</button>
-
-						<dialog bind:this={logoutModalAdmin} id="logout_modal_admin" class="modal">
-							<div class="modal-box">
-								<h3 class="text-lg font-bold">Confirm Logout</h3>
-								<p class="py-4">Are you sure you want to logout?</p>
-								<div class="modal-action">
-									<form method="dialog">
-										<button class="btn" disabled={isLoggingOutAdmin}>Cancel</button>
-									</form>
-									<form
-										action="/admin/admin-logout"
-										method="POST"
-										onsubmit={() => {
-											isLoggingOutAdmin = true;
-											if ('serviceWorker' in navigator) {
-												try {
-													const registration = navigator.serviceWorker.getRegistration();
-													registration.then((reg) => {
-														if (reg) reg.unregister();
-													});
-												} catch (e) {
-													console.log('SW unregister error:', e);
-												}
-											}
-											localStorage.clear();
-										}}
-									>
-										{#if isLoggingOutAdmin}
-											<button class="btn btn-error" disabled>
-												<span class="loading loading-spinner loading-sm"></span>
-												Logging out...
-											</button>
-										{:else}
-											<button class="btn btn-error">Logout</button>
-										{/if}
-									</form>
-								</div>
-							</div>
-						</dialog>
-					{:else}
-						<a onclick={closeSideBar} href="/admin/admin-login" class="btn btn-primary w-full">
-							Login
-						</a>
-					{/if}
-				</div>
+		<!-- Drawer -->
+		<div
+			class="animate-scale-in absolute top-0 right-0 h-full w-80 max-w-[85vw] bg-white shadow-2xl"
+		>
+			<!-- Header -->
+			<div class="flex items-center justify-between border-b border-slate-100 p-4">
+				<span class="font-heading text-lg font-bold text-slate-900">Menu</span>
+				<button onclick={() => (isMenuOpen = false)} class="btn btn-ghost btn-sm btn-circle">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<line x1="18" y1="6" x2="6" y2="18" />
+						<line x1="6" y1="6" x2="18" y2="18" />
+					</svg>
+				</button>
 			</div>
-		</div>
-	</div>
-{:else}
-	<div class="drawer drawer-end relative z-[70]">
-		<input id="my-drawer" type="checkbox" class="drawer-toggle" />
-		<div class="drawer-side z-[80]">
-			<label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
-			<div class="bg-base-100 flex h-full w-80 flex-col">
-				<!-- Drawer Header -->
-				<div class="bg-primary text-primary-content p-6">
-					<h2 class="font-playfair text-xl font-bold">{restaurantName}</h2>
-					<p class="text-primary-content/80 text-sm">Menu</p>
-				</div>
+
+			<!-- Content -->
+			<div class="flex h-[calc(100%-64px)] flex-col overflow-y-auto">
+				<!-- User Info -->
+				{#if $user}
+					<div class="border-b border-slate-100 p-4">
+						<div class="flex items-center gap-3">
+							<div
+								class="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-lg font-bold text-white"
+							>
+								{$user.name?.charAt(0).toUpperCase() || 'U'}
+							</div>
+							<div>
+								<p class="font-semibold text-slate-900">{$user.name}</p>
+								<p class="text-sm text-slate-500">{$user.email}</p>
+							</div>
+						</div>
+					</div>
+				{/if}
 
 				<!-- Navigation Links -->
 				<ul class="menu flex-1 gap-1 p-4">
 					<li>
-						<a onclick={closeSideBar} href="/" class={$page.url.pathname === '/' ? 'active' : ''}>
+						<a href="/" class="font-medium text-slate-700" onclick={() => (isMenuOpen = false)}>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
+								width="20"
+								height="20"
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
 								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline
-									points="9 22 9 12 15 12 15 22"
-								/></svg
 							>
+								<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+							</svg>
 							Home
 						</a>
 					</li>
 					<li>
 						<a
-							onclick={closeSideBar}
-							href="/install-guide"
-							class={$page.url.pathname === '/install-guide' ? 'active' : ''}
+							href="/restaurants"
+							class="font-medium text-slate-700"
+							onclick={() => (isMenuOpen = false)}
 						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
+								width="20"
+								height="20"
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
 								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"><path d="M12 2v20M2 12h20" /></svg
 							>
-							Install App
+								<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+								<path d="M7 2v20" />
+								<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+							</svg>
+							Restaurants
 						</a>
 					</li>
-					{#if $isSuper}
-						<li>
-							<a
-								onclick={closeSideBar}
-								href="/restaurants"
-								class={$page.url.pathname === '/restaurants' ? 'active' : ''}
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="18"
-									height="18"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									><path d="M2 7.5V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2.5" /><path
-										d="M2 17.5a.5.5 0 0 1 .5-.5h19a.5.5 0 0 1 .5.5v1a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 18.5Z"
-									/><path d="m4 7.5 1.6 6.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L20 7.5" /></svg
-								>
-								Restaurants
-							</a>
-						</li>
-					{/if}
-					{#if $isAdminForRestaurant}
-						<li>
-							<a
-								onclick={closeSideBar}
-								href="/admin"
-								class={$page.url.pathname.startsWith('/admin') ? 'active' : ''}
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="18"
-									height="18"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									><rect width="7" height="9" x="3" y="3" rx="1" /><rect
-										width="7"
-										height="5"
-										x="14"
-										y="3"
-										rx="1"
-									/><rect width="7" height="9" x="14" y="12" rx="1" /><rect
-										width="7"
-										height="5"
-										x="3"
-										y="16"
-										rx="1"
-									/></svg
-								>
-								Admin
-							</a>
-						</li>
-					{/if}
 					{#if $user}
 						<li>
 							<a
-								onclick={closeSideBar}
 								href="/favorites"
-								class={$page.url.pathname === '/favorites' ? 'active' : ''}
+								class="font-medium text-slate-700"
+								onclick={() => (isMenuOpen = false)}
 							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
-									width="18"
-									height="18"
+									width="20"
+									height="20"
 									viewBox="0 0 24 24"
 									fill="none"
 									stroke="currentColor"
 									stroke-width="2"
-									stroke-linecap="round"
-									stroke-linejoin="round"
 								>
 									<path
-										d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+										d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
 									/>
 								</svg>
 								Favorites
 							</a>
 						</li>
+						<li>
+							<a
+								href="/pending"
+								class="font-medium text-slate-700"
+								onclick={() => (isMenuOpen = false)}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<circle cx="12" cy="12" r="10" />
+									<polyline points="12 6 12 12 16 14" />
+								</svg>
+								Pending Orders
+							</a>
+						</li>
+						<li>
+							<a
+								href="/history"
+								class="font-medium text-slate-700"
+								onclick={() => (isMenuOpen = false)}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path d="M3 3v18h18" />
+									<path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+								</svg>
+								Order History
+							</a>
+						</li>
 					{/if}
 					<li>
 						<a
-							onclick={closeSideBar}
-							href="/checkout"
-							class={$page.url.pathname === '/checkout' ? 'active' : ''}
+							href="/about"
+							class="font-medium text-slate-700"
+							onclick={() => (isMenuOpen = false)}
 						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
+								width="20"
+								height="20"
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
 								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path
-									d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
-								/></svg
 							>
-							Cart
+								<circle cx="12" cy="12" r="10" />
+								<path d="M12 16v-4" />
+								<path d="M12 8h.01" />
+							</svg>
+							About
 						</a>
 					</li>
 					<li>
 						<a
-							onclick={closeSideBar}
-							href="/pending"
-							class={$page.url.pathname === '/pending' ? 'active' : ''}
+							href="/contact"
+							class="font-medium text-slate-700"
+							onclick={() => (isMenuOpen = false)}
 						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
+								width="20"
+								height="20"
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
 								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg
 							>
-							Pending Orders
+								<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+							</svg>
+							Contact
 						</a>
 					</li>
 					<li>
 						<a
-							onclick={closeSideBar}
-							href="/history"
-							class={$page.url.pathname === '/history' ? 'active' : ''}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><path d="M3 3v18h18" /><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" /></svg
-							>
-							Order History
-						</a>
-					</li>
-					<li>
-						<a
-							onclick={closeSideBar}
 							href="/reservation"
-							class={$page.url.pathname === '/reservation' ? 'active' : ''}
+							class="font-medium text-slate-700"
+							onclick={() => (isMenuOpen = false)}
 						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
+								width="20"
+								height="20"
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
 								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><path d="M8 2v4" /><path d="M16 2v4" /><rect
-									width="18"
-									height="18"
-									x="3"
-									y="4"
-									rx="2"
-								/><path d="M3 10h18" /></svg
 							>
-							Book Reservation
+								<rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+								<line x1="16" y1="2" x2="16" y2="6" />
+								<line x1="8" y1="2" x2="8" y2="6" />
+								<line x1="3" y1="10" x2="21" y2="10" />
+							</svg>
+							Reservations
 						</a>
 					</li>
 					<li>
 						<a
-							onclick={closeSideBar}
 							href="/subscriptions"
-							class={$page.url.pathname === '/subscriptions' ? 'active' : ''}
+							class="font-medium text-slate-700"
+							onclick={() => (isMenuOpen = false)}
 						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
+								width="20"
+								height="20"
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
 								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
 							>
 								<rect x="2" y="5" width="20" height="14" rx="2" />
 								<line x1="2" y1="10" x2="22" y2="10" />
@@ -828,105 +578,96 @@
 					</li>
 					<li>
 						<a
-							onclick={closeSideBar}
-							href="/about"
-							class={$page.url.pathname === '/about' ? 'active' : ''}
+							href="/install-guide"
+							class="font-medium text-slate-700"
+							onclick={() => (isMenuOpen = false)}
 						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
+								width="20"
+								height="20"
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
 								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg
 							>
-							About
+								<path d="M12 2v20M2 12h20" />
+							</svg>
+							Install App
 						</a>
 					</li>
-					<li>
-						<a
-							onclick={closeSideBar}
-							href="/contact"
-							class={$page.url.pathname === '/contact' ? 'active' : ''}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><path
-									d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
-								/></svg
+					{#if $isSuper || $isAdminForRestaurant}
+						<div class="divider my-1">Admin</div>
+						<li>
+							<a
+								href="/admin"
+								class="font-medium text-slate-700"
+								onclick={() => (isMenuOpen = false)}
 							>
-							Contact
-						</a>
-					</li>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path d="M3 3v18h18" />
+									<path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+								</svg>
+								Dashboard
+							</a>
+						</li>
+						<li>
+							<a
+								href="/admin/admin-order"
+								class="font-medium text-slate-700"
+								onclick={() => (isMenuOpen = false)}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+								</svg>
+								Orders
+							</a>
+						</li>
+						<li>
+							<a
+								href="/admin/admin-menu"
+								class="font-medium text-slate-700"
+								onclick={() => (isMenuOpen = false)}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+								</svg>
+								Menu
+							</a>
+						</li>
+					{/if}
 				</ul>
 
-				<!-- Drawer Footer -->
-				<div class="border-base-300 border-t p-4">
+				<!-- Footer -->
+				<div class="border-t border-slate-100 p-4">
 					{#if $user}
-						<div class="mb-4">
-							<p class="text-sm font-medium">{$user.name}</p>
-							<p class="text-base-content/60 text-xs">{$user.email}</p>
-						</div>
-
-						<!-- Notification Toggle -->
-						<button
-							onclick={toggleNotifications}
-							disabled={isEnablingNotifications}
-							class="btn btn-outline mb-2 w-full"
-						>
-							{#if isEnablingNotifications}
-								<span class="loading loading-spinner loading-sm"></span>
-							{:else if notificationsEnabled}
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="18"
-									height="18"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-								>
-									<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-									<path d="M13.73 21a2 2 0 0 1-3.46 0" />
-									<line x1="1" y1="1" x2="23" y2="23" />
-								</svg>
-								Disable Notifications
-							{:else}
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="18"
-									height="18"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-								>
-									<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-									<path d="M13.73 21a2 2 0 0 1-3.46 0" />
-								</svg>
-								Enable Notifications
-							{/if}
-						</button>
-
 						<button
 							onclick={() => logoutModalUser.showModal()}
-							class="btn btn-error btn-outline w-full"
+							class="btn btn-outline w-full border-red-200 text-red-600 hover:bg-red-50"
 						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
@@ -936,62 +677,52 @@
 								fill="none"
 								stroke="currentColor"
 								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline
-									points="16 17 21 12 16 7"
-								/><line x1="21" y1="12" x2="9" y2="12" /></svg
 							>
+								<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+								<polyline points="16 17 21 12 16 7" />
+								<line x1="21" y1="12" x2="9" y2="12" />
+							</svg>
 							Logout
 						</button>
-
-						<dialog bind:this={logoutModalUser} id="logout_modal_user" class="modal">
-							<div class="modal-box">
-								<h3 class="text-lg font-bold">Confirm Logout</h3>
-								<p class="py-4">Are you sure you want to logout?</p>
-								<div class="modal-action">
-									<form method="dialog">
-										<button class="btn" disabled={isLoggingOut}>Cancel</button>
-									</form>
-									<form
-										action="/logout"
-										method="POST"
-										onsubmit={() => {
-											isLoggingOut = true;
-											// Clear service worker cache on logout
-											if ('serviceWorker' in navigator) {
-												try {
-													const registration = navigator.serviceWorker.getRegistration();
-													registration.then((reg) => {
-														if (reg) reg.unregister();
-													});
-												} catch (e) {
-													console.log('SW unregister error:', e);
-												}
-											}
-											// Clear localStorage
-											localStorage.clear();
-										}}
-									>
-										{#if isLoggingOut}
-											<button class="btn btn-error" disabled>
-												<span class="loading loading-spinner loading-sm"></span>
-												Logging out...
-											</button>
-										{:else}
-											<button class="btn btn-error">Logout</button>
-										{/if}
-									</form>
-								</div>
-							</div>
-						</dialog>
 					{:else}
-						<a onclick={closeSideBar} href="/login" class="btn btn-primary w-full">
-							Sign In / Register
-						</a>
+						<div class="flex gap-2">
+							<a href="/login" class="btn btn-outline flex-1">Login</a>
+							<a href="/signup" class="btn-primary-custom flex-1 text-center">Sign Up</a>
+						</div>
 					{/if}
 				</div>
 			</div>
 		</div>
 	</div>
 {/if}
+
+<!-- Logout Modal -->
+<dialog bind:this={logoutModalUser} class="modal">
+	<div class="modal-box">
+		<h3 class="text-lg font-bold">Confirm Logout</h3>
+		<p class="py-4">Are you sure you want to logout?</p>
+		<div class="modal-action">
+			<form method="dialog">
+				<button class="btn" disabled={isLoggingOut}>Cancel</button>
+			</form>
+			<form action="/logout" method="POST">
+				{#if isLoggingOut}
+					<button class="btn btn-error" disabled>
+						<span class="loading loading-spinner loading-sm"></span>
+					</button>
+				{:else}
+					<button class="btn btn-error">Logout</button>
+				{/if}
+			</form>
+		</div>
+	</div>
+	<form method="dialog" class="modal-backdrop">
+		<button>close</button>
+	</form>
+</dialog>
+
+<style>
+	.font-heading {
+		font-family: 'Poppins', sans-serif;
+	}
+</style>

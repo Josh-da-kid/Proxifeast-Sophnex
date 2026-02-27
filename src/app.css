@@ -1,36 +1,502 @@
 @import 'tailwindcss';
 @plugin "daisyui";
 
-*{
-    @apply scroll-smooth;
-    scroll-behavior: smooth;
+/* ==========================================
+   PROXIFEAST DESIGN SYSTEM
+   OrderRave-Inspired Modern Restaurant UI
+   ========================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+	--font-heading: 'Poppins', sans-serif;
+	--font-body: 'Inter', sans-serif;
+
+	/* OrderRave Color Palette */
+	--color-primary: #0f4c38;
+	--color-primary-hover: #094d3b;
+	--color-primary-light: #0d9488;
+
+	/* Secondary - Dark Charcoal */
+	--color-secondary: #111827;
+	--color-secondary-hover: #1f2937;
+
+	/* Accent - Teal */
+	--color-accent: #0d9488;
+	--color-accent-hover: #0f766e;
+
+	/* Status Colors */
+	--color-success: #10b981;
+	--color-warning: #f59e0b;
+	--color-error: #ef4444;
+	--color-info: #1976d2;
 }
 
+* {
+	scroll-behavior: smooth;
+}
 
-	/* Hide scrollbar but still scroll */
-	.scroll-hidden {
-		scrollbar-width: none; /* Firefox */
-		-ms-overflow-style: none; /* IE 10+ */
+body {
+	font-family: var(--font-body);
+	color: #334155;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-family: var(--font-heading);
+	font-weight: 600;
+	color: #111827;
+}
+
+/* ==========================================
+   CUSTOM SCROLLBAR
+   ========================================== */
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+	background: #cbd5e1;
+	border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: #94a3b8;
+}
+
+.scroll-hidden {
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+}
+
+.scroll-hidden::-webkit-scrollbar {
+	display: none;
+}
+
+/* ==========================================
+   BUTTON STYLES - OrderRave Style
+   ========================================== */
+.btn-primary-ordr {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1.5rem;
+	font-size: 0.9375rem;
+	font-weight: 600;
+	border-radius: 0.5rem;
+	background-color: #0f4c38;
+	color: white;
+	transition: all 0.2s ease;
+	border: none;
+	cursor: pointer;
+}
+
+.btn-primary-ordr:hover {
+	background-color: #094d3b;
+	box-shadow: 0 4px 12px rgba(15, 76, 56, 0.3);
+	transform: translateY(-1px);
+}
+
+.btn-primary-ordr:active {
+	transform: translateY(0);
+}
+
+.btn-secondary-ordr {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1.5rem;
+	font-size: 0.9375rem;
+	font-weight: 600;
+	border-radius: 0.5rem;
+	background-color: #111827;
+	color: white;
+	transition: all 0.2s ease;
+	border: none;
+	cursor: pointer;
+}
+
+.btn-secondary-ordr:hover {
+	background-color: #1f2937;
+	box-shadow: 0 4px 12px rgba(17, 24, 39, 0.3);
+}
+
+.btn-outline-ordr {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1.5rem;
+	font-size: 0.9375rem;
+	font-weight: 600;
+	border-radius: 0.5rem;
+	background-color: transparent;
+	color: #111827;
+	border: 2px solid #111827;
+	transition: all 0.2s ease;
+	cursor: pointer;
+}
+
+.btn-outline-ordr:hover {
+	background-color: #111827;
+	color: white;
+}
+
+/* ==========================================
+   CARD STYLES
+   ========================================== */
+.card-ordr {
+	background: white;
+	border-radius: 0.75rem;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	border: 1px solid #e5e7eb;
+	transition: all 0.3s ease;
+}
+
+.card-ordr:hover {
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+	transform: translateY(-2px);
+}
+
+/* ==========================================
+   INPUT STYLES
+   ========================================== */
+.input-ordr {
+	width: 100%;
+	padding: 0.75rem 1rem;
+	font-size: 0.9375rem;
+	border: 1px solid #e5e7eb;
+	border-radius: 0.5rem;
+	background-color: white;
+	color: #334155;
+	transition: all 0.2s ease;
+}
+
+.input-ordr::placeholder {
+	color: #9ca3af;
+}
+
+.input-ordr:focus {
+	outline: none;
+	border-color: #0f4c38;
+	box-shadow: 0 0 0 3px rgba(15, 76, 56, 0.1);
+}
+
+/* ==========================================
+   SECTION STYLES
+   ========================================== */
+.section-ordr {
+	padding: 4rem 0;
+}
+
+@media (min-width: 768px) {
+	.section-ordr {
+		padding: 5rem 0;
 	}
+}
 
-	.scroll-hidden::-webkit-scrollbar {
-		display: none; /* Chrome, Safari, Opera */
+@media (min-width: 1024px) {
+	.section-ordr {
+		padding: 6rem 0;
 	}
+}
 
-	.tooltip[data-tip].wide-tooltip::before {
-		max-width: 16rem; /* or whatever size you want */
-		white-space: normal;
-		text-align: left;
+.container-ordr {
+	max-width: 1280px;
+	margin: 0 auto;
+	padding-left: 1rem;
+	padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+	.container-ordr {
+		padding-left: 1.5rem;
+		padding-right: 1.5rem;
 	}
+}
 
+@media (min-width: 1024px) {
+	.container-ordr {
+		padding-left: 2rem;
+		padding-right: 2rem;
+	}
+}
 
-	@keyframes marquee {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+/* ==========================================
+   BADGE STYLES
+   ========================================== */
+.badge-ordr {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.25rem 0.75rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	border-radius: 9999px;
+}
+
+.badge-success-ordr {
+	background-color: #dcfce7;
+	color: #166534;
+}
+
+.badge-warning-ordr {
+	background-color: #fef3c7;
+	color: #92400e;
+}
+
+.badge-error-ordr {
+	background-color: #fee2e2;
+	color: #991b1b;
+}
+
+/* ==========================================
+   HERO STYLES
+   ========================================== */
+.hero-ordr {
+	position: relative;
+	background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #f0f9ff 100%);
+}
+
+.hero-ordr::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background:
+		radial-gradient(circle at 20% 80%, rgba(15, 76, 56, 0.05) 0%, transparent 50%),
+		radial-gradient(circle at 80% 20%, rgba(13, 148, 136, 0.05) 0%, transparent 50%);
+}
+
+/* ==========================================
+   NAVIGATION
+   ========================================== */
+.nav-link-ordr {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.5rem 1rem;
+	font-size: 0.9375rem;
+	font-weight: 500;
+	color: #4b5563;
+	border-radius: 0.5rem;
+	transition: all 0.2s ease;
+}
+
+.nav-link-ordr:hover {
+	color: #0f4c38;
+	background-color: rgba(15, 76, 56, 0.05);
+}
+
+/* ==========================================
+   CAROUSEL STYLES - OrderRave Style
+   ========================================== */
+.carousel-ordr {
+	position: relative;
+	overflow: hidden;
+}
+
+.carousel-ordr-track {
+	display: flex;
+	gap: 1.5rem;
+	overflow-x: auto;
+	scroll-behavior: smooth;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+	padding: 1rem 0;
+}
+
+.carousel-ordr-track::-webkit-scrollbar {
+	display: none;
+}
+
+.carousel-ordr-item {
+	flex: 0 0 auto;
+	width: 280px;
+}
+
+@media (min-width: 640px) {
+	.carousel-ordr-item {
+		width: 320px;
+	}
+}
+
+@media (min-width: 768px) {
+	.carousel-ordr-item {
+		width: 360px;
+	}
+}
+
+.carousel-ordr-btn {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 2.5rem;
+	height: 2.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: white;
+	border: 1px solid #e5e7eb;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	cursor: pointer;
+	transition: all 0.2s ease;
+	z-index: 10;
+}
+
+.carousel-ordr-btn:hover {
+	background: #0f4c38;
+	color: white;
+	border-color: #0f4c38;
+}
+
+.carousel-ordr-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.carousel-ordr-btn-left {
+	left: 0.5rem;
+}
+
+.carousel-ordr-btn-right {
+	right: 0.5rem;
+}
+
+/* ==========================================
+   ANIMATIONS
+   ========================================== */
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes scaleIn {
+	from {
+		opacity: 0;
+		transform: scale(0.95);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+.animate-fade-in-up {
+	animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.animate-scale-in {
+	animation: scaleIn 0.3s ease-out forwards;
+}
+
+.stagger-1 {
+	animation-delay: 0.1s;
+}
+.stagger-2 {
+	animation-delay: 0.2s;
+}
+.stagger-3 {
+	animation-delay: 0.3s;
+}
+.stagger-4 {
+	animation-delay: 0.4s;
+}
+
+/* ==========================================
+   GRADIENT TEXT
+   ========================================== */
+.text-gradient-ordr {
+	background: linear-gradient(135deg, #0f4c38 0%, #0d9488 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
+
+/* ==========================================
+   FOOTER
+   ========================================== */
+.footer-ordr {
+	background-color: #111827;
+	color: #9ca3af;
+}
+
+.footer-ordr a:hover {
+	color: #0f4c38;
+}
+
+/* ==========================================
+   MENU ITEM CARD
+   ========================================== */
+.menu-item-ordr {
+	background: white;
+	border-radius: 0.75rem;
+	overflow: hidden;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+	border: 1px solid #f3f4f6;
+	transition: all 0.3s ease;
+}
+
+.menu-item-ordr:hover {
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+	transform: translateY(-2px);
+}
+
+.menu-item-ordr-image {
+	width: 100%;
+	height: 12rem;
+	object-fit: cover;
+}
+
+/* ==========================================
+   RESPONSIVE UTILITIES
+   ========================================== */
+@media (max-width: 640px) {
+	.section-ordr {
+		padding: 3rem 0;
+	}
+}
+
+/* ==========================================
+   TOOLTIP
+   ========================================== */
+.tooltip[data-tip].wide-tooltip::before {
+	max-width: 16rem;
+	white-space: normal;
+	text-align: left;
+}
+
+/* ==========================================
+   MARQUEE ANIMATION
+   ========================================== */
+@keyframes marquee {
+	0% {
+		transform: translateX(0);
+	}
+	100% {
+		transform: translateX(-50%);
+	}
 }
 
 .animate-marquee {
-  animation: marquee 80s linear infinite;
+	animation: marquee 80s linear infinite;
 }
 
 .animate-marquee:hover,

@@ -78,15 +78,14 @@
 		<button
 			onclick={() => scroll('left')}
 			disabled={!canScrollLeft}
-			class="absolute top-1/2 left-0 z-10 flex h-10 w-10 -translate-x-2 -translate-y-1/2 items-center justify-center rounded-full border bg-white shadow-md transition-all md:h-12 md:w-12 md:-translate-x-4 lg:-translate-x-6
-				{canScrollLeft
-				? 'border-slate-200 text-slate-600 hover:border-amber-500 hover:bg-amber-500 hover:text-white'
-				: 'cursor-not-allowed border-slate-100 opacity-40'}"
+			class="carousel-ordr-btn carousel-ordr-btn-left
+			{canScrollLeft ? '' : 'opacity-40'}"
+			style={canScrollLeft ? '' : 'display: none;'}
 			aria-label="Scroll left"
 		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
-				class="h-4 w-4 md:h-5 md:w-5 {canScrollLeft ? 'text-slate-600' : 'text-slate-300'}"
+				class="h-5 w-5"
 				fill="none"
 				viewBox="0 0 24 24"
 				stroke="currentColor"
@@ -98,11 +97,7 @@
 	{/if}
 
 	<!-- Carousel Container -->
-	<div
-		bind:this={containerRef}
-		class="scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto px-12 pb-4 sm:gap-6 sm:px-14 md:px-16"
-		style="scrollbar-width: none; -ms-overflow-style: none;"
-	>
+	<div bind:this={containerRef} class="carousel-ordr-track snap-x snap-mandatory">
 		<slot />
 	</div>
 
@@ -111,15 +106,14 @@
 		<button
 			onclick={() => scroll('right')}
 			disabled={!canScrollRight}
-			class="absolute top-1/2 right-0 z-10 flex h-10 w-10 translate-x-2 -translate-y-1/2 items-center justify-center rounded-full border bg-white shadow-md transition-all md:h-12 md:w-12 md:translate-x-4 lg:translate-x-6
-				{canScrollRight
-				? 'border-slate-200 text-slate-600 hover:border-amber-500 hover:bg-amber-500 hover:text-white'
-				: 'cursor-not-allowed border-slate-100 opacity-40'}"
+			class="carousel-ordr-btn carousel-ordr-btn-right
+				{canScrollRight ? '' : 'opacity-40'}"
+			style={canScrollRight ? '' : 'display: none;'}
 			aria-label="Scroll right"
 		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
-				class="h-4 w-4 md:h-5 md:w-5 {canScrollRight ? 'text-slate-600' : 'text-slate-300'}"
+				class="h-5 w-5"
 				fill="none"
 				viewBox="0 0 24 24"
 				stroke="currentColor"
