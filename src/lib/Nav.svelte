@@ -411,9 +411,14 @@
 				</div>
 			{/if}
 			<div class="dropdown dropdown-end">
-				<button tabindex="0" class="btn btn-ghost btn-circle avatar">
+				<button
+					tabindex="0"
+					class="btn btn-ghost btn-circle avatar !overflow-hidden !p-0"
+					style="height: 36px; min-height: 36px; width: 36px; line-height: 36px; padding: 0;"
+				>
 					<div
-						class="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 font-semibold text-white"
+						class="flex items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-base font-semibold text-white"
+						style="height: 36px; width: 36px;"
 					>
 						{$user.name?.charAt(0).toUpperCase() || 'U'}
 					</div>
@@ -531,7 +536,7 @@
 					<div class="border-b border-slate-100 p-4">
 						<div class="flex items-center gap-3">
 							<div
-								class="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-lg font-bold text-white"
+								class="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-xl leading-none font-bold text-white"
 							>
 								{$user.name?.charAt(0).toUpperCase() || 'U'}
 							</div>
