@@ -126,27 +126,69 @@
 
 	async function fetchCart() {
 		const currentUser = get(page).data.user;
-		if (!currentUser?.id) return;
-		try {
-			const records = await pb.collection('cart').getFullList({
-				filter: `user="${currentUser.id}"`,
-				expand: 'dish'
-			});
-			cart.set(records);
-		} catch (err) {
-			console.error('Failed to fetch cart:', err);
+
+		// First check localStorage for guest cart
+		const guestCart = localStorage.getItem('guestCart');
+		let guestItems: any[] = [];
+		if (guestCart) {
+			try {
+				guestItems = JSON.parse(guestCart);
+			} catch (e) {}
+		}
+
+		// If logged in, fetch from server
+		if (currentUser?.id) {
+			try {
+				const records = await pb.collection('cart').getFullList({
+					filter: `user="${currentUser.id}"`,
+					expand: 'dish'
+				});
+				// Combine guest cart with user cart
+				cart.set([...guestItems, ...records]);
+			} catch (err) {
+				console.error('Failed to fetch cart:', err);
+				cart.set(guestItems);
+			}
+		} else {
+			// Not logged in, use guest cart
+			cart.set(guestItems);
 		}
 	}
 
 	onMount(() => {
 		fetchCart();
+
+		// Subscribe to cart changes for real-time updates
+		pb.collection('cart').subscribe('*', async (e) => {
+			if ($user?.id) {
+				await fetchCart();
+			}
+		});
+
+		// Listen for localStorage changes (from other components)
+		window.addEventListener('storage', fetchCart);
+		// Custom event for same-window updates
+		window.addEventListener('cartUpdated', fetchCart);
+
+		return () => {
+			pb.collection('cart').unsubscribe('*');
+			window.removeEventListener('storage', fetchCart);
+			window.removeEventListener('cartUpdated', fetchCart);
+		};
+	});
+
+	// Also update cart when user changes
+	$effect(() => {
+		if ($user) {
+			fetchCart();
+		}
 	});
 
 	const cartCount = $derived($cart.length);
 </script>
 
 <nav
-	class="navbar sticky top-0 z-[60] flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 text-gray-700 shadow-sm transition-all duration-300 ease-in-out md:px-6"
+	class="navbar sticky top-0 z-[100] flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 text-gray-700 shadow-sm transition-all duration-300 ease-in-out md:px-6"
 	class:shadow-md={!showHeader}
 >
 	<!-- Logo Section -->
@@ -270,30 +312,31 @@
 				Install App
 			</span>
 		</a>
-		{#if $user}
-			<a href="/checkout" class="nav-link relative">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="18"
-					height="18"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
+		<a href="/checkout" class="nav-link relative flex items-center justify-center">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="20"
+				height="20"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+			>
+				<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+				<path d="M3 6h18" />
+				<path d="M16 10a4 4 0 0 1-8 0" />
+			</svg>
+			{#if cartCount > 0}
+				<span
+					class="absolute -top-1 -right-1 flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-orange-500 px-1 text-xs font-bold text-white shadow-md"
+					style="font-size: 10px;"
 				>
-					<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-					<path d="M3 6h18" />
-					<path d="M16 10a4 4 0 0 1-8 0" />
-				</svg>
-				{#if cartCount > 0}
-					<span
-						class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-xs text-white"
-					>
-						{cartCount}
-					</span>
-				{/if}
-			</a>
-			<a href="/favorites" class="nav-link">
+					{cartCount > 9 ? '9+' : cartCount}
+				</span>
+			{/if}
+		</a>
+		{#if $user}
+			<a href="/favorites" class="nav-link relative">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="18"
@@ -308,7 +351,7 @@
 					/>
 				</svg>
 			</a>
-			<a href="/pending" class="nav-link">
+			<a href="/pending" class="nav-link relative">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="18"
@@ -323,6 +366,50 @@
 					/>
 				</svg>
 			</a>
+			{#if $isSuper || $isAdminForRestaurant}
+				<div class="dropdown dropdown-end">
+					<button tabindex="0" class="nav-link flex items-center gap-1">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="16"
+							height="16"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path d="M3 3v18h18" />
+							<path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+						</svg>
+						Admin
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="12"
+							height="12"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path d="m6 9 6 6 6-6" />
+						</svg>
+					</button>
+					<ul
+						tabindex="0"
+						class="dropdown-content menu rounded-box mt-2 w-48 border border-slate-100 bg-white p-2 shadow-lg"
+					>
+						<li><a href="/admin" class="text-slate-700">Dashboard</a></li>
+						<li><a href="/admin/admin-order" class="text-slate-700">Orders</a></li>
+						<li><a href="/admin/admin-menu" class="text-slate-700">Menu</a></li>
+						<li><a href="/admin/admin-history" class="text-slate-700">History</a></li>
+						<li><a href="/admin/admin-reservation" class="text-slate-700">Reservations</a></li>
+						<li><a href="/admin/analytics" class="text-slate-700">Analytics</a></li>
+						<li><a href="/admin/billing" class="text-slate-700">Billing</a></li>
+						<li><a href="/admin/user-analysis" class="text-slate-700">Customers</a></li>
+						<li><a href="/admin/today-menu" class="text-slate-700">Today's Menu</a></li>
+					</ul>
+				</div>
+			{/if}
 			<div class="dropdown dropdown-end">
 				<button tabindex="0" class="btn btn-ghost btn-circle avatar">
 					<div
@@ -378,9 +465,10 @@
 				</svg>
 				{#if cartCount > 0}
 					<span
-						class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-xs text-white"
+						class="absolute -top-1 -right-1 flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-orange-500 px-1 text-xs font-bold text-white shadow-md"
+						style="font-size: 10px;"
 					>
-						{cartCount}
+						{cartCount > 9 ? '9+' : cartCount}
 					</span>
 				{/if}
 			</a>
@@ -405,7 +493,7 @@
 
 <!-- Mobile Drawer -->
 {#if isMenuOpen}
-	<div class="fixed inset-0 z-[70] md:hidden">
+	<div class="fixed inset-0 z-[110] md:hidden">
 		<!-- Backdrop -->
 		<button
 			class="absolute inset-0 bg-slate-900/50"
