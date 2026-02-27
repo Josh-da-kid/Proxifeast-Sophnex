@@ -188,7 +188,7 @@
 </script>
 
 <nav
-	class="navbar sticky top-0 z-[100] flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 text-gray-700 shadow-sm transition-all duration-300 ease-in-out md:px-6"
+	class="navbar sticky inset-0 top-0 z-[1000px]  mx-auto flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 text-gray-700 shadow-sm transition-all duration-300 ease-in-out md:px-6"
 	class:shadow-md={!showHeader}
 >
 	<!-- Logo Section -->
