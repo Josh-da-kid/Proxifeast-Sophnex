@@ -83,6 +83,55 @@
 		return featuredDishes;
 	});
 
+	// Helper function to check if restaurant is open
+	function isRestaurantOpen(restaurant: any): boolean {
+		if (!restaurant.openingTime || !restaurant.closingTime) return true; // Always open if no times set
+
+		const now = new Date();
+		const currentTime = now.getHours() * 60 + now.getMinutes();
+
+		const [openHour, openMin] = restaurant.openingTime.split(':').map(Number);
+		const [closeHour, closeMin] = restaurant.closingTime.split(':').map(Number);
+
+		const openTime = openHour * 60 + openMin;
+		const closeTime = closeHour * 60 + closeMin;
+
+		return currentTime >= openTime && currentTime <= closeTime;
+	}
+
+	// Helper function to check if restaurant is closing soon (within 30 minutes)
+	function isRestaurantClosingSoon(restaurant: any): {
+		closingSoon: boolean;
+		minutesUntilClose: number;
+	} {
+		if (!restaurant.closingTime) return { closingSoon: false, minutesUntilClose: 0 };
+
+		const now = new Date();
+		const currentTime = now.getHours() * 60 + now.getMinutes();
+
+		const [closeHour, closeMin] = restaurant.closingTime.split(':').map(Number);
+		const closeTime = closeHour * 60 + closeMin;
+
+		const minutesUntilClose = closeTime - currentTime;
+
+		return {
+			closingSoon: minutesUntilClose > 0 && minutesUntilClose <= 30,
+			minutesUntilClose
+		};
+	}
+
+	// Helper function to check if restaurant is new (within 7 days)
+	function isRestaurantNew(restaurant: any): boolean {
+		if (!restaurant.created) return false;
+
+		const created = new Date(restaurant.created);
+		const now = new Date();
+		const diffTime = now.getTime() - created.getTime();
+		const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+		return diffDays <= 7;
+	}
+
 	// State management
 	let viewMode = $state('list'); // 'list' or 'menu'
 	let searchInput = $state('');
@@ -97,6 +146,21 @@
 	let isAddingToCart = $state(new Map<string, boolean>());
 	let isClearingCart = $state(false);
 	let lastAddedDishId = $state('');
+
+	// Closed restaurant warning modal
+	let closedRestaurantWarning = $state(false);
+	let closedRestaurantInfo = $state<{
+		name: string;
+		openingTime: string;
+		closingTime: string;
+		isClosed: boolean;
+		closingSoon: boolean;
+		minutesUntilClose: number;
+		dish: any;
+		quantity: number;
+		restaurantId: string;
+		restaurantName: string;
+	} | null>(null);
 
 	// Dish favorites state (for super restaurants)
 	let dishFavorites = $state<string[]>([]);
@@ -458,6 +522,36 @@
 	async function handleAddToCart(dish: any) {
 		if (dish.availability !== 'Available') return;
 
+		// Check if restaurant is open or closing soon
+		const restaurant = allRestaurantsIncludingSuper.find((r: any) => r.id === dish.restaurantId);
+		if (restaurant) {
+			const isOpen = isRestaurantOpen(restaurant);
+			const { closingSoon, minutesUntilClose } = isRestaurantClosingSoon(restaurant);
+
+			// Show warning modal if closed OR closing soon
+			if (!isOpen || closingSoon) {
+				closedRestaurantInfo = {
+					name: restaurant.name,
+					openingTime: restaurant.openingTime || 'Unknown',
+					closingTime: restaurant.closingTime || 'Unknown',
+					isClosed: !isOpen,
+					closingSoon: closingSoon,
+					minutesUntilClose: minutesUntilClose,
+					dish: dish,
+					quantity: Number(dishQuantities[dish.id] || 1),
+					restaurantId: dish.restaurantId,
+					restaurantName: getRestaurantNameForDish(dish)
+				};
+				closedRestaurantWarning = true;
+				return;
+			}
+		}
+
+		// Proceed with normal add to cart
+		await addToCartWithWarning(dish, Number(dishQuantities[dish.id] || 1));
+	}
+
+	async function addToCartWithWarning(dish: any, quantity: number) {
 		// Check location compatibility for super restaurants with multi-restaurant orders
 		if (isSuper && $cart.length > 0) {
 			const newRestaurant = allRestaurantsIncludingSuper.find(
@@ -502,7 +596,6 @@
 			}
 		}
 
-		const quantity = Number(dishQuantities[dish.id] || 1);
 		const restaurantName = getRestaurantNameForDish(dish);
 
 		// Prevent rapid duplicate clicks for the SAME dish
@@ -849,6 +942,85 @@
 			<div>
 				<p class="text-sm font-semibold">Location Mismatch</p>
 				<p class="text-xs text-gray-400">{locationMismatchMessage}</p>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Closed Restaurant Warning Modal -->
+{#if closedRestaurantWarning && closedRestaurantInfo}
+	<div class="toast toast-top toast-center z-50" in:fly={{ y: -50, duration: 300 }}>
+		<div
+			class="alert max-w-md gap-3 rounded-2xl border-0 bg-gray-900 px-5 py-4 text-white shadow-2xl"
+		>
+			<div
+				class="rounded-full {closedRestaurantInfo.isClosed
+					? 'bg-red-500/20'
+					: 'bg-amber-500/20'} p-1.5"
+			>
+				{#if closedRestaurantInfo.isClosed}
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="h-5 w-5 text-red-400"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<circle cx="12" cy="12" r="10" />
+						<line x1="15" y1="9" x2="9" y2="15" />
+						<line x1="9" y1="9" x2="15" y2="15" />
+					</svg>
+				{:else}
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="h-5 w-5 text-amber-400"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<circle cx="12" cy="12" r="10" />
+						<polyline points="12 6 12 12 16 14" />
+					</svg>
+				{/if}
+			</div>
+			<div class="flex-1">
+				{#if closedRestaurantInfo.isClosed}
+					<p class="text-sm font-semibold">{closedRestaurantInfo.name} is currently closed</p>
+					<p class="text-xs text-gray-400">Opens at {closedRestaurantInfo.openingTime}</p>
+					<p class="mt-1 text-xs text-amber-400">
+						You can still add to cart but won't be able to checkout until they open.
+					</p>
+				{:else}
+					<p class="text-sm font-semibold">{closedRestaurantInfo.name} is closing soon!</p>
+					<p class="text-xs text-gray-400">Closes at {closedRestaurantInfo.closingTime}</p>
+					<p class="mt-1 text-xs text-amber-400">
+						Only {closedRestaurantInfo.minutesUntilClose} minutes left! Order now before they close.
+					</p>
+				{/if}
+			</div>
+			<div class="flex flex-col gap-2">
+				<button
+					class="btn btn-sm border-0 {closedRestaurantInfo.isClosed
+						? 'bg-red-500 hover:bg-red-600'
+						: 'bg-amber-500 hover:bg-amber-600'} text-white"
+					onclick={() => {
+						closedRestaurantWarning = false;
+						addToCartWithWarning(closedRestaurantInfo.dish, closedRestaurantInfo.quantity);
+					}}
+				>
+					Add Anyway
+				</button>
+				<button
+					class="btn btn-sm btn-ghost text-gray-400"
+					onclick={() => {
+						closedRestaurantWarning = false;
+						closedRestaurantInfo = null;
+					}}
+				>
+					Cancel
+				</button>
 			</div>
 		</div>
 	</div>
@@ -1616,8 +1788,12 @@
 						style="scrollbar-width: none; -ms-overflow-style: none;"
 					>
 						{#each filteredRestaurants as r}
+							{@const isOpen = isRestaurantOpen(r)}
+							{@const isNew = isRestaurantNew(r)}
 							<article
-								class="group relative w-80 shrink-0 snap-start overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+								class="group relative flex w-80 shrink-0 snap-start flex-col overflow-hidden rounded-xl border {isOpen
+									? 'border-slate-200'
+									: 'border-red-200'} bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
 							>
 								<!-- Background Pattern -->
 								<div class="absolute inset-0 opacity-5">
@@ -1634,7 +1810,29 @@
 									</svg>
 								</div>
 
-								<div class="relative p-6">
+								<!-- New Tag -->
+								{#if isNew}
+									<div class="absolute top-4 right-0 z-10">
+										<span
+											class="rounded-l-full bg-green-500 px-3 py-1 text-xs font-bold text-white shadow-md"
+										>
+											NEW
+										</span>
+									</div>
+								{/if}
+
+								<!-- Open/Closed Tag -->
+								<div class="absolute top-4 left-0 z-10">
+									<span
+										class="rounded-r-full {isOpen
+											? 'bg-green-500'
+											: 'bg-red-500'} px-3 py-1 text-xs font-bold text-white shadow-md"
+									>
+										{isOpen ? 'OPEN' : 'CLOSED'}
+									</span>
+								</div>
+
+								<div class="relative flex flex-col p-6">
 									<!-- Header -->
 									<div class="mb-5 flex items-start gap-4">
 										<div class="shrink-0">
@@ -1679,24 +1877,66 @@
 										</div>
 									{/if}
 
+									<!-- Opening Hours -->
+									{#if r.openingTime || r.closingTime}
+										<div class="mb-4 flex items-center gap-2 text-sm">
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												class="h-4 w-4 {isOpen ? 'text-green-500' : 'text-red-500'}"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+											>
+												<circle cx="12" cy="12" r="10" />
+												<polyline points="12 6 12 12 16 14" />
+											</svg>
+											<span class="{isOpen ? 'text-green-600' : 'text-red-600'} font-medium">
+												{#if isOpen}
+													Open • {r.openingTime} - {r.closingTime}
+												{:else}
+													Closed • Opens at {r.openingTime}
+												{/if}
+											</span>
+										</div>
+									{/if}
+
 									<!-- Action -->
 									<button
-										onclick={() => selectRestaurant(r)}
-										class="group/btn mt-auto inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-slate-800 to-slate-900 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-500/30 transition-all hover:from-slate-900 hover:to-slate-800 hover:shadow-xl"
+										onclick={() => isOpen && selectRestaurant(r)}
+										disabled={!isOpen}
+										class="group/btn mt-auto inline-flex w-full items-center justify-center gap-2 rounded-xl {isOpen
+											? 'bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-lg shadow-slate-500/30 transition-all hover:from-slate-900 hover:to-slate-800 hover:shadow-xl'
+											: 'cursor-not-allowed bg-slate-200 text-slate-400'} px-5 py-3.5 text-sm font-semibold"
 									>
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											class="h-5 w-5 transition-transform group-hover/btn:translate-x-1"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2"
-										>
-											<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-											<polyline points="10 17 15 12 10 7" />
-											<line x1="15" x2="3" y1="12" y2="12" />
-										</svg>
-										View Menu
+										{#if isOpen}
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												class="h-5 w-5 transition-transform group-hover/btn:translate-x-1"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+											>
+												<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+												<polyline points="10 17 15 12 10 7" />
+												<line x1="15" x2="3" y1="12" y2="12" />
+											</svg>
+											View Menu
+										{:else}
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												class="h-5 w-5"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+											>
+												<path d="M18 6 6 18" />
+												<path d="m6 6 12 12" />
+											</svg>
+											Closed
+										{/if}
 									</button>
 								</div>
 							</article>

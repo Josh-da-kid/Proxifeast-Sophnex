@@ -11,6 +11,32 @@
 	const totalFavorites = $derived(
 		data.restaurants.length + (isSuper ? data.dishFavorites?.length || 0 : 0)
 	);
+
+	function isRestaurantOpen(restaurant: any): boolean {
+		if (!restaurant.openingTime || !restaurant.closingTime) return true;
+
+		const now = new Date();
+		const currentTime = now.getHours() * 60 + now.getMinutes();
+
+		const [openHour, openMin] = restaurant.openingTime.split(':').map(Number);
+		const [closeHour, closeMin] = restaurant.closingTime.split(':').map(Number);
+
+		const openTime = openHour * 60 + openMin;
+		const closeTime = closeHour * 60 + closeMin;
+
+		return currentTime >= openTime && currentTime <= closeTime;
+	}
+
+	function isRestaurantNew(restaurant: any): boolean {
+		if (!restaurant.created) return false;
+
+		const created = new Date(restaurant.created);
+		const now = new Date();
+		const diffTime = now.getTime() - created.getTime();
+		const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+		return diffDays <= 7;
+	}
 </script>
 
 <svelte:head>
@@ -84,10 +110,34 @@
 
 				<Carousel>
 					{#each data.restaurants as r, i}
+						{@const isOpen = isRestaurantOpen(r)}
+						{@const isNew = isRestaurantNew(r)}
 						<article
 							class="relative flex w-80 shrink-0 snap-start flex-col rounded-xl bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
 							in:fly={{ y: 20, duration: 400, delay: i * 50 }}
 						>
+							<!-- New Tag -->
+							{#if isNew}
+								<div class="absolute top-4 right-0 z-10">
+									<span
+										class="rounded-l-full bg-green-500 px-3 py-1 text-xs font-bold text-white shadow-md"
+									>
+										NEW
+									</span>
+								</div>
+							{/if}
+
+							<!-- Open/Closed Tag -->
+							<div class="absolute top-4 left-0 z-10">
+								<span
+									class="rounded-r-full {isOpen
+										? 'bg-green-500'
+										: 'bg-red-500'} px-3 py-1 text-xs font-bold text-white shadow-md"
+								>
+									{isOpen ? 'OPEN' : 'CLOSED'}
+								</span>
+							</div>
+
 							<!-- Header -->
 							<div class="mb-4 flex items-start gap-3">
 								<div class="shrink-0">
@@ -135,8 +185,10 @@
 							<!-- CTA -->
 							<div class="mt-auto pt-2">
 								<a
-									href="/?restaurant={r.id}"
-									class="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-slate-800"
+									href={isOpen ? `/?restaurant=${r.id}` : '#'}
+									class="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all {isOpen
+										? 'bg-slate-900 text-white hover:bg-slate-800'
+										: 'cursor-not-allowed bg-slate-200 text-slate-400'}"
 								>
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
@@ -150,7 +202,7 @@
 										<path d="M7 2v20" />
 										<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
 									</svg>
-									View Menu
+									{isOpen ? 'View Menu' : 'Closed'}
 								</a>
 							</div>
 						</article>

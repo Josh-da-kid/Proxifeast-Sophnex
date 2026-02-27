@@ -35,7 +35,7 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		if (isSuper) {
 			// Use getList with pagination for super restaurants
 			const result = await locals.pb.collection('restaurants').getList(1, 50, {
-				sort: 'name',
+				sort: '-created',
 				filter: 'name != "ProxifeastLocal"'
 			});
 			allRestaurants = result.items;

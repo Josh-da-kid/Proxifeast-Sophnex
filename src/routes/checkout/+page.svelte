@@ -74,9 +74,10 @@
 	});
 
 	$effect(() => {
-		// Track cart and delivery option changes
+		// Track cart, delivery option, and restaurants changes
 		const _ = $cart;
 		const _delivery = deliveryOption;
+		const _restaurants = $allRestaurants;
 		cartLocationInfo = getCartLocationInfo();
 
 		// Show pickup warning if multiple restaurants and pickup selected
@@ -107,6 +108,21 @@
 		);
 	}
 
+	function isRestaurantOpen(restaurant: any): boolean {
+		if (!restaurant.openingTime || !restaurant.closingTime) return true;
+
+		const now = new Date();
+		const currentTime = now.getHours() * 60 + now.getMinutes();
+
+		const [openHour, openMin] = restaurant.openingTime.split(':').map(Number);
+		const [closeHour, closeMin] = restaurant.closingTime.split(':').map(Number);
+
+		const openTime = openHour * 60 + openMin;
+		const closeTime = closeHour * 60 + closeMin;
+
+		return currentTime >= openTime && currentTime <= closeTime;
+	}
+
 	function getCartLocationInfo() {
 		const restaurantIds = [
 			...new Set($cart.map((item: any) => item.expand?.dish?.restaurantId || item.restaurantId))
@@ -114,6 +130,16 @@
 		const restaurants = restaurantIds
 			.map((id) => $allRestaurants.find((r: any) => r.id === id))
 			.filter(Boolean);
+
+		// Check for closed restaurants
+		const closedRestaurants = restaurants.filter((r: any) => !isRestaurantOpen(r));
+		if (closedRestaurants.length > 0) {
+			return {
+				valid: false,
+				message: `The following restaurants are currently closed: ${closedRestaurants.map((r: any) => r.name).join(', ')}. Please remove these items from your cart to proceed.`,
+				mismatchedRestaurants: closedRestaurants as any[]
+			};
+		}
 
 		if (restaurants.length < 2)
 			return { valid: true, message: '', mismatchedRestaurants: [] as any[] };

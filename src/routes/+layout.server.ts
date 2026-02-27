@@ -50,7 +50,7 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, request }) 
 
 		if (isSuper) {
 			allRestaurants = await pb.collection('restaurants').getFullList({
-				fields: 'id,name,isSuper,state,localGovernment,restaurantAddress'
+				fields: 'id,name,isSuper,state,localGovernment,restaurantAddress,openingTime,closingTime'
 			});
 			filteredRestaurants = allRestaurants.filter((r: any) => r.isSuper !== true);
 		}

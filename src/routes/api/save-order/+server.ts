@@ -5,6 +5,21 @@ import nodemailer from 'nodemailer';
 
 const pb = new PocketBase('https://playgzero.pb.itcass.net/');
 
+function isRestaurantOpen(restaurant: any): boolean {
+	if (!restaurant.openingTime || !restaurant.closingTime) return true;
+
+	const now = new Date();
+	const currentTime = now.getHours() * 60 + now.getMinutes();
+
+	const [openHour, openMin] = restaurant.openingTime.split(':').map(Number);
+	const [closeHour, closeMin] = restaurant.closingTime.split(':').map(Number);
+
+	const openTime = openHour * 60 + openMin;
+	const closeTime = closeHour * 60 + closeMin;
+
+	return currentTime >= openTime && currentTime <= closeTime;
+}
+
 export const POST: RequestHandler = async ({ request }) => {
 	const data = await request.json();
 
@@ -50,6 +65,11 @@ export const POST: RequestHandler = async ({ request }) => {
 			} catch (e) {
 				console.log('Restaurant not found:', restaurantId);
 				continue;
+			}
+
+			// Check if restaurant is open
+			if (!isRestaurantOpen(restaurant)) {
+				throw error(400, `${restaurant.name} is currently closed and not accepting orders`);
 			}
 
 			const dishesForRestaurant = dishRestaurantMap.get(restaurantId)!;

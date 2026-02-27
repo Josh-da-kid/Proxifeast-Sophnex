@@ -95,6 +95,32 @@
 	function selectRestaurant(r: any) {
 		window.location.href = `/?restaurant=${r.id}`;
 	}
+
+	function isRestaurantOpen(restaurant: any): boolean {
+		if (!restaurant.openingTime || !restaurant.closingTime) return true;
+
+		const now = new Date();
+		const currentTime = now.getHours() * 60 + now.getMinutes();
+
+		const [openHour, openMin] = restaurant.openingTime.split(':').map(Number);
+		const [closeHour, closeMin] = restaurant.closingTime.split(':').map(Number);
+
+		const openTime = openHour * 60 + openMin;
+		const closeTime = closeHour * 60 + closeMin;
+
+		return currentTime >= openTime && currentTime <= closeTime;
+	}
+
+	function isRestaurantNew(restaurant: any): boolean {
+		if (!restaurant.created) return false;
+
+		const created = new Date(restaurant.created);
+		const now = new Date();
+		const diffTime = now.getTime() - created.getTime();
+		const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+		return diffDays <= 7;
+	}
 </script>
 
 <svelte:head>
@@ -236,10 +262,34 @@
 			<!-- Restaurant Carousel -->
 			<Carousel>
 				{#each filteredRestaurants as r, i}
+					{@const isOpen = isRestaurantOpen(r)}
+					{@const isNew = isRestaurantNew(r)}
 					<article
 						class="relative flex w-80 shrink-0 snap-start flex-col rounded-xl bg-white p-6 shadow-md transition-all hover:-translate-y-1 hover:shadow-lg"
 						in:fly={{ y: 20, duration: 300, delay: i * 50 }}
 					>
+						<!-- New Tag -->
+						{#if isNew}
+							<div class="absolute top-4 right-16 z-10">
+								<span
+									class="rounded-l-full bg-green-500 px-3 py-1 text-xs font-bold text-white shadow-md"
+								>
+									NEW
+								</span>
+							</div>
+						{/if}
+
+						<!-- Open/Closed Tag -->
+						<div class="absolute top-4 left-0 z-10">
+							<span
+								class="rounded-r-full {isOpen
+									? 'bg-green-500'
+									: 'bg-red-500'} px-3 py-1 text-xs font-bold text-white shadow-md"
+							>
+								{isOpen ? 'OPEN' : 'CLOSED'}
+							</span>
+						</div>
+
 						<!-- Favorite Button -->
 						<button
 							onclick={(e) => toggleFavorite(r.id, e)}
@@ -346,8 +396,11 @@
 						<!-- Spacer -->
 						<div class="mt-auto pt-2">
 							<button
-								onclick={() => selectRestaurant(r)}
-								class="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-800 px-4 py-3 text-sm font-medium text-slate-800 transition-all hover:bg-slate-800 hover:text-white"
+								onclick={() => isOpen && selectRestaurant(r)}
+								disabled={!isOpen}
+								class="flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all {isOpen
+									? 'border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white'
+									: 'cursor-not-allowed border-slate-200 text-slate-400'}"
 							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
@@ -361,7 +414,7 @@
 									<polyline points="10 17 15 12 10 7" />
 									<line x1="15" x2="3" y1="12" y2="12" />
 								</svg>
-								View Menu
+								{isOpen ? 'View Menu' : 'Closed'}
 							</button>
 						</div>
 					</article>
