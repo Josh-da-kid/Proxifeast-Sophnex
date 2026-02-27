@@ -165,8 +165,8 @@
 	</div>
 
 	<!-- Desktop Navigation -->
-	<div class="hidden items-center gap-1 lg:flex">
-		<a href="/install-guide" class="nav-link-ordr">
+	<div class="hidden items-center gap-1 md:flex lg:gap-2">
+		<a href="/restaurants" class="nav-link-ordr">
 			<span class="flex items-center gap-2">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -177,9 +177,64 @@
 					stroke="currentColor"
 					stroke-width="2"
 				>
-					<path d="M12 2v20M2 12h20" />
+					<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+					<path d="M7 2v20" />
+					<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
 				</svg>
-				Install App
+				Restaurants
+			</span>
+		</a>
+		<a href="/about" class="nav-link">
+			<span class="flex items-center gap-2">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+				>
+					<circle cx="12" cy="12" r="10" />
+					<path d="M12 16v-4" />
+					<path d="M12 8h.01" />
+				</svg>
+				About
+			</span>
+		</a>
+		<a href="/contact" class="nav-link">
+			<span class="flex items-center gap-2">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+				>
+					<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+				</svg>
+				Contact
+			</span>
+		</a>
+		<a href="/reservation" class="nav-link">
+			<span class="flex items-center gap-2">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+				>
+					<rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+					<line x1="16" y1="2" x2="16" y2="6" />
+					<line x1="8" y1="2" x2="8" y2="6" />
+					<line x1="3" y1="10" x2="21" y2="10" />
+				</svg>
+				Reservations
 			</span>
 		</a>
 		<a href="/subscriptions" class="nav-link">
@@ -197,6 +252,22 @@
 					<line x1="2" y1="10" x2="22" y2="10" />
 				</svg>
 				Pricing
+			</span>
+		</a>
+		<a href="/install-guide" class="nav-link-ordr">
+			<span class="flex items-center gap-2">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+				>
+					<path d="M12 2v20M2 12h20" />
+				</svg>
+				Install App
 			</span>
 		</a>
 		{#if $user}
@@ -289,7 +360,7 @@
 	</div>
 
 	<!-- Mobile Menu Button -->
-	<div class="flex items-center gap-2 lg:hidden">
+	<div class="flex items-center gap-2 md:hidden">
 		{#if $user}
 			<a href="/checkout" class="btn btn-ghost btn-circle relative">
 				<svg
@@ -334,7 +405,7 @@
 
 <!-- Mobile Drawer -->
 {#if isMenuOpen}
-	<div class="fixed inset-0 z-[70] lg:hidden">
+	<div class="fixed inset-0 z-[70] md:hidden">
 		<!-- Backdrop -->
 		<button
 			class="absolute inset-0 bg-slate-900/50"
@@ -400,6 +471,50 @@
 								<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
 							</svg>
 							Home
+						</a>
+					</li>
+					<li>
+						<a
+							href="/restaurants"
+							class="font-medium text-slate-700"
+							onclick={() => (isMenuOpen = false)}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="20"
+								height="20"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+								<path d="M7 2v20" />
+								<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+							</svg>
+							Restaurants
+						</a>
+					</li>
+					<li>
+						<a
+							href="/checkout"
+							class="font-medium text-slate-700"
+							onclick={() => (isMenuOpen = false)}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="20"
+								height="20"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+								<path d="M3 6h18" />
+								<path d="M16 10a4 4 0 0 1-8 0" />
+							</svg>
+							Checkout
 						</a>
 					</li>
 					<li>
@@ -635,6 +750,8 @@
 									stroke-width="2"
 								>
 									<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+									<path d="M3 6h18" />
+									<path d="M16 10a4 4 0 0 1-8 0" />
 								</svg>
 								Orders
 							</a>
@@ -655,8 +772,141 @@
 									stroke-width="2"
 								>
 									<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+									<path d="M7 2v20" />
+									<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
 								</svg>
 								Menu
+							</a>
+						</li>
+						<li>
+							<a
+								href="/admin/admin-history"
+								class="font-medium text-slate-700"
+								onclick={() => (isMenuOpen = false)}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path d="M3 3v18h18" />
+									<path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+								</svg>
+								History
+							</a>
+						</li>
+						<li>
+							<a
+								href="/admin/admin-reservation"
+								class="font-medium text-slate-700"
+								onclick={() => (isMenuOpen = false)}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+									<line x1="16" y1="2" x2="16" y2="6" />
+									<line x1="8" y1="2" x2="8" y2="6" />
+									<line x1="3" y1="10" x2="21" y2="10" />
+								</svg>
+								Reservations
+							</a>
+						</li>
+						<li>
+							<a
+								href="/admin/analytics"
+								class="font-medium text-slate-700"
+								onclick={() => (isMenuOpen = false)}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<line x1="18" y1="20" x2="18" y2="10" />
+									<line x1="12" y1="20" x2="12" y2="4" />
+									<line x1="6" y1="20" x2="6" y2="14" />
+								</svg>
+								Analytics
+							</a>
+						</li>
+						<li>
+							<a
+								href="/admin/billing"
+								class="font-medium text-slate-700"
+								onclick={() => (isMenuOpen = false)}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+									<line x1="1" y1="10" x2="23" y2="10" />
+								</svg>
+								Billing
+							</a>
+						</li>
+						<li>
+							<a
+								href="/admin/user-analysis"
+								class="font-medium text-slate-700"
+								onclick={() => (isMenuOpen = false)}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+									<circle cx="9" cy="7" r="4" />
+									<path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+									<path d="M16 3.13a4 4 0 0 1 0 7.75" />
+								</svg>
+								Customers
+							</a>
+						</li>
+						<li>
+							<a
+								href="/admin/today-menu"
+								class="font-medium text-slate-700"
+								onclick={() => (isMenuOpen = false)}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path d="M12 2v20M2 12h20" />
+									<circle cx="12" cy="12" r="10" />
+								</svg>
+								Today's Menu
 							</a>
 						</li>
 					{/if}
