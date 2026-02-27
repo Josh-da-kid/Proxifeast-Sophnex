@@ -10,6 +10,7 @@
 	import { addToCartPB } from '$lib/addToCart';
 	import Footer from '$lib/Footer.svelte';
 	import Carousel from '$lib/Carousel.svelte';
+	import HeroCarousel from '$lib/HeroCarousel.svelte';
 
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 	const user = derived(page, ($page) => $page.data.user);
@@ -1236,110 +1237,47 @@
 		</div>
 	{/if}
 
-	<!-- Hero Section -->
-	<section
-		id="home"
-		class="relative flex min-h-[85vh] flex-col items-center justify-center overflow-hidden px-6 text-center"
-	>
-		<!-- Background - Clean white -->
-		<div class="absolute inset-0 bg-white"></div>
-
-		<div class="relative z-10 mx-auto max-w-4xl">
-			{#if $user?.name}
-				<div
-					class="mb-4 inline-block rounded-full bg-amber-100 px-4 py-1.5 text-sm font-medium text-amber-800"
-				>
-					Welcome back, {$user.name}!
-				</div>
-			{/if}
-
-			<h1
-				class="font-playfair text-primary mb-6 text-5xl leading-tight font-bold sm:text-6xl lg:text-7xl"
-				in:fly={{ y: -100, duration: 800 }}
-			>
-				{#if viewMode === 'menu' && selectedRestaurant}
-					{selectedRestaurant.motto}
-				{:else}
-					Delicious Food<br /><span class="text-amber-600">Delivered Fast</span>
-				{/if}
-			</h1>
-			<p class="text-base-content/70 mb-10 text-xl" in:fade={{ delay: 600, duration: 900 }}>
-				{#if viewMode === 'menu' && selectedRestaurant}
-					{selectedRestaurant.description}
-				{:else}
-					Order from your favorite restaurants and enjoy restaurant-quality meals delivered to your
-					door
-				{/if}
-			</p>
-
-			{#if viewMode !== 'menu' || !selectedRestaurant}
-				<div
-					class="flex flex-col items-center justify-center gap-4 sm:flex-row"
-					in:fade={{ delay: 800, duration: 600 }}
-				>
-					<a
-						href="#menu"
-						class="btn btn-primary btn-lg rounded-full px-8 shadow-lg shadow-amber-500/25"
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							width="20"
-							height="20"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							class="mr-2"><path d="M3 3h18v18H3zM12 8v8M8 12h8" /></svg
-						>
-						Order Now
-					</a>
-					<a href="#specials" class="btn btn-outline btn-secondary btn-lg rounded-full px-8">
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							width="20"
-							height="20"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							class="mr-2"
-							><polygon
-								points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-							/></svg
-						>
-						View Specials
-					</a>
-				</div>
-			{/if}
-		</div>
-
-		<!-- Hero Image -->
-		<div class="mt-12 w-full max-w-5xl" in:scale={{ duration: 1000, easing: cubicOut, delay: 300 }}>
-			<div class="relative overflow-hidden rounded-3xl shadow-2xl shadow-amber-500/15">
-				<img
-					src={viewMode === 'menu' && selectedRestaurant
-						? selectedRestaurant.logoUrl
-						: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80'}
-					alt={viewMode === 'menu' && selectedRestaurant
-						? selectedRestaurant.name
-						: 'Delicious Food'}
-					class="h-[280px] w-full object-cover sm:h-[380px] lg:h-[420px]"
-				/>
-				<div
-					class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"
-				></div>
-			</div>
-		</div>
-
-		<!-- Scroll indicator -->
-		<div class="absolute bottom-6 left-1/2 -translate-x-1/2">
-			<div
-				class="flex h-10 w-6 items-start justify-center rounded-full border-2 border-amber-300 p-1"
-			>
-				<div class="h-2 w-1.5 animate-pulse rounded-full bg-amber-400"></div>
-			</div>
-		</div>
-	</section>
+	<!-- Hero Carousel -->
+	<HeroCarousel
+		slides={[
+			{
+				id: 1,
+				image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1920&q=80',
+				imageMobile: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80',
+				title: 'Delicious Food Delivered Fast',
+				description:
+					'Order from your favorite restaurants and enjoy restaurant-quality meals delivered to your doorstep.',
+				primaryBtn: { text: 'Order Now', href: '#menu' },
+				secondaryBtn: { text: 'Browse Restaurants', href: '#restaurants' }
+			},
+			{
+				id: 2,
+				image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=80',
+				imageMobile: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80',
+				title: 'Discover Local Favorites',
+				description:
+					'Explore the best restaurants in your area and discover new culinary experiences.',
+				primaryBtn: { text: 'Explore Now', href: '#restaurants' },
+				secondaryBtn: { text: 'Learn More', href: '#how-it-works' }
+			},
+			{
+				id: 3,
+				image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1920&q=80',
+				imageMobile: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80',
+				title: 'Start Your Restaurant Business',
+				description:
+					'Join thousands of restaurants using Proxifeast to grow their delivery business.',
+				primaryBtn: { text: 'Get Started Free', href: '/signup' },
+				secondaryBtn: { text: 'Watch Demo', href: '#' }
+			}
+		]}
+		autoplay={true}
+		autoplayDelay={6000}
+		speed={800}
+		navigation={true}
+		pagination={true}
+		fadeEffect={true}
+	/>
 
 	<!-- Today's Special -->
 	{#if isLoading}
