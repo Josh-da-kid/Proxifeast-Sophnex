@@ -98,11 +98,19 @@
 	async function enableNotifications() {
 		isEnablingNotifications = true;
 		console.log('[Push] Starting notification enable...');
+		console.log('[Push] Device info:', navigator.userAgent);
 
 		try {
 			if (!('Notification' in window)) {
-				console.error('[Push] Notifications not supported');
+				console.error('[Push] Notifications not supported in this browser');
 				alert('This browser does not support notifications');
+				return;
+			}
+
+			// Check if service workers are supported
+			if (!('serviceWorker' in navigator)) {
+				console.error('[Push] Service workers not supported');
+				alert('This browser does not support service workers. Try using Chrome or Safari.');
 				return;
 			}
 
@@ -111,21 +119,42 @@
 			console.log('[Push] Permission result:', permission);
 
 			if (permission === 'granted') {
-				console.log('[Push] Permission granted, subscribing...');
+				console.log('[Push] Permission granted, getting SW registration...');
 
-				// Check if service worker is ready
-				const registration = await navigator.serviceWorker.ready;
-				console.log('[Push] SW ready:', registration);
+				// Register service worker if not already registered
+				let registration = await navigator.serviceWorker.getRegistration();
+
+				if (!registration) {
+					console.log('[Push] No existing registration, registering new SW...');
+					registration = await navigator.serviceWorker.register('/service-worker.js', {
+						scope: '/'
+					});
+					console.log('[Push] New SW registered:', registration);
+				} else {
+					console.log('[Push] Existing SW found:', registration);
+				}
+
+				// Wait for SW to be ready
+				await navigator.serviceWorker.ready;
+				console.log('[Push] SW ready');
 
 				const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 				console.log('[Push] VAPID key exists:', !!vapidKey);
+
+				// Check existing subscription
+				const existingSub = await registration.pushManager.getSubscription();
+				if (existingSub) {
+					console.log('[Push] Existing subscription found, unsubscribing first...');
+					await existingSub.unsubscribe();
+				}
 
 				const subscription = await registration.pushManager.subscribe({
 					userVisibleOnly: true,
 					applicationServerKey: urlBase64ToUint8Array(vapidKey || '')
 				});
 
-				console.log('[Push] Subscription created:', subscription);
+				console.log('[Push] Subscription created:', subscription.endpoint);
+				console.log('[Push] Subscription keys:', subscription.keys);
 
 				// Save subscription to backend
 				const response = await fetch('/api/subscribe-push', {
@@ -135,7 +164,8 @@
 						userId: data.user.id,
 						endpoint: subscription.endpoint,
 						p256dh: subscription.keys?.p256dh,
-						auth: subscription.keys?.auth
+						auth: subscription.keys?.auth,
+						device: navigator.userAgent
 					})
 				});
 

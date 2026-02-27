@@ -7,6 +7,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		const body = await request.json();
 		const { email, name, reference, status, deliveryType, address, tableNumber } = body;
 
+		console.log('[Email API] Received request for:', email, 'status:', status);
+
 		if (!email || !status) {
 			return new Response('Email and status are required', { status: 400 });
 		}
@@ -19,16 +21,34 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Get restaurant by domain
 		const restaurant = await pb.collection('restaurants').getFirstListItem(`domain="${domain}"`);
 
+		// Check BREVO credentials
+		const brevoLogin = import.meta.env.VITE_BREVO_LOGIN;
+		const brevoKey = import.meta.env.VITE_BREVO_SMTP_KEY;
+
+		console.log('[Email API] BREVO_LOGIN set:', !!brevoLogin, 'BREVO_SMTP_KEY set:', !!brevoKey);
+
+		if (
+			!brevoLogin ||
+			!brevoKey ||
+			brevoLogin === 'your-brevo-email@example.com' ||
+			brevoKey === 'your-brevo-smtp-key'
+		) {
+			console.error('[Email API] BREVO credentials not configured!');
+			return new Response('Email service not configured. Please contact support.', { status: 500 });
+		}
+
 		const transporter = nodemailer.createTransport({
 			host: 'smtp-relay.brevo.com',
 			port: 587,
 			auth: {
-				user: import.meta.env.VITE_BREVO_LOGIN,
-				pass: import.meta.env.VITE_BREVO_SMTP_KEY
+				user: brevoLogin,
+				pass: brevoKey
 			}
 		});
 
+		console.log('[Email API] Verifying SMTP connection...');
 		await transporter.verify();
+		console.log('[Email API] SMTP verified successfully');
 
 		let subject = '';
 		let html = '';
@@ -76,16 +96,19 @@ export const POST: RequestHandler = async ({ request }) => {
 				return new Response('Unsupported status', { status: 400 });
 		}
 
+		console.log('[Email API] Sending email to:', email, 'subject:', subject);
 		await transporter.sendMail({
-			from: `${restaurant.name} <${import.meta.env.VITE_BREVO_LOGIN}>`,
+			from: `${restaurant.name} <${brevoLogin}>`,
 			to: email,
 			subject,
 			html
 		});
+		console.log('[Email API] Email sent successfully');
 
 		return new Response('Email sent');
 	} catch (err: any) {
-		console.error('Error sending email:', err);
+		console.error('[Email API] Error sending email:', err);
+		console.error('[Email API] Error details:', err.message, err.stack);
 		return new Response(`Failed to send email: ${err.message ?? err}`, { status: 500 });
 	}
 };

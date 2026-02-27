@@ -60,6 +60,7 @@ sw.addEventListener('fetch', (event) => {
 // Push notification handler - THIS IS THE KEY PART
 sw.addEventListener('push', (event) => {
 	console.log('[SW] Push event received!', event.data);
+	console.log('[SW] User agent:', navigator.userAgent);
 
 	let data: Record<string, unknown> = {};
 	try {
@@ -73,7 +74,13 @@ sw.addEventListener('push', (event) => {
 	const notificationData = (data.data as Record<string, unknown>) || {};
 	const tag = (data.tag as string) || 'proxifeast-notification';
 
-	const options: NotificationOptions = {
+	// Different options for Android vs iOS
+	const isAndroid = navigator.userAgent.toLowerCase().includes('android');
+	const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+	console.log('[SW] Device - Android:', isAndroid, 'iOS:', isIOS);
+
+	const options: NotificationOptions & { actions?: any; vibrate?: number[] } = {
 		body,
 		icon: '/icons/icon-192x192.png',
 		badge: '/icons/icon-72x72.png',
@@ -81,6 +88,15 @@ sw.addEventListener('push', (event) => {
 		tag,
 		requireInteraction: true
 	};
+
+	// Add Android-specific options
+	if (isAndroid || (!isAndroid && !isIOS)) {
+		options.actions = [
+			{ action: 'view', title: 'View Order' },
+			{ action: 'dismiss', title: 'Dismiss' }
+		];
+		options.vibrate = [200, 100, 200];
+	}
 
 	event.waitUntil(
 		sw.registration

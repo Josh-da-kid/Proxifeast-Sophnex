@@ -63,6 +63,13 @@ export async function POST({ request }: { request: Request }) {
 			});
 		}
 
+		console.log('[Push API] Subscriptions found:', subscriptions.length);
+		for (const sub of subscriptions) {
+			console.log('[Push API] Sub endpoint:', sub.endpoint);
+			console.log('[Push API] Sub p256dh:', sub.p256dh ? 'present' : 'missing');
+			console.log('[Push API] Sub auth:', sub.auth ? 'present' : 'missing');
+		}
+
 		const payload = JSON.stringify({
 			title,
 			body,
@@ -70,7 +77,9 @@ export async function POST({ request }: { request: Request }) {
 			tag: tag || 'order-update',
 			icon: '/icons/icon-192x192.png',
 			badge: '/icons/icon-72x72.png',
-			requireInteraction: true
+			requireInteraction: true,
+			// Add TTL - important for mobile
+			ttl: 86400 // 24 hours
 		});
 
 		const results = [];
