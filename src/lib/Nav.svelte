@@ -188,7 +188,7 @@
 </script>
 
 <nav
-	class="navbar sticky inset-0 top-0 z-[1000px]  mx-auto flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 text-gray-700 shadow-sm transition-all duration-300 ease-in-out md:px-6"
+	class="navbar sticky inset-0 top-0 z-[1000px] mx-auto flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 text-gray-700 shadow-sm transition-all duration-300 ease-in-out md:px-6"
 	class:shadow-md={!showHeader}
 >
 	<!-- Logo Section -->
@@ -404,6 +404,7 @@
 						<li><a href="/admin/admin-history" class="text-slate-700">History</a></li>
 						<li><a href="/admin/admin-reservation" class="text-slate-700">Reservations</a></li>
 						<li><a href="/admin/analytics" class="text-slate-700">Analytics</a></li>
+						<li><a href="/admin/statistics" class="text-slate-700">Statistics</a></li>
 						<li><a href="/admin/billing" class="text-slate-700">Billing</a></li>
 						<li><a href="/admin/user-analysis" class="text-slate-700">Customers</a></li>
 						<li><a href="/admin/today-menu" class="text-slate-700">Today's Menu</a></li>
@@ -935,6 +936,27 @@
 									<line x1="6" y1="20" x2="6" y2="14" />
 								</svg>
 								Analytics
+							</a>
+						</li>
+						<li>
+							<a
+								href="/admin/statistics"
+								class="font-medium text-slate-700"
+								onclick={() => (isMenuOpen = false)}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path d="M3 3v18h18" />
+									<path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+								</svg>
+								Statistics
 							</a>
 						</li>
 						<li>
