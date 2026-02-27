@@ -120,6 +120,32 @@ export const POST: RequestHandler = async ({ request }) => {
 			if (restaurant.email || restaurant.restaurantEmail) {
 				await sendRestaurantNotification(restaurant, orderData);
 			}
+
+			// Send push notification to restaurant admins
+			try {
+				const adminUsers = await pb.collection('users').getFullList({
+					filter: `adminRestaurantIds ?~ "${restaurantId}"`
+				});
+
+				for (const admin of adminUsers) {
+					await fetch('https://playgzero.pb.itcass.net/api/send-push-notification', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							userId: admin.id,
+							title: 'New Order Received!',
+							body: `New order #${orderData.reference} from ${orderData.name} - ₦${orderData.totalAmount.toLocaleString()}`,
+							data: {
+								url: '/admin/admin-order',
+								orderId: record.id
+							},
+							tag: `new-order-${record.id}`
+						})
+					});
+				}
+			} catch (pushErr) {
+				console.error('Failed to send admin push notification:', pushErr);
+			}
 		}
 
 		return new Response(JSON.stringify({ success: true, orders: createdOrders }), { status: 200 });
