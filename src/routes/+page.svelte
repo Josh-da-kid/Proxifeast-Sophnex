@@ -168,6 +168,7 @@
 	// Current time for reactive updates (updates every minute)
 	let currentTime = $state(new Date());
 	let timeInterval: ReturnType<typeof setInterval>;
+	let restaurantSubscription: any;
 
 	// Load dish favorites on mount (for super restaurants)
 	$effect(() => {
@@ -176,14 +177,34 @@
 		}
 	});
 
-	// Update current time every minute to trigger reactive status checks
+	// Update current time every second for exact closing times
 	onMount(() => {
+		// Update time every second for precise status checks at exact closing/opening times
 		timeInterval = setInterval(() => {
 			currentTime = new Date();
-		}, 60000); // Update every minute
+		}, 1000);
+
+		// Subscribe to restaurant changes for real-time updates
+		async function subscribeToRestaurants() {
+			try {
+				restaurantSubscription = await pb.collection('restaurants').subscribe('*', async (e) => {
+					if (e.action === 'create' || e.action === 'update' || e.action === 'delete') {
+						// Trigger a re-render by updating current time
+						currentTime = new Date();
+					}
+				});
+			} catch (err) {
+				console.error('Failed to subscribe to restaurants:', err);
+			}
+		}
+
+		subscribeToRestaurants();
 
 		return () => {
 			if (timeInterval) clearInterval(timeInterval);
+			if (restaurantSubscription) {
+				pb.collection('restaurants').unsubscribe('*');
+			}
 		};
 	});
 

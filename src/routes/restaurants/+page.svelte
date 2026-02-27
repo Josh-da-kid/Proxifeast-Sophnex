@@ -3,6 +3,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import Carousel from '$lib/Carousel.svelte';
+	import pb from '$lib/pb';
 
 	let restaurants: any[] = $state([]);
 	let filteredRestaurants: any[] = $state([]);
@@ -13,17 +14,36 @@
 	let user = $derived($page.data.user);
 	let togglingFavorite = $state<string | null>(null);
 
-	// Current time for reactive updates (updates every minute)
+	// Current time for reactive updates (updates every second)
 	let currentTime = $state(new Date());
 	let timeInterval: ReturnType<typeof setInterval>;
+	let restaurantSubscription: any;
 
 	onMount(async () => {
-		// Update current time every minute to trigger reactive status checks
+		// Update current time every second for precise status checks
 		timeInterval = setInterval(() => {
 			currentTime = new Date();
-		}, 60000);
+		}, 1000);
 
-		try {
+		// Subscribe to restaurant changes for real-time updates
+		async function subscribeToRestaurants() {
+			try {
+				restaurantSubscription = await pb.collection('restaurants').subscribe('*', async (e) => {
+					if (e.action === 'create' || e.action === 'update' || e.action === 'delete') {
+						// Refetch restaurants to get updated data
+						const restaurantsRes = await fetch('https://playgzero.pb.itcass.net/api/collections/restaurants/records');
+						const data = await restaurantsRes.json();
+						restaurants = data.items.filter((r: any) => r.name !== 'ProxifeastLocal');
+						filteredRestaurants = restaurants;
+						currentTime = new Date();
+					}
+				});
+			} catch (err) {
+				console.error('Failed to subscribe to restaurants:', err);
+			}
+		}
+
+		subscribeToRestaurants();
 			const [restaurantsRes, favoritesRes] = await Promise.all([
 				fetch('https://playgzero.pb.itcass.net/api/collections/restaurants/records'),
 				user ? fetch('/api/favorites') : Promise.resolve(null)
@@ -45,6 +65,9 @@
 
 		return () => {
 			if (timeInterval) clearInterval(timeInterval);
+			if (restaurantSubscription) {
+				pb.collection('restaurants').unsubscribe('*');
+			}
 		};
 	});
 

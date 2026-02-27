@@ -55,9 +55,10 @@
 	let unsubscribeDish: () => void;
 	let unsubscribeCart: () => void;
 
-	// Current time for reactive updates (updates every minute)
+	// Current time for reactive updates (updates every second)
 	let currentTime = $state(new Date());
 	let timeInterval: ReturnType<typeof setInterval>;
+	let restaurantSubscription: any;
 
 	// Store restaurant data for payment
 	let restaurantData = $state<any>(null);
@@ -301,10 +302,25 @@
 		fetchCart();
 		setupSubscriptions();
 
-		// Update current time every minute to trigger reactive status checks
+		// Update current time every second for precise status checks
 		timeInterval = setInterval(() => {
 			currentTime = new Date();
-		}, 60000);
+		}, 1000);
+
+		// Subscribe to restaurant changes for real-time updates
+		async function subscribeToRestaurants() {
+			try {
+				restaurantSubscription = await pb.collection('restaurants').subscribe('*', async (e) => {
+					if (e.action === 'create' || e.action === 'update' || e.action === 'delete') {
+						currentTime = new Date();
+					}
+				});
+			} catch (err) {
+				console.error('Failed to subscribe to restaurants:', err);
+			}
+		}
+
+		subscribeToRestaurants();
 
 		// Check for table number from QR code scan
 		const storedTable = localStorage.getItem('tableNumber');
@@ -324,11 +340,17 @@
 		return () => {
 			clearTimeout(timeout);
 			if (timeInterval) clearInterval(timeInterval);
+			if (restaurantSubscription) {
+				pb.collection('restaurants').unsubscribe('*');
+			}
 		};
 	});
 	onDestroy(() => {
 		cleanupSubscriptions();
 		if (timeInterval) clearInterval(timeInterval);
+		if (restaurantSubscription) {
+			pb.collection('restaurants').unsubscribe('*');
+		}
 	});
 
 	let deliveryOption = $state('');

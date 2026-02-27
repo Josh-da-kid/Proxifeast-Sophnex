@@ -3,14 +3,16 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import Carousel from '$lib/Carousel.svelte';
+	import pb from '$lib/pb';
 
 	let { data } = $props();
 	let user = $derived($page.data.user);
 	let isSuper = $derived(data.isSuper ?? false);
 
-	// Current time for reactive updates (updates every minute)
+	// Current time for reactive updates (updates every second)
 	let currentTime = $state(new Date());
 	let timeInterval: ReturnType<typeof setInterval>;
+	let restaurantSubscription: any;
 
 	// Calculate total favorites
 	const totalFavorites = $derived(
@@ -18,13 +20,31 @@
 	);
 
 	onMount(() => {
-		// Update current time every minute to trigger reactive status checks
+		// Update current time every second for precise status checks
 		timeInterval = setInterval(() => {
 			currentTime = new Date();
-		}, 60000);
+		}, 1000);
+
+		// Subscribe to restaurant changes for real-time updates
+		async function subscribeToRestaurants() {
+			try {
+				restaurantSubscription = await pb.collection('restaurants').subscribe('*', async (e) => {
+					if (e.action === 'create' || e.action === 'update' || e.action === 'delete') {
+						currentTime = new Date();
+					}
+				});
+			} catch (err) {
+				console.error('Failed to subscribe to restaurants:', err);
+			}
+		}
+
+		subscribeToRestaurants();
 
 		return () => {
 			if (timeInterval) clearInterval(timeInterval);
+			if (restaurantSubscription) {
+				pb.collection('restaurants').unsubscribe('*');
+			}
 		};
 	});
 
