@@ -55,6 +55,10 @@
 	let unsubscribeDish: () => void;
 	let unsubscribeCart: () => void;
 
+	// Current time for reactive updates (updates every minute)
+	let currentTime = $state(new Date());
+	let timeInterval: ReturnType<typeof setInterval>;
+
 	// Store restaurant data for payment
 	let restaurantData = $state<any>(null);
 	let userData = $state<any>(null);
@@ -111,8 +115,8 @@
 	function isRestaurantOpen(restaurant: any): boolean {
 		if (!restaurant.openingTime || !restaurant.closingTime) return true;
 
-		const now = new Date();
-		const currentTime = now.getHours() * 60 + now.getMinutes();
+		const now = currentTime;
+		const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
 		const [openHour, openMin] = restaurant.openingTime.split(':').map(Number);
 		const [closeHour, closeMin] = restaurant.closingTime.split(':').map(Number);
@@ -120,7 +124,7 @@
 		const openTime = openHour * 60 + openMin;
 		const closeTime = closeHour * 60 + closeMin;
 
-		return currentTime >= openTime && currentTime <= closeTime;
+		return currentMinutes >= openTime && currentMinutes <= closeTime;
 	}
 
 	function getCartLocationInfo() {
@@ -297,6 +301,11 @@
 		fetchCart();
 		setupSubscriptions();
 
+		// Update current time every minute to trigger reactive status checks
+		timeInterval = setInterval(() => {
+			currentTime = new Date();
+		}, 60000);
+
 		// Check for table number from QR code scan
 		const storedTable = localStorage.getItem('tableNumber');
 		if (storedTable) {
@@ -312,10 +321,14 @@
 			}
 		}, 5000);
 
-		return () => clearTimeout(timeout);
+		return () => {
+			clearTimeout(timeout);
+			if (timeInterval) clearInterval(timeInterval);
+		};
 	});
 	onDestroy(() => {
 		cleanupSubscriptions();
+		if (timeInterval) clearInterval(timeInterval);
 	});
 
 	let deliveryOption = $state('');

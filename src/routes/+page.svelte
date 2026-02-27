@@ -87,8 +87,8 @@
 	function isRestaurantOpen(restaurant: any): boolean {
 		if (!restaurant.openingTime || !restaurant.closingTime) return true; // Always open if no times set
 
-		const now = new Date();
-		const currentTime = now.getHours() * 60 + now.getMinutes();
+		const now = currentTime;
+		const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
 		const [openHour, openMin] = restaurant.openingTime.split(':').map(Number);
 		const [closeHour, closeMin] = restaurant.closingTime.split(':').map(Number);
@@ -96,7 +96,7 @@
 		const openTime = openHour * 60 + openMin;
 		const closeTime = closeHour * 60 + closeMin;
 
-		return currentTime >= openTime && currentTime <= closeTime;
+		return currentMinutes >= openTime && currentMinutes <= closeTime;
 	}
 
 	// Helper function to check if restaurant is closing soon (within 30 minutes)
@@ -106,13 +106,13 @@
 	} {
 		if (!restaurant.closingTime) return { closingSoon: false, minutesUntilClose: 0 };
 
-		const now = new Date();
-		const currentTime = now.getHours() * 60 + now.getMinutes();
+		const now = currentTime;
+		const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
 		const [closeHour, closeMin] = restaurant.closingTime.split(':').map(Number);
 		const closeTime = closeHour * 60 + closeMin;
 
-		const minutesUntilClose = closeTime - currentTime;
+		const minutesUntilClose = closeTime - currentMinutes;
 
 		return {
 			closingSoon: minutesUntilClose > 0 && minutesUntilClose <= 30,
@@ -165,11 +165,26 @@
 	// Dish favorites state (for super restaurants)
 	let dishFavorites = $state<string[]>([]);
 
-	// Load dish favorites on mount (only for super restaurants)
+	// Current time for reactive updates (updates every minute)
+	let currentTime = $state(new Date());
+	let timeInterval: ReturnType<typeof setInterval>;
+
+	// Load dish favorites on mount (for super restaurants)
 	$effect(() => {
 		if (isSuper && $isLoggedIn) {
 			loadDishFavorites();
 		}
+	});
+
+	// Update current time every minute to trigger reactive status checks
+	onMount(() => {
+		timeInterval = setInterval(() => {
+			currentTime = new Date();
+		}, 60000); // Update every minute
+
+		return () => {
+			if (timeInterval) clearInterval(timeInterval);
+		};
 	});
 
 	async function loadDishFavorites() {

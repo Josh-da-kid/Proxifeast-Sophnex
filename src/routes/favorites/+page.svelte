@@ -1,22 +1,38 @@
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
 	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 	import Carousel from '$lib/Carousel.svelte';
 
 	let { data } = $props();
 	let user = $derived($page.data.user);
 	let isSuper = $derived(data.isSuper ?? false);
 
+	// Current time for reactive updates (updates every minute)
+	let currentTime = $state(new Date());
+	let timeInterval: ReturnType<typeof setInterval>;
+
 	// Calculate total favorites
 	const totalFavorites = $derived(
 		data.restaurants.length + (isSuper ? data.dishFavorites?.length || 0 : 0)
 	);
 
+	onMount(() => {
+		// Update current time every minute to trigger reactive status checks
+		timeInterval = setInterval(() => {
+			currentTime = new Date();
+		}, 60000);
+
+		return () => {
+			if (timeInterval) clearInterval(timeInterval);
+		};
+	});
+
 	function isRestaurantOpen(restaurant: any): boolean {
 		if (!restaurant.openingTime || !restaurant.closingTime) return true;
 
-		const now = new Date();
-		const currentTime = now.getHours() * 60 + now.getMinutes();
+		const now = currentTime;
+		const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
 		const [openHour, openMin] = restaurant.openingTime.split(':').map(Number);
 		const [closeHour, closeMin] = restaurant.closingTime.split(':').map(Number);
@@ -24,7 +40,7 @@
 		const openTime = openHour * 60 + openMin;
 		const closeTime = closeHour * 60 + closeMin;
 
-		return currentTime >= openTime && currentTime <= closeTime;
+		return currentMinutes >= openTime && currentMinutes <= closeTime;
 	}
 
 	function isRestaurantNew(restaurant: any): boolean {

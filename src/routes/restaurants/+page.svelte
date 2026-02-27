@@ -13,7 +13,16 @@
 	let user = $derived($page.data.user);
 	let togglingFavorite = $state<string | null>(null);
 
+	// Current time for reactive updates (updates every minute)
+	let currentTime = $state(new Date());
+	let timeInterval: ReturnType<typeof setInterval>;
+
 	onMount(async () => {
+		// Update current time every minute to trigger reactive status checks
+		timeInterval = setInterval(() => {
+			currentTime = new Date();
+		}, 60000);
+
 		try {
 			const [restaurantsRes, favoritesRes] = await Promise.all([
 				fetch('https://playgzero.pb.itcass.net/api/collections/restaurants/records'),
@@ -33,6 +42,10 @@
 		} finally {
 			isLoading = false;
 		}
+
+		return () => {
+			if (timeInterval) clearInterval(timeInterval);
+		};
 	});
 
 	async function toggleFavorite(restaurantId: string, e: Event) {
@@ -99,8 +112,8 @@
 	function isRestaurantOpen(restaurant: any): boolean {
 		if (!restaurant.openingTime || !restaurant.closingTime) return true;
 
-		const now = new Date();
-		const currentTime = now.getHours() * 60 + now.getMinutes();
+		const now = currentTime;
+		const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
 		const [openHour, openMin] = restaurant.openingTime.split(':').map(Number);
 		const [closeHour, closeMin] = restaurant.closingTime.split(':').map(Number);
@@ -108,7 +121,7 @@
 		const openTime = openHour * 60 + openMin;
 		const closeTime = closeHour * 60 + closeMin;
 
-		return currentTime >= openTime && currentTime <= closeTime;
+		return currentMinutes >= openTime && currentMinutes <= closeTime;
 	}
 
 	function isRestaurantNew(restaurant: any): boolean {
