@@ -30,8 +30,11 @@
 			try {
 				restaurantSubscription = await pb.collection('restaurants').subscribe('*', async (e) => {
 					if (e.action === 'create' || e.action === 'update' || e.action === 'delete') {
+						console.log('Restaurant change detected:', e.action);
 						// Refetch restaurants to get updated data
-						const restaurantsRes = await fetch('https://playgzero.pb.itcass.net/api/collections/restaurants/records');
+						const restaurantsRes = await fetch(
+							'https://playgzero.pb.itcass.net/api/collections/restaurants/records'
+						);
 						const data = await restaurantsRes.json();
 						restaurants = data.items.filter((r: any) => r.name !== 'ProxifeastLocal');
 						filteredRestaurants = restaurants;
@@ -44,6 +47,8 @@
 		}
 
 		subscribeToRestaurants();
+
+		try {
 			const [restaurantsRes, favoritesRes] = await Promise.all([
 				fetch('https://playgzero.pb.itcass.net/api/collections/restaurants/records'),
 				user ? fetch('/api/favorites') : Promise.resolve(null)

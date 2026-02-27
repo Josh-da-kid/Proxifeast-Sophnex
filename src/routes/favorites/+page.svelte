@@ -30,6 +30,7 @@
 			try {
 				restaurantSubscription = await pb.collection('restaurants').subscribe('*', async (e) => {
 					if (e.action === 'create' || e.action === 'update' || e.action === 'delete') {
+						console.log('Restaurant change detected in favorites:', e.action);
 						currentTime = new Date();
 					}
 				});

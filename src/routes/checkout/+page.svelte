@@ -211,11 +211,26 @@
 		unsubscribeCart = await pb.collection('cart').subscribe('*', async ({ action, record }) => {
 			if (record.user === userData.id) await fetchCart();
 		});
+
+		// Subscribe to restaurant changes for real-time opening/closing time updates
+		if (!restaurantSubscription) {
+			restaurantSubscription = await pb
+				.collection('restaurants')
+				.subscribe('*', async ({ action, record }) => {
+					if (action === 'update') {
+						currentTime = new Date();
+					}
+				});
+		}
 	}
 
 	function cleanupSubscriptions() {
 		unsubscribeDish?.();
 		unsubscribeCart?.();
+		if (restaurantSubscription) {
+			pb.collection('restaurants').unsubscribe('*');
+			restaurantSubscription = null;
+		}
 	}
 
 	export async function fetchCart() {
@@ -312,6 +327,7 @@
 			try {
 				restaurantSubscription = await pb.collection('restaurants').subscribe('*', async (e) => {
 					if (e.action === 'create' || e.action === 'update' || e.action === 'delete') {
+						console.log('Restaurant change detected in checkout:', e.action);
 						currentTime = new Date();
 					}
 				});

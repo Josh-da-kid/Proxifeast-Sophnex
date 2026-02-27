@@ -187,12 +187,15 @@
 		// Subscribe to restaurant changes for real-time updates
 		async function subscribeToRestaurants() {
 			try {
-				restaurantSubscription = await pb.collection('restaurants').subscribe('*', async (e) => {
-					if (e.action === 'create' || e.action === 'update' || e.action === 'delete') {
-						// Trigger a re-render by updating current time
-						currentTime = new Date();
-					}
+				console.log('Setting up restaurant subscription...');
+				restaurantSubscription = await pb.collection('restaurants').subscribe('*', (e) => {
+					console.log('Restaurant event received:', e.action, e.record?.id);
+					// Update current time to trigger re-render
+					currentTime = new Date();
+					// Also invalidate data
+					invalidateAll();
 				});
+				console.log('Restaurant subscription set up successfully');
 			} catch (err) {
 				console.error('Failed to subscribe to restaurants:', err);
 			}
@@ -200,8 +203,16 @@
 
 		subscribeToRestaurants();
 
+		// Fallback: periodically refresh data every 30 seconds
+		const fallbackInterval = setInterval(() => {
+			console.log('Fallback: refreshing restaurant data...');
+			currentTime = new Date();
+			invalidateAll();
+		}, 30000);
+
 		return () => {
 			if (timeInterval) clearInterval(timeInterval);
+			if (fallbackInterval) clearInterval(fallbackInterval);
 			if (restaurantSubscription) {
 				pb.collection('restaurants').unsubscribe('*');
 			}
@@ -412,11 +423,30 @@
 				await fetchCart();
 			}
 		});
+
+		// Subscribe to restaurant changes for real-time opening/closing time updates
+		if (!restaurantSubscription) {
+			restaurantSubscription = await pb
+				.collection('restaurants')
+				.subscribe('*', async ({ action, record }) => {
+					if (action === 'update') {
+						console.log('Restaurant updated via subscription:', record.id);
+						// Invalidate to refresh data from server
+						await invalidateAll();
+						// Update current time to trigger re-render
+						currentTime = new Date();
+					}
+				});
+		}
 	}
 
 	function cleanupSubscriptions() {
 		unsubscribeDish?.();
 		unsubscribeCart?.();
+		if (restaurantSubscription) {
+			pb.collection('restaurants').unsubscribe('*');
+			restaurantSubscription = null;
+		}
 	}
 
 	// Search functionality - only for restaurant list
