@@ -208,24 +208,26 @@
 
 	<!-- Desktop Navigation -->
 	<div class="hidden items-center gap-1 md:flex lg:gap-2">
-		<a href="/restaurants" class="nav-link-ordr">
-			<span class="flex items-center gap-2">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="16"
-					height="16"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-				>
-					<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
-					<path d="M7 2v20" />
-					<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
-				</svg>
-				Restaurants
-			</span>
-		</a>
+		{#if $isSuper}
+			<a href="/restaurants" class="nav-link-ordr">
+				<span class="flex items-center gap-2">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="16"
+						height="16"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+						<path d="M7 2v20" />
+						<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+					</svg>
+					Restaurants
+				</span>
+			</a>
+		{/if}
 		<a href="/about" class="nav-link">
 			<span class="flex items-center gap-2">
 				<svg
@@ -567,28 +569,30 @@
 							Home
 						</a>
 					</li>
-					<li>
-						<a
-							href="/restaurants"
-							class="font-medium text-slate-700"
-							onclick={() => (isMenuOpen = false)}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="20"
-								height="20"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
+					{#if $isSuper}
+						<li>
+							<a
+								href="/restaurants"
+								class="font-medium text-slate-700"
+								onclick={() => (isMenuOpen = false)}
 							>
-								<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
-								<path d="M7 2v20" />
-								<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
-							</svg>
-							Restaurants
-						</a>
-					</li>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+									<path d="M7 2v20" />
+									<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+								</svg>
+								Restaurants
+							</a>
+						</li>
+					{/if}
 					<li>
 						<a
 							href="/checkout"
@@ -609,28 +613,6 @@
 								<path d="M16 10a4 4 0 0 1-8 0" />
 							</svg>
 							Checkout
-						</a>
-					</li>
-					<li>
-						<a
-							href="/restaurants"
-							class="font-medium text-slate-700"
-							onclick={() => (isMenuOpen = false)}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="20"
-								height="20"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-							>
-								<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
-								<path d="M7 2v20" />
-								<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
-							</svg>
-							Restaurants
 						</a>
 					</li>
 					{#if $user}

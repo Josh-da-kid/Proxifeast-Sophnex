@@ -13,6 +13,7 @@
 
 	let showAddModal = $state(false);
 	let isProcessing = $state(false);
+	let addingDishId = $state<string | null>(null);
 
 	const nonFeaturedDishes = $derived(
 		allDishes.filter((d: any) => !featuredDishes.some((f: any) => f.id === d.id))
@@ -34,14 +35,15 @@
 	}
 
 	async function quickAddToFeatured(dishId: string) {
+		addingDishId = dishId;
 		isProcessing = true;
 		try {
 			await pb.collection('dishes').update(dishId, { isFeatured: true });
-			// Trigger a page reload to refresh data
 			window.location.reload();
 		} catch (err) {
 			console.error('Failed to add dish:', err);
 		} finally {
+			addingDishId = null;
 			isProcessing = false;
 		}
 	}
@@ -376,11 +378,18 @@
 					class="relative border-b border-slate-100 bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-5"
 				>
 					<div class="flex items-center justify-between">
-						<div>
-							<h3 id="modal-title" class="font-heading text-xl font-bold text-white">
-								Add to Today's Menu
-							</h3>
-							<p class="mt-1 text-sm text-white/80">Select dishes to feature on your homepage</p>
+						<div class="flex items-center gap-3">
+							{#if addingDishId}
+								<div
+									class="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"
+								></div>
+							{/if}
+							<div>
+								<h3 id="modal-title" class="font-heading text-xl font-bold text-white">
+									Add to Today's Menu
+								</h3>
+								<p class="mt-1 text-sm text-white/80">Select dishes to feature on your homepage</p>
+							</div>
 						</div>
 						<button
 							onclick={() => (showAddModal = false)}
@@ -429,10 +438,17 @@
 							{#each nonFeaturedDishes as dish (dish.id)}
 								<button
 									type="button"
-									disabled={isProcessing}
+									disabled={addingDishId === dish.id}
 									onclick={() => quickAddToFeatured(dish.id)}
-									class="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-left transition-all hover:border-orange-300 hover:shadow-lg"
+									class="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-left transition-all hover:border-orange-300 hover:shadow-lg disabled:opacity-50"
 								>
+									{#if addingDishId === dish.id}
+										<div class="absolute inset-0 flex items-center justify-center bg-white/80">
+											<div
+												class="h-6 w-6 animate-spin rounded-full border-2 border-orange-500 border-t-transparent"
+											></div>
+										</div>
+									{/if}
 									<!-- Image -->
 									<div class="relative h-32 overflow-hidden">
 										<img

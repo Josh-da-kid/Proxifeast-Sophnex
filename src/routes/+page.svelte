@@ -441,11 +441,7 @@
 
 	// Restaurant selection
 	async function selectRestaurant(restaurant: any) {
-		// Clear search when selecting a restaurant
-		searchInput = '';
-		selectedCategoryInput = 'All';
-		viewMode = 'menu';
-		await goto(`/?restaurant=${restaurant.id}#menu`);
+		window.location.href = `/restaurants/${restaurant.id}`;
 	}
 
 	async function backToRestaurants() {

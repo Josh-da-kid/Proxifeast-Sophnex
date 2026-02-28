@@ -3,7 +3,6 @@ import type { PageServerLoad } from './$types';
 import { isSuperRestaurant } from '$lib/utils/restaurantAccess';
 
 export const load: PageServerLoad = async ({ request, locals }) => {
-	// Get current restaurant from domain
 	const host = request.headers.get('host') || '';
 	const domain = host.split(':')[0];
 
@@ -17,12 +16,22 @@ export const load: PageServerLoad = async ({ request, locals }) => {
 		console.error('Could not find restaurant for domain:', domain);
 	}
 
-	// Block access for non-super restaurants
-	if (!isSuperRestaurant(currentRestaurant)) {
+	if (!currentRestaurant) {
+		try {
+			const superRestaurants = await locals.pb.collection('restaurants').getFullList({
+				filter: 'isSuper = true',
+				limit: 1
+			});
+			currentRestaurant = superRestaurants?.[0] || null;
+		} catch (e) {
+			console.error('Could not find super restaurant:', e);
+		}
+	}
+
+	if (!currentRestaurant || !isSuperRestaurant(currentRestaurant)) {
 		throw error(404, 'Not Found');
 	}
 
-	// For super restaurants, return all restaurants
 	const restaurants = await locals.pb.collection('restaurants').getFullList({
 		sort: 'name',
 		filter: 'name != "ProxifeastLocal"'

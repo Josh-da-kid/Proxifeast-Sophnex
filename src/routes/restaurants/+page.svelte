@@ -134,7 +134,7 @@
 	}
 
 	function selectRestaurant(r: any) {
-		window.location.href = `/?restaurant=${r.id}`;
+		window.location.href = `/restaurants/${r.id}`;
 	}
 
 	function isRestaurantOpen(restaurant: any): boolean {
