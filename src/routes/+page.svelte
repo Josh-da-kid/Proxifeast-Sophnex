@@ -1953,9 +1953,9 @@
 										</svg>
 										<span class="{isOpen ? 'text-green-600' : 'text-red-600'} font-medium">
 											{#if isOpen}
-												Open • {r.openingTime} - {r.closingTime}
+												Open • {formatTime(r.openingTime)} - {formatTime(r.closingTime)}
 											{:else}
-												Closed • Opens at {r.openingTime}
+												Closed • Opens at {formatTime(r.openingTime)}
 											{/if}
 										</span>
 									</div>
