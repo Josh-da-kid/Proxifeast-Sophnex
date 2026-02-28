@@ -37,7 +37,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			dishes: dishesResult.items,
 			featuredDishes: featuredDishesResult.items,
 			categories,
-			menuByCategory
+			menuByCategory,
+			user: locals.user || null
 		};
 	} catch (err) {
 		console.error('Failed to load restaurant:', err);

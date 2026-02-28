@@ -3,14 +3,19 @@
 	import { page } from '$app/stores';
 	import { fade, fly } from 'svelte/transition';
 	import Carousel from '$lib/Carousel.svelte';
+	import pb from '$lib/pb';
+	import { addToCartPB } from '$lib/addToCart';
 
 	const restaurant = $derived($page.data.restaurant);
 	const featuredDishes = $derived($page.data.featuredDishes ?? []);
 	const categories = $derived($page.data.categories ?? []);
 	const menuByCategory = $derived($page.data.menuByCategory ?? {});
+	const user = $derived($page.data.user);
 
 	let currentTime = $state(new Date());
 	let timeInterval: ReturnType<typeof setInterval>;
+	let isAddingToCart = $state<string | null>(null);
+	let addToCartAlert = $state(false);
 
 	onMount(() => {
 		timeInterval = setInterval(() => {
@@ -42,6 +47,39 @@
 		return `${h12}:${minutes} ${ampm}`;
 	}
 
+	async function handleAddToCart(dish: any) {
+		if (!user) {
+			window.location.href = '/login';
+			return;
+		}
+
+		if (dish.availability !== 'Available') return;
+
+		isAddingToCart = dish.id;
+
+		try {
+			await addToCartPB(
+				pb,
+				dish.id,
+				1,
+				user.id,
+				dish.defaultAmount,
+				dish.promoAmount,
+				restaurant.id,
+				restaurant.name
+			);
+
+			addToCartAlert = true;
+			setTimeout(() => {
+				addToCartAlert = false;
+			}, 2000);
+		} catch (err) {
+			console.error('Failed to add to cart:', err);
+		} finally {
+			isAddingToCart = null;
+		}
+	}
+
 	const carouselImages = $derived.by(() => {
 		const images = [];
 		if (restaurant?.bannerUrl) images.push({ src: restaurant.bannerUrl, alt: restaurant.name });
@@ -67,6 +105,36 @@
 <svelte:head>
 	<title>{restaurant?.name || 'Restaurant'} - Proxifeast</title>
 </svelte:head>
+
+<!-- Add to Cart Toast -->
+{#if addToCartAlert}
+	<div
+		class="toast toast-top toast-center z-50"
+		in:fly={{ y: -50, duration: 300 }}
+		out:fly={{ y: -50, duration: 300 }}
+	>
+		<div class="alert gap-3 rounded-2xl border-0 bg-gray-900 px-5 py-3 text-white shadow-2xl">
+			<div class="rounded-full bg-green-500/20 p-1">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-5 w-5 text-green-400"
+					viewBox="0 0 20 20"
+					fill="currentColor"
+				>
+					<path
+						fill-rule="evenodd"
+						d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+						clip-rule="evenodd"
+					/>
+				</svg>
+			</div>
+			<div>
+				<p class="text-sm font-semibold">Added to cart</p>
+				<p class="text-xs text-gray-400">Item has been added successfully</p>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <div class="min-h-screen bg-slate-50">
 	<!-- Restaurant Header Section -->
@@ -428,9 +496,17 @@
 										{/if}
 									</div>
 									<button
-										class="mt-3 w-full rounded-xl bg-amber-500 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-600"
+										onclick={() => handleAddToCart(dish)}
+										disabled={isAddingToCart === dish.id || dish.availability !== 'Available'}
+										class="mt-3 w-full rounded-xl bg-amber-500 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
 									>
-										Add to Cart
+										{#if isAddingToCart === dish.id}
+											<span class="loading loading-spinner loading-sm"></span>
+										{:else if dish.availability !== 'Available'}
+											Sold Out
+										{:else}
+											Add to Cart
+										{/if}
 									</button>
 								</div>
 							</div>
@@ -548,22 +624,29 @@
 															>
 														{/if}
 														<button
-															class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-white transition-colors hover:bg-amber-600"
+															onclick={() => handleAddToCart(dish)}
+															disabled={isAddingToCart === dish.id ||
+																dish.availability !== 'Available'}
+															class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-white transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
 														>
-															<svg
-																xmlns="http://www.w3.org/2000/svg"
-																class="h-4 w-4"
-																fill="none"
-																viewBox="0 0 24 24"
-																stroke="currentColor"
-																stroke-width="2"
-															>
-																<path
-																	stroke-linecap="round"
-																	stroke-linejoin="round"
-																	d="M12 4v16m8-8H4"
-																/>
-															</svg>
+															{#if isAddingToCart === dish.id}
+																<span class="loading loading-spinner loading-xs"></span>
+															{:else}
+																<svg
+																	xmlns="http://www.w3.org/2000/svg"
+																	class="h-4 w-4"
+																	fill="none"
+																	viewBox="0 0 24 24"
+																	stroke="currentColor"
+																	stroke-width="2"
+																>
+																	<path
+																		stroke-linecap="round"
+																		stroke-linejoin="round"
+																		d="M12 4v16m8-8H4"
+																	/>
+																</svg>
+															{/if}
 														</button>
 													</div>
 												</div>
