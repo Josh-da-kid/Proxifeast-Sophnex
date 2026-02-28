@@ -11,6 +11,11 @@
 	import Footer from '$lib/Footer.svelte';
 	import Carousel from '$lib/Carousel.svelte';
 	import HeroCarousel from '$lib/HeroCarousel.svelte';
+	import {
+		cart as sharedCart,
+		total as cartTotal,
+		fetchCart as fetchSharedCart
+	} from '$lib/stores/cart';
 
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 	const user = derived(page, ($page) => $page.data.user);
@@ -485,8 +490,9 @@
 		selectedCategoryInput = target.value;
 	}
 
-	// Cart functionality
-	export const cart = writable<any[]>([]);
+	// Cart functionality - use shared cart
+	export const cart = sharedCart;
+	export const total = cartTotal;
 
 	// Optimistically add item to cart for instant UI update
 	function addToCartOptimistic(
@@ -534,39 +540,8 @@
 		});
 	}
 
-	export const total = derived(cart, ($cart) =>
-		$cart.reduce((acc, item) => {
-			if (item.expand?.dish?.availability === 'Available') {
-				const price = item.expand?.dish?.promoAmount ?? item.expand?.dish?.defaultAmount ?? 0;
-				return acc + price * item.quantity;
-			}
-			return acc;
-		}, 0)
-	);
-
 	export async function fetchCart() {
-		try {
-			if (!$user?.id) return cart.set([]);
-
-			const records = await pb.collection('cart').getFullList({
-				filter: `user="${$user.id}"`,
-				expand: 'dish'
-			});
-
-			// Filter by restaurant if not a super restaurant
-			const currentRestaurantId = $page.data.restaurantId;
-			if (currentRestaurantId && !$page.data.isSuper) {
-				const filteredRecords = records.filter((item: any) => {
-					const itemRestaurantId = item.restaurant || item.restaurantId;
-					return itemRestaurantId === currentRestaurantId;
-				});
-				cart.set(filteredRecords);
-			} else {
-				cart.set(records);
-			}
-		} catch (err) {
-			console.error('Failed to fetch cart:', err);
-		}
+		await fetchSharedCart();
 	}
 
 	async function handleAddToCart(dish: any) {
@@ -1379,7 +1354,7 @@
 					description:
 						'Order from your favorite restaurants and enjoy restaurant-quality meals delivered to your doorstep.',
 					primaryBtn: { text: 'Order Now', href: '#menu' },
-					secondaryBtn: { text: 'Browse Restaurants', href: '#restaurants' }
+					secondaryBtn: { text: 'Browse Restaurants', href: '/restaurants' }
 				},
 				{
 					id: 2,
@@ -1388,8 +1363,8 @@
 					title: 'Discover Local Favorites',
 					description:
 						'Explore the best restaurants in your area and discover new culinary experiences.',
-					primaryBtn: { text: 'Explore Now', href: '#restaurants' },
-					secondaryBtn: { text: 'Learn More', href: '#how-it-works' }
+					primaryBtn: { text: 'Explore Now', href: '/restaurants' },
+					secondaryBtn: { text: 'Learn More', href: '/about' }
 				},
 				{
 					id: 3,
@@ -1398,8 +1373,11 @@
 					title: 'Start Your Restaurant Business',
 					description:
 						'Join thousands of restaurants using Proxifeast to grow their delivery business.',
-					primaryBtn: { text: 'Get Started Free', href: '/signup' },
-					secondaryBtn: { text: 'Watch Demo', href: '#' }
+					primaryBtn: {
+						text: $isLoggedIn ? 'View Plans' : 'Get Started Free',
+						href: $isLoggedIn ? '/subscriptions' : '/signup'
+					},
+					secondaryBtn: { text: 'Learn More', href: '/about' }
 				}
 			]}
 			autoplay={true}
@@ -1515,25 +1493,25 @@
 									<!-- Content -->
 									<div class="flex flex-1 flex-col p-5">
 										<h3
-											class="font-playfair mb-2 text-lg leading-tight font-semibold text-slate-900 transition-colors group-hover:text-amber-600"
+											class="font-playfair mb-2 text-lg leading-tight font-semibold text-white transition-colors group-hover:text-amber-400"
 										>
 											{dish.name}
 										</h3>
-										<p class="mb-4 line-clamp-2 text-sm leading-relaxed text-slate-500">
+										<p class="mb-4 line-clamp-2 text-sm leading-relaxed text-gray-200">
 											{dish.description}
 										</p>
 
 										<div class="mt-auto flex flex-col gap-3">
 											<div class="flex items-baseline justify-between">
 												{#if dish.promoAmount && dish.promoAmount < dish.defaultAmount}
-													<span class="text-xl font-bold text-amber-600">
+													<span class="text-xl font-bold text-amber-400">
 														₦{Number(dish.promoAmount).toLocaleString()}
 													</span>
-													<span class="text-sm text-slate-400 line-through">
+													<span class="text-sm text-gray-400 line-through">
 														₦{Number(dish.defaultAmount).toLocaleString()}
 													</span>
 												{:else}
-													<span class="text-xl font-bold text-slate-900">
+													<span class="text-xl font-bold text-white">
 														₦{Number(dish.defaultAmount).toLocaleString()}
 													</span>
 												{/if}

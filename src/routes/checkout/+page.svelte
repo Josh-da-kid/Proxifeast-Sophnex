@@ -5,6 +5,7 @@
 	import pb from '$lib/pb';
 	import { goto } from '$app/navigation';
 	import { fly, slide, fade } from 'svelte/transition';
+	import { cart, total as cartTotal, fetchCart } from '$lib/stores/cart';
 	// Custom SVG Icons
 	const iconArrowLeft = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`;
 	const iconShoppingBag = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`;
@@ -32,16 +33,7 @@
 		page,
 		($page) => $page.data.allRestaurantsIncludingSuper ?? $page.data.allRestaurants ?? []
 	);
-	export const cart = writable<any[]>([]);
-	export const total = derived(cart, ($cart) =>
-		$cart.reduce((acc, item) => {
-			if (item.expand?.dish?.availability === 'Available') {
-				const price = item.expand?.dish?.promoAmount ?? item.expand?.dish?.defaultAmount ?? 0;
-				return acc + price * item.quantity;
-			}
-			return acc;
-		}, 0)
-	);
+	export const total = cartTotal;
 	export const user = derived(page, ($page) => $page.data.user);
 	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
 
@@ -230,29 +222,6 @@
 		if (restaurantSubscription) {
 			pb.collection('restaurants').unsubscribe('*');
 			restaurantSubscription = null;
-		}
-	}
-
-	export async function fetchCart() {
-		try {
-			const currentUser = userData;
-			const userId = currentUser?.id;
-
-			if (!userId) {
-				console.log('No user logged in');
-				loading = false;
-				return;
-			}
-
-			const records = await pb.collection('cart').getFullList({
-				filter: `user="${userId}"`,
-				expand: 'dish'
-			});
-			cart.set(records);
-		} catch (err) {
-			console.error('Failed to fetch cart:', err);
-		} finally {
-			loading = false;
 		}
 	}
 

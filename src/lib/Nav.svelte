@@ -5,7 +5,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { get } from 'svelte/store';
 	import pb from './pb';
-	import { writable } from 'svelte/store';
+	import { cart as sharedCart, fetchCart as fetchSharedCart } from './stores/cart';
 
 	let isAdmin = false;
 
@@ -114,45 +114,18 @@
 	const isSuper = derived(page, ($page) => $page.data.isSuper ?? false);
 	const isAdminForRestaurant = derived(page, ($page) => $page.data.isAdminForRestaurant ?? false);
 
-	const restaurantName = get(page).data.restaurant?.name;
+	const restaurantName = derived(page, ($page) => $page.data.restaurant?.name ?? 'Proxifeast');
 
 	let logoutModalAdmin: HTMLDialogElement;
 	let logoutModalUser: HTMLDialogElement;
 	let isLoggingOut = $state(false);
 	let isLoggingOutAdmin = $state(false);
 
-	// Cart store for mobile
-	const cart = writable<any[]>([]);
+	// Use shared cart store
+	const cart = sharedCart;
 
 	async function fetchCart() {
-		const currentUser = get(page).data.user;
-
-		// First check localStorage for guest cart
-		const guestCart = localStorage.getItem('guestCart');
-		let guestItems: any[] = [];
-		if (guestCart) {
-			try {
-				guestItems = JSON.parse(guestCart);
-			} catch (e) {}
-		}
-
-		// If logged in, fetch from server
-		if (currentUser?.id) {
-			try {
-				const records = await pb.collection('cart').getFullList({
-					filter: `user="${currentUser.id}"`,
-					expand: 'dish'
-				});
-				// Combine guest cart with user cart
-				cart.set([...guestItems, ...records]);
-			} catch (err) {
-				console.error('Failed to fetch cart:', err);
-				cart.set(guestItems);
-			}
-		} else {
-			// Not logged in, use guest cart
-			cart.set(guestItems);
-		}
+		await fetchSharedCart();
 	}
 
 	onMount(() => {
@@ -201,7 +174,7 @@
 				<span class="text-lg font-bold text-white">P</span>
 			</div>
 			<span class="font-heading hidden text-xl font-bold text-gray-900 sm:block">
-				{restaurantName || 'Proxifeast'}
+				{$restaurantName || 'Proxifeast'}
 			</span>
 		</a>
 	</div>
@@ -1033,8 +1006,14 @@
 						</button>
 					{:else}
 						<div class="flex gap-2">
-							<a href="/login" class="btn btn-outline flex-1">Login</a>
-							<a href="/signup" class="btn-primary-custom flex-1 text-center">Sign Up</a>
+							<a href="/login" class="btn btn-outline flex-1" onclick={() => (isMenuOpen = false)}
+								>Login</a
+							>
+							<a
+								href="/signup"
+								class="btn-primary-custom flex-1 text-center"
+								onclick={() => (isMenuOpen = false)}>Sign Up</a
+							>
 						</div>
 					{/if}
 				</div>
