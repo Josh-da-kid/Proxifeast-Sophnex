@@ -125,7 +125,8 @@
 	const cart = sharedCart;
 
 	async function fetchCart() {
-		await fetchSharedCart();
+		const userId = $user?.id;
+		await fetchSharedCart(undefined, userId);
 	}
 
 	onMount(() => {

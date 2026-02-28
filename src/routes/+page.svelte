@@ -541,7 +541,8 @@
 	}
 
 	export async function fetchCart() {
-		await fetchSharedCart();
+		const userId = $user?.id;
+		await fetchSharedCart(undefined, userId);
 	}
 
 	async function handleAddToCart(dish: any) {

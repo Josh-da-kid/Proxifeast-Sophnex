@@ -282,8 +282,19 @@
 		}
 	}
 
-	onMount(() => {
-		fetchCart();
+	onMount(async () => {
+		// Get user from page data
+		const pageUser = $page.data.user;
+		const userId = pageUser?.id;
+
+		try {
+			await fetchCart(undefined, userId);
+		} catch (err) {
+			console.error('Failed to fetch cart:', err);
+		} finally {
+			loading = false;
+		}
+
 		setupSubscriptions();
 
 		// Update current time every second for precise status checks

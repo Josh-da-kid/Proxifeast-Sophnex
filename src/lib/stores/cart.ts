@@ -70,15 +70,20 @@ export function addToCartOptimistic(
 	});
 }
 
-export async function fetchCart(restaurantId?: string) {
+export async function fetchCart(restaurantId?: string, userId?: string) {
 	try {
-		const userId = pb.authStore.model?.id;
-		if (!userId) return cart.set([]);
+		const currentUserId = userId || pb.authStore.model?.id;
+		if (!currentUserId) {
+			console.log('No user ID found for cart fetch');
+			return cart.set([]);
+		}
 
 		const records = await pb.collection('cart').getFullList({
-			filter: `user="${userId}"`,
+			filter: `user="${currentUserId}"`,
 			expand: 'dish' // if dish is a relation
 		});
+
+		console.log('Cart records fetched:', records.length);
 
 		// Filter by restaurant if restaurantId is provided
 		let filteredRecords = records;
@@ -91,7 +96,7 @@ export async function fetchCart(restaurantId?: string) {
 
 		cart.set(filteredRecords);
 	} catch (err) {
-		// console.error('Failed to fetch cart:', err);
+		console.error('Failed to fetch cart:', err);
 	}
 }
 
