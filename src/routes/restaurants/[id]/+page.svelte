@@ -470,7 +470,7 @@
 									{/if}
 									<!-- Dish Name Overlay -->
 									<div class="absolute right-0 bottom-0 left-0 p-4">
-										<h3 class="font-semibold text-white">{dish.name}</h3>
+										<h3 class="font-semibold !text-white">{dish.name}</h3>
 									</div>
 								</div>
 
