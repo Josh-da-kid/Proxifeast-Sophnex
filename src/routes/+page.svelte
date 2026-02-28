@@ -1220,8 +1220,8 @@
 		</div>
 	{/if}
 
-	<!-- Custom Restaurant Hero (Non-Super Restaurants) -->
-	{#if !isSuper && selectedRestaurant}
+	<!-- Custom Restaurant Hero (When a specific restaurant is selected) -->
+	{#if selectedRestaurant}
 		<!-- Restaurant Banner -->
 		<div class="relative h-[50vh] bg-slate-900 md:h-[60vh]">
 			{#if selectedRestaurant.bannerUrl}
@@ -1292,15 +1292,6 @@
 							>
 								{isRestaurantOpen(selectedRestaurant) ? 'Open Now' : 'Closed'}
 							</span>
-							{#if selectedRestaurant.openingTime || selectedRestaurant.closingTime}
-								<span class="text-gray-400" style="color: #9ca3af !important;">
-									({selectedRestaurant.openingTime
-										? formatTime(selectedRestaurant.openingTime)
-										: '24/7'} - {selectedRestaurant.closingTime
-										? formatTime(selectedRestaurant.closingTime)
-										: '24/7'})
-								</span>
-							{/if}
 						</div>
 
 						<!-- Opening Hours -->
