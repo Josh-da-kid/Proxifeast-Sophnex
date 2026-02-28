@@ -224,7 +224,7 @@
 
 <style>
 	.font-heading {
-		font-family: 'Poppins', sans-serif;
+		font-family: 'Plus Jakarta Sans', sans-serif;
 	}
 
 	.menu-item-card {

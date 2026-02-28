@@ -1498,7 +1498,7 @@
 										>
 											{dish.name}
 										</h3>
-										<p class="mb-4 line-clamp-2 text-sm leading-relaxed text-gray-200">
+										<p class="mb-4 line-clamp-2 text-sm leading-relaxed text-gray-500">
 											{dish.description}
 										</p>
 
