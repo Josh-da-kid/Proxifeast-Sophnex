@@ -266,8 +266,16 @@
 
 		<!-- Loading State -->
 		{#if isLoading}
+			{@const placeholders = [
+				{ name: 'Savory Bites', category: 'Fast Food', address: 'Loading location...' },
+				{ name: 'Golden Spoon', category: 'African Cuisine', address: 'Loading location...' },
+				{ name: 'Taste Haven', category: 'Continental', address: 'Loading location...' },
+				{ name: 'Flavor Palace', category: 'Local Dishes', address: 'Loading location...' },
+				{ name: "Chef's Corner", category: 'Grill & BBQ', address: 'Loading location...' },
+				{ name: 'Meal Magic', category: 'Healthy Food', address: 'Loading location...' }
+			]}
 			<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-				{#each Array(6) as _}
+				{#each placeholders as placeholder}
 					<div class="animate-pulse rounded-2xl bg-white p-6 shadow-md">
 						<div class="mb-4 flex items-center gap-4">
 							<div class="h-16 w-16 rounded-xl bg-slate-200"></div>
@@ -278,6 +286,10 @@
 						</div>
 						<div class="mb-4 h-16 w-full rounded bg-slate-200"></div>
 						<div class="h-4 w-full rounded bg-slate-200"></div>
+						<div class="mt-4 flex items-center gap-2">
+							<div class="h-3 w-3 rounded-full bg-slate-200"></div>
+							<div class="h-3 w-24 rounded bg-slate-200"></div>
+						</div>
 					</div>
 				{/each}
 			</div>
