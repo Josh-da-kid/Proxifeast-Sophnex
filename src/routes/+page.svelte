@@ -1223,25 +1223,27 @@
 	<!-- Custom Restaurant Hero (Non-Super Restaurants) -->
 	{#if !isSuper && selectedRestaurant}
 		<!-- Restaurant Banner -->
-		<div class="relative h-[50vh] md:h-[60vh]">
+		<div class="relative h-[50vh] bg-slate-900 md:h-[60vh]">
 			{#if selectedRestaurant.bannerUrl}
 				<img
 					src={selectedRestaurant.bannerUrl}
 					alt={selectedRestaurant.name}
-					class="h-full w-full object-cover"
+					class="absolute inset-0 h-full w-full object-cover"
 				/>
 			{:else if selectedRestaurant.imageUrl}
 				<img
 					src={selectedRestaurant.imageUrl}
 					alt={selectedRestaurant.name}
-					class="h-full w-full object-cover"
+					class="absolute inset-0 h-full w-full object-cover"
 				/>
 			{:else}
-				<div class="h-full w-full bg-gradient-to-br from-slate-800 to-slate-900"></div>
+				<div
+					class="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950"
+				></div>
 			{/if}
-			<!-- Gradient Overlay -->
+			<!-- Gradient Overlay - stronger for better text contrast -->
 			<div
-				class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"
+				class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/70 to-transparent"
 			></div>
 
 			<!-- Restaurant Info Overlay -->
@@ -1250,26 +1252,29 @@
 					<!-- Category Tag -->
 					{#if selectedRestaurant.category}
 						<span
-							class="mb-3 inline-block rounded-full bg-amber-500/90 px-4 py-1.5 text-sm font-semibold text-white shadow-lg"
+							class="mb-3 inline-block rounded-full bg-amber-500 px-4 py-1.5 text-sm font-semibold text-white shadow-lg"
 						>
 							{selectedRestaurant.category}
 						</span>
 					{/if}
 
 					<!-- Restaurant Name -->
-					<h1 class="font-playfair mb-2 text-3xl font-bold text-white md:text-4xl lg:text-5xl">
+					<h1
+						class="font-playfair mb-2 text-3xl font-bold text-white md:text-4xl lg:text-5xl"
+						style="color: #ffffff !important;"
+					>
 						{selectedRestaurant.name}
 					</h1>
 
 					<!-- Motto -->
 					{#if selectedRestaurant.motto}
-						<p class="mb-4 text-lg text-white/80 md:text-xl">
+						<p class="mb-4 text-lg" style="color: #e5e7eb !important;">
 							{selectedRestaurant.motto}
 						</p>
 					{/if}
 
 					<!-- Quick Info -->
-					<div class="flex flex-wrap items-center gap-4 text-sm text-white/70 md:text-base">
+					<div class="flex flex-wrap items-center gap-4 text-sm" style="color: #d1d5db !important;">
 						<!-- Open/Closed Status -->
 						<div class="flex items-center gap-2">
 							<span
@@ -1281,9 +1286,21 @@
 								class="font-medium {isRestaurantOpen(selectedRestaurant)
 									? 'text-green-400'
 									: 'text-red-400'}"
+								style={isRestaurantOpen(selectedRestaurant)
+									? 'color: #4ade80 !important;'
+									: 'color: #f87171 !important;'}
 							>
 								{isRestaurantOpen(selectedRestaurant) ? 'Open Now' : 'Closed'}
 							</span>
+							{#if selectedRestaurant.openingTime || selectedRestaurant.closingTime}
+								<span class="text-gray-400" style="color: #9ca3af !important;">
+									({selectedRestaurant.openingTime
+										? formatTime(selectedRestaurant.openingTime)
+										: '24/7'} - {selectedRestaurant.closingTime
+										? formatTime(selectedRestaurant.closingTime)
+										: '24/7'})
+								</span>
+							{/if}
 						</div>
 
 						<!-- Opening Hours -->
@@ -1296,11 +1313,12 @@
 									viewBox="0 0 24 24"
 									stroke="currentColor"
 									stroke-width="2"
+									style="color: #9ca3af !important;"
 								>
 									<circle cx="12" cy="12" r="10" />
 									<polyline points="12 6 12 12 16 14" />
 								</svg>
-								<span>
+								<span style="color: #d1d5db !important;">
 									{selectedRestaurant.openingTime
 										? formatTime(selectedRestaurant.openingTime)
 										: '24/7'} - {selectedRestaurant.closingTime
@@ -1320,11 +1338,14 @@
 									viewBox="0 0 24 24"
 									stroke="currentColor"
 									stroke-width="2"
+									style="color: #9ca3af !important;"
 								>
 									<path d="M21 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
 									<circle cx="12" cy="10" r="3" />
 								</svg>
-								<span class="line-clamp-1 max-w-xs">{selectedRestaurant.restaurantAddress}</span>
+								<span class="line-clamp-1 max-w-xs" style="color: #d1d5db !important;"
+									>{selectedRestaurant.restaurantAddress}</span
+								>
 							</div>
 						{/if}
 					</div>

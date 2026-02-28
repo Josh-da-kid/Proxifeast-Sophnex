@@ -368,7 +368,7 @@
 					/>
 				</svg>
 			</a>
-			{#if $isSuper || $isAdminForRestaurant}
+			{#if $user && ($isSuper || $isAdminForRestaurant)}
 				<div class="dropdown dropdown-end">
 					<button tabindex="0" class="nav-link flex items-center gap-1">
 						<svg
@@ -787,7 +787,7 @@
 							Install App
 						</a>
 					</li>
-					{#if $isSuper || $isAdminForRestaurant}
+					{#if $user && ($isSuper || $isAdminForRestaurant)}
 						<div class="divider my-1">Admin</div>
 						<li>
 							<a
