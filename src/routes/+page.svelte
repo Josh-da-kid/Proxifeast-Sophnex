@@ -110,6 +110,16 @@
 		return diffDays <= 7;
 	}
 
+	// Helper function to format time
+	function formatTime(time: string): string {
+		if (!time) return '';
+		const [hours, minutes] = time.split(':');
+		const h = parseInt(hours);
+		const ampm = h >= 12 ? 'PM' : 'AM';
+		const h12 = h % 12 || 12;
+		return `${h12}:${minutes} ${ampm}`;
+	}
+
 	// State management
 	let viewMode = $state('list'); // 'list' or 'menu'
 	let searchInput = $state('');
@@ -1210,47 +1220,184 @@
 		</div>
 	{/if}
 
-	<!-- Hero Carousel -->
-	<HeroCarousel
-		slides={[
-			{
-				id: 1,
-				image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1920&q=80',
-				imageMobile: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80',
-				title: 'Delicious Food Delivered Fast',
-				description:
-					'Order from your favorite restaurants and enjoy restaurant-quality meals delivered to your doorstep.',
-				primaryBtn: { text: 'Order Now', href: '#menu' },
-				secondaryBtn: { text: 'Browse Restaurants', href: '#restaurants' }
-			},
-			{
-				id: 2,
-				image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=80',
-				imageMobile: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80',
-				title: 'Discover Local Favorites',
-				description:
-					'Explore the best restaurants in your area and discover new culinary experiences.',
-				primaryBtn: { text: 'Explore Now', href: '#restaurants' },
-				secondaryBtn: { text: 'Learn More', href: '#how-it-works' }
-			},
-			{
-				id: 3,
-				image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1920&q=80',
-				imageMobile: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80',
-				title: 'Start Your Restaurant Business',
-				description:
-					'Join thousands of restaurants using Proxifeast to grow their delivery business.',
-				primaryBtn: { text: 'Get Started Free', href: '/signup' },
-				secondaryBtn: { text: 'Watch Demo', href: '#' }
-			}
-		]}
-		autoplay={true}
-		autoplayDelay={6000}
-		speed={800}
-		navigation={true}
-		pagination={true}
-		fadeEffect={true}
-	/>
+	<!-- Custom Restaurant Hero (Non-Super Restaurants) -->
+	{#if !isSuper && selectedRestaurant}
+		<!-- Restaurant Banner -->
+		<div class="relative h-[50vh] md:h-[60vh]">
+			{#if selectedRestaurant.bannerUrl}
+				<img
+					src={selectedRestaurant.bannerUrl}
+					alt={selectedRestaurant.name}
+					class="h-full w-full object-cover"
+				/>
+			{:else if selectedRestaurant.imageUrl}
+				<img
+					src={selectedRestaurant.imageUrl}
+					alt={selectedRestaurant.name}
+					class="h-full w-full object-cover"
+				/>
+			{:else}
+				<div class="h-full w-full bg-gradient-to-br from-slate-800 to-slate-900"></div>
+			{/if}
+			<!-- Gradient Overlay -->
+			<div
+				class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"
+			></div>
+
+			<!-- Restaurant Info Overlay -->
+			<div class="absolute right-0 bottom-0 left-0 p-6 md:p-10">
+				<div class="mx-auto max-w-5xl">
+					<!-- Category Tag -->
+					{#if selectedRestaurant.category}
+						<span
+							class="mb-3 inline-block rounded-full bg-amber-500/90 px-4 py-1.5 text-sm font-semibold text-white shadow-lg"
+						>
+							{selectedRestaurant.category}
+						</span>
+					{/if}
+
+					<!-- Restaurant Name -->
+					<h1 class="font-playfair mb-2 text-3xl font-bold text-white md:text-4xl lg:text-5xl">
+						{selectedRestaurant.name}
+					</h1>
+
+					<!-- Motto -->
+					{#if selectedRestaurant.motto}
+						<p class="mb-4 text-lg text-white/80 md:text-xl">
+							{selectedRestaurant.motto}
+						</p>
+					{/if}
+
+					<!-- Quick Info -->
+					<div class="flex flex-wrap items-center gap-4 text-sm text-white/70 md:text-base">
+						<!-- Open/Closed Status -->
+						<div class="flex items-center gap-2">
+							<span
+								class="h-2.5 w-2.5 rounded-full {isRestaurantOpen(selectedRestaurant)
+									? 'bg-green-400'
+									: 'bg-red-400'} animate-pulse"
+							></span>
+							<span
+								class="font-medium {isRestaurantOpen(selectedRestaurant)
+									? 'text-green-400'
+									: 'text-red-400'}"
+							>
+								{isRestaurantOpen(selectedRestaurant) ? 'Open Now' : 'Closed'}
+							</span>
+						</div>
+
+						<!-- Opening Hours -->
+						{#if selectedRestaurant.openingTime || selectedRestaurant.closingTime}
+							<div class="flex items-center gap-1.5">
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-4 w-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<circle cx="12" cy="12" r="10" />
+									<polyline points="12 6 12 12 16 14" />
+								</svg>
+								<span>
+									{selectedRestaurant.openingTime
+										? formatTime(selectedRestaurant.openingTime)
+										: '24/7'} - {selectedRestaurant.closingTime
+										? formatTime(selectedRestaurant.closingTime)
+										: '24/7'}
+								</span>
+							</div>
+						{/if}
+
+						<!-- Address -->
+						{#if selectedRestaurant.restaurantAddress}
+							<div class="flex items-center gap-1.5">
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-4 w-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path d="M21 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+									<circle cx="12" cy="10" r="3" />
+								</svg>
+								<span class="line-clamp-1 max-w-xs">{selectedRestaurant.restaurantAddress}</span>
+							</div>
+						{/if}
+					</div>
+
+					<!-- CTA Button -->
+					<div class="mt-6">
+						<a
+							href="#menu"
+							class="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 transition-all hover:bg-amber-600 hover:shadow-xl md:text-base"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-5 w-5"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+								/>
+							</svg>
+							Browse Menu
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	{:else}
+		<!-- Hero Carousel (Super Restaurants) -->
+		<HeroCarousel
+			slides={[
+				{
+					id: 1,
+					image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1920&q=80',
+					imageMobile: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80',
+					title: 'Delicious Food Delivered Fast',
+					description:
+						'Order from your favorite restaurants and enjoy restaurant-quality meals delivered to your doorstep.',
+					primaryBtn: { text: 'Order Now', href: '#menu' },
+					secondaryBtn: { text: 'Browse Restaurants', href: '#restaurants' }
+				},
+				{
+					id: 2,
+					image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=80',
+					imageMobile: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80',
+					title: 'Discover Local Favorites',
+					description:
+						'Explore the best restaurants in your area and discover new culinary experiences.',
+					primaryBtn: { text: 'Explore Now', href: '#restaurants' },
+					secondaryBtn: { text: 'Learn More', href: '#how-it-works' }
+				},
+				{
+					id: 3,
+					image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1920&q=80',
+					imageMobile: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80',
+					title: 'Start Your Restaurant Business',
+					description:
+						'Join thousands of restaurants using Proxifeast to grow their delivery business.',
+					primaryBtn: { text: 'Get Started Free', href: '/signup' },
+					secondaryBtn: { text: 'Watch Demo', href: '#' }
+				}
+			]}
+			autoplay={true}
+			autoplayDelay={6000}
+			speed={800}
+			navigation={true}
+			pagination={true}
+			fadeEffect={true}
+		/>
+	{/if}
 
 	<!-- Today's Special -->
 	{#if isLoading}
