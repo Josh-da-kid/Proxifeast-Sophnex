@@ -697,7 +697,7 @@
 																<span class="text-base-content/40 text-sm line-through"
 																	>₦{item.expand.dish.defaultAmount.toLocaleString()}</span
 																>
-																<span class="badge badge-accent badge-sm"
+																<span class="badge badge-accent badge-sm text-gray-100"
 																	>-{Math.round(
 																		(1 -
 																			item.expand.dish.promoAmount /
