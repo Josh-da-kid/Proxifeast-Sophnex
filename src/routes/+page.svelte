@@ -1494,11 +1494,11 @@
 									<!-- Content -->
 									<div class="flex flex-1 flex-col p-5">
 										<h3
-											class="font-playfair mb-2 text-lg leading-tight font-semibold !text-white transition-colors group-hover:!text-amber-400"
+											class="font-playfair mb-2 text-lg leading-tight font-semibold !text-amber-500 transition-colors group-hover:!text-amber-400"
 										>
 											{dish.name}
 										</h3>
-										<p class="mb-4 line-clamp-2 text-sm leading-relaxed !text-gray-200">
+										<p class="mb-4 line-clamp-2 text-sm leading-relaxed !text-gray-500">
 											{dish.description}
 										</p>
 
