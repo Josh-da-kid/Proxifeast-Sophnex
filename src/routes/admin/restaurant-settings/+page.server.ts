@@ -62,7 +62,18 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 		const isSuper = locals.user?.isSuper || locals.isSuper || false;
 
-		const galleryImages = restaurant.galleryImages || [];
+		let galleryImages: string[] = [];
+		if (restaurant.galleryImages) {
+			if (typeof restaurant.galleryImages === 'string') {
+				try {
+					galleryImages = JSON.parse(restaurant.galleryImages);
+				} catch {
+					galleryImages = [];
+				}
+			} else if (Array.isArray(restaurant.galleryImages)) {
+				galleryImages = restaurant.galleryImages;
+			}
+		}
 
 		return {
 			restaurant,

@@ -913,6 +913,17 @@
 							<input type="hidden" name="bannerUrl" value={restBannerUrl} />
 						</div>
 					</div>
+
+					<!-- Save Button -->
+					<div class="mt-6 flex justify-end">
+						<button
+							type="submit"
+							class="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+							disabled={!restaurantInfoChanged}
+						>
+							Save Changes
+						</button>
+					</div>
 				</form>
 			</div>
 		{/if}

@@ -54,6 +54,32 @@
 	</div>
 {/if}
 
+<!-- Trial Upgrade Banner -->
+{#if $page.data.restaurant?.subscriptionStatus === 'trial'}
+	{@const trialDaysLeft = (() => {
+		if (!$page.data.restaurant?.trialEndDate) return 0;
+		const end = new Date($page.data.restaurant.trialEndDate);
+		const now = new Date();
+		return Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+	})()}
+	{#if trialDaysLeft > 0}
+		<div
+			class="sticky top-0 z-40 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-center text-white shadow-lg"
+		>
+			<p class="flex flex-wrap items-center justify-center gap-2 text-sm font-medium">
+				<span>🚀 Your free trial ends in {trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''}!</span>
+				<span>Upgrade now and save 14% with yearly billing.</span>
+				<a
+					href="/subscriptions"
+					class="rounded-full bg-white px-4 py-1 text-sm font-bold text-amber-600 transition-all hover:shadow"
+				>
+					Upgrade Now →
+				</a>
+			</p>
+		</div>
+	{/if}
+{/if}
+
 <div class="flex min-h-screen flex-col">
 	<main class="flex-grow">{@render children()}</main>
 </div>

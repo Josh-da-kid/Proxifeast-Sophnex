@@ -4,6 +4,7 @@
 	import { isAdminPage } from './menuItems.svelte';
 	import { cart, clearCart, fetchCart, removeFromCart, total } from './stores/cart';
 	import { onMount } from 'svelte';
+	import ImageCropper from './ImageCropper.svelte';
 
 	let { restaurants = [], isSuper: propIsSuper, restaurantId: propRestaurantId } = $props();
 
@@ -61,6 +62,13 @@
 	});
 
 	let imageSource = $state('file');
+	let showImageCropper = $state(false);
+	let dishImageBase64 = $state('');
+
+	function handleImageCrop(blob: Blob, base64: string) {
+		dishImageBase64 = base64;
+		showImageCropper = false;
+	}
 
 	function handleImageSourceChange(e: any) {
 		imageSource = e.target.value;
@@ -191,45 +199,84 @@
 						</div>
 
 						<!-- Image Source Toggle -->
-						<div>
-							<label class="mb-2 block text-sm font-medium text-slate-700">Image Source</label>
-							<div class="flex gap-4">
-								<label
-									class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 hover:bg-slate-50 {imageSource ===
-									'url'
-										? 'border-slate-500 bg-slate-50'
-										: ''}"
-								>
-									<input
-										type="radio"
-										class="cursor-pointer"
-										name="imageSource"
-										value="url"
-										onchange={handleImageSourceChange}
-									/>
-									<span class="text-sm text-slate-700">URL</span>
-								</label>
-								<label
-									class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 hover:bg-slate-50 {imageSource ===
-									'file'
-										? 'border-slate-500 bg-slate-50'
-										: ''}"
-								>
-									<input
-										type="radio"
-										class="cursor-pointer"
-										name="imageSource"
-										value="file"
-										checked
-										onchange={handleImageSourceChange}
-									/>
-									<span class="text-sm text-slate-700">Upload File</span>
-								</label>
-							</div>
+						<div class="flex gap-4">
+							<label class="flex cursor-pointer items-center gap-2">
+								<input
+									type="radio"
+									class="cursor-pointer"
+									name="imageSource"
+									value="crop"
+									checked={imageSource === 'crop'}
+									onchange={handleImageSourceChange}
+								/>
+								<span class="text-sm text-slate-700">Crop Image</span>
+							</label>
+							<label class="flex cursor-pointer items-center gap-2">
+								<input
+									type="radio"
+									class="cursor-pointer"
+									name="imageSource"
+									value="url"
+									checked={imageSource === 'url'}
+									onchange={handleImageSourceChange}
+								/>
+								<span class="text-sm text-slate-700">Image URL</span>
+							</label>
+							<label class="flex cursor-pointer items-center gap-2">
+								<input
+									type="radio"
+									class="cursor-pointer"
+									name="imageSource"
+									value="file"
+									checked={imageSource === 'file'}
+									onchange={handleImageSourceChange}
+								/>
+								<span class="text-sm text-slate-700">Upload File</span>
+							</label>
 						</div>
 
-						<!-- Image URL Input -->
-						{#if imageSource === 'url'}
+						<!-- Image Cropper -->
+						{#if imageSource === 'crop'}
+							<div>
+								{#if dishImageBase64}
+									<div class="relative mt-1 mb-2">
+										<img
+											src={dishImageBase64}
+											alt="Dish preview"
+											class="h-32 w-full rounded-lg object-cover"
+										/>
+										<button
+											type="button"
+											onclick={() => (showImageCropper = true)}
+											class="absolute right-2 bottom-2 rounded-lg bg-white/90 px-2 py-1 text-xs font-medium text-slate-700 shadow hover:bg-white"
+										>
+											Change
+										</button>
+									</div>
+								{:else}
+									<button
+										type="button"
+										onclick={() => (showImageCropper = true)}
+										class="mt-1 flex w-full items-center justify-center rounded-lg border-2 border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500 hover:border-amber-500 hover:text-amber-500"
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											class="mr-2 h-5 w-5"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+										>
+											<path
+												d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+											/>
+										</svg>
+										Crop Image
+									</button>
+								{/if}
+								<input type="hidden" name="imageUrl" value={dishImageBase64} />
+							</div>
+						{:else if imageSource === 'url'}
 							<div>
 								<label for="imageUrl" class="mb-1.5 block text-sm font-medium text-slate-700"
 									>Image URL</label
@@ -250,7 +297,6 @@
 									name="imageFile"
 									accept="image/*"
 									class="w-full cursor-pointer rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-700 file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-slate-200 file:px-4 file:py-2 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-300"
-									required
 								/>
 								<p class="mt-1 text-xs text-slate-500">JPEG or PNG under 2MB</p>
 							</div>
@@ -303,30 +349,38 @@
 							</div>
 						</div>
 
+						<!-- Restaurant Selection (for super users) -->
+						<!-- {#if $isSuper}
+							<div>
+								<label for="restaurantIdSelect" class="mb-1.5 block text-sm font-medium text-slate-700"
+									>Restaurant *</label
+								>
+								<select
+									id="restaurantIdSelect"
+									name="restaurantId"
+									class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
+									required
+								>
+									{#each restaurants as restaurant}
+										<option value={restaurant.id}>{restaurant.name}</option>
+									{/each}
+								</select>
+							</div>
+						{/if} -->
+
 						<!-- Availability -->
 						<div>
 							<label for="availability" class="mb-1.5 block text-sm font-medium text-slate-700"
 								>Availability *</label
 							>
 							<select
-								id="restaurantId"
-								name="restaurantId"
+								id="availability"
+								name="availability"
 								class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
 								required
 							>
-								{#if $isSuper}
-									<option value={defaultRestaurantId} selected>
-										{sortedRestaurants.find((r: any) => r.id === defaultRestaurantId)?.name ||
-											'Select Restaurant'}
-									</option>
-								{:else}
-									<option value="" disabled>Select Restaurant</option>
-								{/if}
-								{#each sortedRestaurants as restaurant}
-									{#if !$isSuper || restaurant.id !== defaultRestaurantId}
-										<option value={restaurant.id}>{restaurant.name}</option>
-									{/if}
-								{/each}
+								<option value="Available">Available</option>
+								<option value="Unavailable">Unavailable</option>
 							</select>
 						</div>
 					</div>
@@ -349,6 +403,41 @@
 						</button>
 					</div>
 				</form>
+
+				<!-- Image Cropper Modal -->
+				{#if showImageCropper}
+					<div
+						class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4"
+					>
+						<div class="w-full max-w-2xl rounded-2xl bg-white p-6">
+							<div class="mb-4 flex items-center justify-between">
+								<h3 class="text-lg font-semibold text-slate-900">Crop Dish Image</h3>
+								<button
+									onclick={() => (showImageCropper = false)}
+									class="rounded-lg p-2 hover:bg-slate-100"
+								>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										class="h-5 w-5"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+									>
+										<path d="M18 6L6 18M6 6l12 12" />
+									</svg>
+								</button>
+							</div>
+
+							<ImageCropper
+								uploadType="dish"
+								initialImage={dishImageBase64}
+								onCropComplete={handleImageCrop}
+								onCancel={() => (showImageCropper = false)}
+							/>
+						</div>
+					</div>
+				{/if}
 			</div>
 		</div>
 	</div>

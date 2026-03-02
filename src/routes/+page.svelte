@@ -1444,6 +1444,28 @@
 				</div>
 			</div>
 		</section>
+
+		<!-- Gallery Section (when restaurant is selected) -->
+		{#if selectedRestaurant?.galleryImages && selectedRestaurant.galleryImages.length > 0}
+			<section class="bg-base-100 relative overflow-hidden py-12">
+				<div class="container mx-auto px-6">
+					<div class="mb-8 text-center">
+						<h2 class="font-playfair text-primary text-2xl font-bold sm:text-3xl">
+							{selectedRestaurant.name} Gallery
+						</h2>
+					</div>
+					<Carousel showArrows={true} showDots={true} autoplay={true} autoplayDelay={5000}>
+						{#each selectedRestaurant.galleryImages as img, idx}
+							<div class="relative w-full shrink-0 snap-start">
+								<div class="aspect-[16/7] overflow-hidden rounded-xl bg-slate-200">
+									<img src={img} alt="Gallery {idx + 1}" class="h-full w-full object-cover" />
+								</div>
+							</div>
+						{/each}
+					</Carousel>
+				</div>
+			</section>
+		{/if}
 	{:else if filteredFeaturedDishes.length > 0}
 		<section id="specials" class="bg-base-100 relative overflow-hidden py-20">
 			<!-- Decorative -->

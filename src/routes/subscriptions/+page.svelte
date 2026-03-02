@@ -1,63 +1,82 @@
 <script lang="ts">
 	import { fly, fade } from 'svelte/transition';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
+
+	let { data } = $props();
+
+	const user = $derived($page.data.user);
+	const restaurant = $derived($page.data.restaurant);
 
 	const plans = [
 		{
-			id: 'weekly',
-			name: '7-Day Free Trial',
+			id: 'trial',
+			name: 'Free Trial',
 			price: 0,
-			description: 'Free for 7 days to test all features',
+			period: '7 days',
+			description: 'Full access to test all features',
 			features: [
 				'Full menu management',
 				'Real-time orders',
+				'Table service & pickup',
+				'Home delivery workflow',
 				'Analytics dashboard',
-				'QR code per table',
-				'Push notifications'
+				'Staff management'
 			],
 			isPopular: false,
-			isFree: true
+			isTrial: true
 		},
 		{
 			id: 'monthly',
 			name: 'Monthly',
-			price: 25000,
+			price: 29000,
+			period: 'month',
 			description: 'Billed monthly, cancel anytime',
 			features: [
 				'Everything in Free Trial',
 				'Priority support',
 				'Custom domain',
 				'No Proxifeast branding',
-				'Email notifications'
+				'Email & SMS notifications',
+				'Advanced analytics'
 			],
-			isPopular: true
+			isPopular: true,
+			savings: null
 		},
 		{
 			id: 'quarterly',
 			name: 'Quarterly',
-			price: 65000,
-			description: 'Billed quarterly (Save 6%)',
+			price: 80000,
+			period: 'quarter',
+			description: 'Save 8% vs monthly',
 			features: [
 				'Everything in Monthly',
 				'Lower per-month cost',
 				'Dedicated support',
-				'Advanced analytics',
-				'Multi-branch support'
+				'Multi-branch support',
+				'API access',
+				'Custom integrations'
 			],
-			isPopular: false
+			isPopular: false,
+			savings: '8%'
 		},
 		{
 			id: 'yearly',
 			name: 'Yearly',
-			price: 250000,
-			description: 'Billed yearly (Save 17%)',
+			price: 299000,
+			period: 'year',
+			description: 'Save 14% - Best Value!',
 			features: [
 				'Everything in Quarterly',
-				'Best value',
+				'2 months free',
 				'Premium support',
-				'API access',
-				'White-label option'
+				'White-label option',
+				'Custom training',
+				'Hardware discounts'
 			],
-			isPopular: false
+			isPopular: false,
+			savings: '14%',
+			isBestValue: true
 		}
 	];
 
@@ -78,9 +97,9 @@
 				'Yes! We offer a 7-day free trial so you can explore all features before committing. No credit card required.'
 		},
 		{
-			question: 'What happens when my subscription expires?',
+			question: 'What happens when my trial ends?',
 			answer:
-				'When your subscription expires, your restaurant menu will be temporarily paused until you renew. Your data is safely stored and will be restored once you subscribe again.'
+				'When your trial ends, your restaurant operations will be temporarily locked. You can still view past orders and analytics, but you need to subscribe to continue processing new orders.'
 		},
 		{
 			question: 'Do you offer refunds?',
@@ -99,6 +118,30 @@
 	function toggleFaq(index: number) {
 		openFaq = openFaq === index ? null : index;
 	}
+
+	function selectPlan(planId: string) {
+		if (!user) {
+			goto('/signup?redirect=/subscriptions');
+			return;
+		}
+		if (planId === 'trial') {
+			goto('/admin/subscription?action=start-trial');
+		} else {
+			goto(`/admin/subscription?plan=${planId}`);
+		}
+	}
+
+	const trialDaysLeft = $derived(() => {
+		if (!restaurant?.trialEndDate) return null;
+		const end = new Date(restaurant.trialEndDate);
+		const now = new Date();
+		const diff = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+		return diff > 0 ? diff : 0;
+	});
+
+	const isInTrial = $derived(() => {
+		return restaurant?.subscriptionStatus === 'trial';
+	});
 </script>
 
 <svelte:head>
@@ -139,6 +182,19 @@
 
 	<!-- Pricing Cards -->
 	<section class="container mx-auto px-4 py-12">
+		<!-- Trial Countdown Banner -->
+		{#if isInTrial() && trialDaysLeft() > 0}
+			<div
+				class="mb-8 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 text-center text-white shadow-lg"
+			>
+				<p class="text-lg font-semibold">
+					🚀 You're on a free trial! {trialDaysLeft()} day{trialDaysLeft() !== 1 ? 's' : ''} remaining.
+					<a href="/admin/subscription" class="underline underline-offset-2">Upgrade now</a> to lock
+					in savings!
+				</p>
+			</div>
+		{/if}
+
 		<div class="mx-auto max-w-6xl">
 			<!-- Mobile: Scrollable horizontally -->
 			<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -146,17 +202,25 @@
 					<div
 						class="relative flex flex-col rounded-2xl border-2 bg-white p-6 shadow-lg transition-all hover:shadow-xl {plan.isPopular
 							? 'border-amber-500 ring-2 ring-amber-500/20'
-							: 'border-slate-200'}"
+							: plan.isTrial
+								? 'border-emerald-500 ring-2 ring-emerald-500/20'
+								: 'border-slate-200'}"
 						in:fly={{ y: 30, duration: 600, delay: 100 * index }}
 					>
-						{#if plan.isPopular}
+						{#if plan.isBestValue}
+							<div class="absolute -top-4 left-1/2 z-10 -translate-x-1/2">
+								<span
+									class="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-1 text-sm font-bold text-white"
+									>⭐ Best Value</span
+								>
+							</div>
+						{:else if plan.isPopular}
 							<div class="absolute -top-4 left-1/2 z-10 -translate-x-1/2">
 								<span class="rounded-full bg-amber-500 px-4 py-1 text-sm font-bold text-white"
 									>Most Popular</span
 								>
 							</div>
-						{/if}
-						{#if plan.isFree}
+						{:else if plan.isTrial}
 							<div class="absolute -top-4 left-1/2 z-10 -translate-x-1/2">
 								<span class="rounded-full bg-emerald-500 px-4 py-1 text-sm font-bold text-white"
 									>Free Trial</span
@@ -170,15 +234,17 @@
 						</div>
 
 						<div class="mb-6 text-center">
-							{#if plan.isFree}
+							{#if plan.isTrial}
 								<span class="text-4xl font-bold text-emerald-600">FREE</span>
+								<span class="block text-sm text-slate-500">{plan.period}</span>
 							{:else}
 								<span class="text-4xl font-bold text-slate-900">₦{plan.price.toLocaleString()}</span
 								>
-								{#if plan.id !== 'monthly'}
-									<span class="text-sm text-slate-500">/one-time</span>
-								{:else}
-									<span class="text-sm text-slate-500">/month</span>
+								<span class="text-sm text-slate-500">/{plan.period}</span>
+								{#if plan.savings}
+									<div class="mt-1 text-sm font-medium text-emerald-600">
+										Save {plan.savings}
+									</div>
 								{/if}
 							{/if}
 						</div>
@@ -206,14 +272,16 @@
 							</ul>
 						</div>
 
-						<a
-							href="/contact"
-							class="mt-auto w-full rounded-xl py-3 text-center font-medium transition-all {plan.isPopular
+						<button
+							onclick={() => selectPlan(plan.id)}
+							class="mt-auto w-full rounded-xl py-3 font-medium transition-all {plan.isPopular
 								? 'bg-amber-500 text-white hover:bg-amber-600'
-								: 'border-2 border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'}"
+								: plan.isTrial
+									? 'bg-emerald-500 text-white hover:bg-emerald-600'
+									: 'border-2 border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'}"
 						>
-							Get Started
-						</a>
+							{plan.isTrial ? 'Start Free Trial' : 'Choose Plan'}
+						</button>
 					</div>
 				{/each}
 			</div>
