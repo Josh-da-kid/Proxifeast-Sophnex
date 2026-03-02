@@ -11,6 +11,15 @@
 
 	export const user = derived(page, ($page) => $page.data.user);
 
+	const isKitchenMode = derived(page, ($page) => $page.url.searchParams.get('kitchen') === 'true');
+	const isWaiterMode = derived(page, ($page) => $page.url.searchParams.get('waiter') === 'true');
+	const isTabletMode = derived(
+		page,
+		($page) =>
+			$page.url.searchParams.get('kitchen') === 'true' ||
+			$page.url.searchParams.get('waiter') === 'true'
+	);
+
 	let searchInput = $state('');
 	let selectedCategoryInput = $state('All');
 	let selectedRestaurantInput = $state('All');
@@ -26,7 +35,19 @@
 
 	// Client-side filtered orders
 	$effect(() => {
-		filteredOrders = orders.filter((order: any) => {
+		let baseFiltered = orders;
+
+		if ($isKitchenMode) {
+			baseFiltered = orders.filter(
+				(order: any) => order.status === 'Pending' || order.status === 'Preparing'
+			);
+		} else if ($isWaiterMode) {
+			baseFiltered = orders.filter(
+				(order: any) => order.status === 'Ready' || order.status === 'Delivered'
+			);
+		}
+
+		filteredOrders = baseFiltered.filter((order: any) => {
 			const matchesSearch =
 				!searchInput.trim() ||
 				order.reference?.toLowerCase().includes(searchInput.toLowerCase()) ||
@@ -228,18 +249,52 @@
 	message={successMessage || ''}
 />
 
-<div class="min-h-screen bg-slate-50">
+<div class="min-h-screen bg-slate-50" class:text-lg={$isTabletMode} class:text-xl={$isTabletMode}>
 	<!-- Header -->
 	<section
 		class="bg-gradient-to-b from-slate-900 via-slate-800 to-slate-700 py-8 text-center text-white"
 	>
 		<div class="container mx-auto px-4">
-			<h1
-				class="font-playfair mb-2 text-2xl font-bold md:text-3xl"
-				in:fly={{ y: 20, duration: 400 }}
-			>
-				Pending Orders
-			</h1>
+			<div class="flex items-center justify-between">
+				<div></div>
+				<h1
+					class="font-playfair mb-2 text-2xl font-bold md:text-3xl"
+					class:text-3xl={$isTabletMode}
+					class:md:text-4xl={$isTabletMode}
+					in:fly={{ y: 20, duration: 400 }}
+				>
+					{#if $isKitchenMode}
+						Kitchen View
+					{:else if $isWaiterMode}
+						Waiter View
+					{:else}
+						Pending Orders
+					{/if}
+				</h1>
+				<div class="flex gap-2">
+					<a
+						href="?kitchen=true"
+						class="btn btn-sm"
+						class:btn-primary={$isKitchenMode}
+						class:btn-ghost={!$isKitchenMode}
+						class:text-white={$isKitchenMode}
+					>
+						Kitchen
+					</a>
+					<a
+						href="?waiter=true"
+						class="btn btn-sm"
+						class:btn-primary={$isWaiterMode}
+						class:btn-ghost={!$isWaiterMode}
+						class:text-white={$isWaiterMode}
+					>
+						Waiter
+					</a>
+					{#if $isTabletMode}
+						<a href="?" class="btn btn-sm btn-ghost text-white">Exit</a>
+					{/if}
+				</div>
+			</div>
 			<p class="text-sm text-slate-300" in:fade={{ duration: 400, delay: 100 }}>
 				Note: Emails are sent to customers when order status is updated to "Ready", "Delivered", or
 				"Cancelled"
@@ -248,7 +303,7 @@
 	</section>
 
 	<!-- Search & Filters -->
-	<section class="container mx-auto px-4 py-6">
+	<section class="container mx-auto px-4 py-6" class:hidden={$isTabletMode}>
 		<form onsubmit={handleSearchSubmit} class="flex flex-col gap-4 md:flex-row md:items-center">
 			<div
 				class="flex items-center gap-2 rounded-xl bg-white px-4 py-2 shadow-md shadow-slate-900/5"
@@ -363,6 +418,8 @@
 						{#each filteredOrders as order}
 							<article
 								class="relative w-96 shrink-0 snap-start overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md transition-all hover:shadow-xl"
+								class:w-[28rem]={$isTabletMode}
+								class:p-6={$isTabletMode}
 								in:fly={{ y: 20, duration: 300 }}
 							>
 								<!-- Status Bar -->
@@ -377,10 +434,16 @@
 									<!-- Header -->
 									<div class="mb-4 flex items-start justify-between">
 										<div>
-											<p class="text-xs font-medium tracking-wider text-slate-400 uppercase">
+											<p
+												class="text-xs font-medium tracking-wider text-slate-400 uppercase"
+												class:text-sm={$isTabletMode}
+											>
 												Order
 											</p>
-											<h3 class="font-mono text-sm font-semibold text-slate-800">
+											<h3
+												class="font-mono text-sm font-semibold text-slate-800"
+												class:text-lg={$isTabletMode}
+											>
 												{order.reference}
 											</h3>
 										</div>
@@ -388,21 +451,28 @@
 											class="rounded-full border px-3 py-1 text-xs font-semibold {getStatusColor(
 												order.status
 											)}"
+											class:text-sm={$isTabletMode}
+											class:px-4={$isTabletMode}
+											class:py-1.5={$isTabletMode}
 										>
 											{order.status}
 										</span>
 									</div>
 
 									<!-- Customer Info -->
-									<div class="mb-4 rounded-xl bg-slate-50 p-3">
+									<div class="mb-4 rounded-xl bg-slate-50 p-3" class:p-4={$isTabletMode}>
 										<div class="flex items-center justify-between">
 											<div class="flex items-center gap-2">
 												<div
 													class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200"
+													class:h-10={$isTabletMode}
+													class:w-10={$isTabletMode}
 												>
 													<svg
 														xmlns="http://www.w3.org/2000/svg"
 														class="h-4 w-4 text-slate-500"
+														class:h-5={$isTabletMode}
+														class:w-5={$isTabletMode}
 														viewBox="0 0 24 24"
 														fill="none"
 														stroke="currentColor"
@@ -415,7 +485,10 @@
 													>
 												</div>
 												<div>
-													<p class="text-sm font-semibold text-slate-800">
+													<p
+														class="text-sm font-semibold text-slate-800"
+														class:text-base={$isTabletMode}
+													>
 														{order.name || 'Guest'}
 													</p>
 													{#if order.phone}
@@ -558,11 +631,15 @@
 									<details class="mb-4">
 										<summary
 											class="cursor-pointer rounded-xl bg-slate-100 px-4 py-2 text-center text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
+											class:text-base={$isTabletMode}
+											class:py-3={$isTabletMode}
 										>
 											<span class="flex items-center justify-center gap-2">
 												<svg
 													xmlns="http://www.w3.org/2000/svg"
 													class="h-4 w-4"
+													class:h-5={$isTabletMode}
+													class:w-5={$isTabletMode}
 													viewBox="0 0 24 24"
 													fill="none"
 													stroke="currentColor"
@@ -578,6 +655,9 @@
 											{#each order.dishes || [] as item}
 												<div
 													class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"
+													class:text-base={$isTabletMode}
+													class:px-4={$isTabletMode}
+													class:py-3={$isTabletMode}
 												>
 													<span class="text-slate-700">{item.name}</span>
 													<span class="font-semibold text-slate-500">×{item.quantity}</span>
@@ -590,6 +670,8 @@
 									<select
 										bind:value={order.status}
 										class="focus:border-primary w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors focus:outline-none"
+										class:text-base={$isTabletMode}
+										class:py-3={$isTabletMode}
 										onchange={() => updateOrderStatus(order.id, order.status, order.reference)}
 									>
 										{#each ['Pending', 'Preparing', 'Ready', 'Delivered', 'Cancelled'] as statusOption}

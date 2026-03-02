@@ -2,6 +2,22 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
+// Role-based route access map
+const roleRoutes: Record<string, string[]> = {
+	owner: ['*'],
+	manager: ['*'],
+	kitchen: ['/admin/admin-order', '/admin/admin-menu', '/admin/today-menu'],
+	waiter: ['/admin/admin-order', '/admin/admin-menu']
+};
+
+// Routes that require owner/manager only (not kitchen/waiter)
+const restrictedRoutes = [
+	'/admin/billing',
+	'/admin/statistics',
+	'/admin/analytics',
+	'/admin/user-analysis'
+];
+
 export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) => {
 	try {
 		const token = cookies.get('pb_auth');
@@ -88,6 +104,24 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			throw redirect(303, `/admin/admin-login?redirectTo=${pathname}&not_admin=1`);
 		}
 
+		// Role-based route guards
+		const userRole = locals.user?.role || 'owner';
+		const allowedRoutes = roleRoutes[userRole] || ['*'];
+		const isKitchen = userRole === 'kitchen';
+		const isWaiter = userRole === 'waiter';
+
+		// Check if current route is allowed for user role
+		const isRouteAllowed =
+			allowedRoutes.includes('*') || allowedRoutes.some((route) => pathname.startsWith(route));
+
+		// Check if route is restricted (billing, analytics, etc.)
+		const isRestrictedRoute = restrictedRoutes.some((route) => pathname.startsWith(route));
+
+		// Redirect if role cannot access this route
+		if (!isRouteAllowed || (isRestrictedRoute && (isKitchen || isWaiter))) {
+			throw redirect(303, '/admin/admin-order?unauthorized=1');
+		}
+
 		if (locals.isSuper) {
 			let allRestaurantsIncludingSuper: any[] = [];
 			try {
@@ -103,7 +137,10 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 				restaurantId: restaurant?.id,
 				subscription: null,
 				subscriptionStatus: 'active',
-				allRestaurantsIncludingSuper
+				allRestaurantsIncludingSuper,
+				userRole: userRole,
+				isKitchen,
+				isWaiter
 			};
 		}
 
@@ -163,7 +200,10 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			isAdminForRestaurant,
 			restaurantId: restaurant?.id,
 			subscription,
-			subscriptionStatus
+			subscriptionStatus,
+			userRole: userRole,
+			isKitchen,
+			isWaiter
 		};
 	} catch (err: any) {
 		if (err.status === 302 || err.status === 303 || err.status === 307) {
@@ -178,7 +218,10 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			isAdminForRestaurant: false,
 			restaurantId: null,
 			subscription: null,
-			subscriptionStatus: 'active'
+			subscriptionStatus: 'active',
+			userRole: locals.user?.role || 'owner',
+			isKitchen: false,
+			isWaiter: false
 		};
 	}
 };

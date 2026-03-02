@@ -114,6 +114,15 @@
 	const isSuper = derived(page, ($page) => $page.data.isSuper ?? false);
 	const isAdminForRestaurant = derived(page, ($page) => $page.data.isAdminForRestaurant ?? false);
 
+	// Role-based access
+	const userRole = derived(page, ($page) => $page.data.userRole ?? 'owner');
+	const isKitchen = derived(page, ($page) => $page.data.isKitchen ?? false);
+	const isWaiter = derived(page, ($page) => $page.data.isWaiter ?? false);
+	const isManagerOrOwner = derived(page, ($page) => {
+		const role = $page.data.userRole ?? 'owner';
+		return role === 'owner' || role === 'manager';
+	});
+
 	const restaurantName = derived(page, ($page) => $page.data.restaurant?.name ?? 'Proxifeast');
 
 	let logoutModalAdmin: HTMLDialogElement;
@@ -377,13 +386,18 @@
 						<li><a href="/admin" class="text-slate-700">Dashboard</a></li>
 						<li><a href="/admin/admin-order" class="text-slate-700">Orders</a></li>
 						<li><a href="/admin/admin-menu" class="text-slate-700">Menu</a></li>
-						<li><a href="/admin/admin-history" class="text-slate-700">History</a></li>
-						<li><a href="/admin/admin-reservation" class="text-slate-700">Reservations</a></li>
-						<li><a href="/admin/analytics" class="text-slate-700">Analytics</a></li>
-						<li><a href="/admin/statistics" class="text-slate-700">Statistics</a></li>
-						<li><a href="/admin/billing" class="text-slate-700">Billing</a></li>
-						<li><a href="/admin/user-analysis" class="text-slate-700">Customers</a></li>
-						<li><a href="/admin/today-menu" class="text-slate-700">Today's Menu</a></li>
+						{#if $isManagerOrOwner}
+							<li><a href="/admin/admin-history" class="text-slate-700">History</a></li>
+							<li><a href="/admin/admin-reservation" class="text-slate-700">Reservations</a></li>
+							<li><a href="/admin/analytics" class="text-slate-700">Analytics</a></li>
+							<li><a href="/admin/statistics" class="text-slate-700">Statistics</a></li>
+							<li><a href="/admin/billing" class="text-slate-700">Billing</a></li>
+							<li><a href="/admin/user-analysis" class="text-slate-700">Customers</a></li>
+							<li><a href="/admin/restaurant-settings" class="text-slate-700">Settings</a></li>
+						{/if}
+						{#if $isManagerOrOwner || $isKitchen}
+							<li><a href="/admin/today-menu" class="text-slate-700">Today's Menu</a></li>
+						{/if}
 					</ul>
 				</div>
 			{/if}
@@ -828,158 +842,185 @@
 								Menu
 							</a>
 						</li>
-						<li>
-							<a
-								href="/admin/admin-history"
-								class="font-medium text-slate-700"
-								onclick={() => (isMenuOpen = false)}
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="20"
-									height="20"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
+						{#if $isManagerOrOwner}
+							<li>
+								<a
+									href="/admin/admin-history"
+									class="font-medium text-slate-700"
+									onclick={() => (isMenuOpen = false)}
 								>
-									<path d="M3 3v18h18" />
-									<path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
-								</svg>
-								History
-							</a>
-						</li>
-						<li>
-							<a
-								href="/admin/admin-reservation"
-								class="font-medium text-slate-700"
-								onclick={() => (isMenuOpen = false)}
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="20"
-									height="20"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="20"
+										height="20"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+									>
+										<path d="M3 3v18h18" />
+										<path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+									</svg>
+									History
+								</a>
+							</li>
+							<li>
+								<a
+									href="/admin/admin-reservation"
+									class="font-medium text-slate-700"
+									onclick={() => (isMenuOpen = false)}
 								>
-									<rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-									<line x1="16" y1="2" x2="16" y2="6" />
-									<line x1="8" y1="2" x2="8" y2="6" />
-									<line x1="3" y1="10" x2="21" y2="10" />
-								</svg>
-								Reservations
-							</a>
-						</li>
-						<li>
-							<a
-								href="/admin/analytics"
-								class="font-medium text-slate-700"
-								onclick={() => (isMenuOpen = false)}
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="20"
-									height="20"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="20"
+										height="20"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+									>
+										<rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+										<line x1="16" y1="2" x2="16" y2="6" />
+										<line x1="8" y1="2" x2="8" y2="6" />
+										<line x1="3" y1="10" x2="21" y2="10" />
+									</svg>
+									Reservations
+								</a>
+							</li>
+							<li>
+								<a
+									href="/admin/analytics"
+									class="font-medium text-slate-700"
+									onclick={() => (isMenuOpen = false)}
 								>
-									<line x1="18" y1="20" x2="18" y2="10" />
-									<line x1="12" y1="20" x2="12" y2="4" />
-									<line x1="6" y1="20" x2="6" y2="14" />
-								</svg>
-								Analytics
-							</a>
-						</li>
-						<li>
-							<a
-								href="/admin/statistics"
-								class="font-medium text-slate-700"
-								onclick={() => (isMenuOpen = false)}
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="20"
-									height="20"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="20"
+										height="20"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+									>
+										<line x1="18" y1="20" x2="18" y2="10" />
+										<line x1="12" y1="20" x2="12" y2="4" />
+										<line x1="6" y1="20" x2="6" y2="14" />
+									</svg>
+									Analytics
+								</a>
+							</li>
+							<li>
+								<a
+									href="/admin/statistics"
+									class="font-medium text-slate-700"
+									onclick={() => (isMenuOpen = false)}
 								>
-									<path d="M3 3v18h18" />
-									<path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
-								</svg>
-								Statistics
-							</a>
-						</li>
-						<li>
-							<a
-								href="/admin/billing"
-								class="font-medium text-slate-700"
-								onclick={() => (isMenuOpen = false)}
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="20"
-									height="20"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="20"
+										height="20"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+									>
+										<path d="M3 3v18h18" />
+										<path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+									</svg>
+									Statistics
+								</a>
+							</li>
+							<li>
+								<a
+									href="/admin/billing"
+									class="font-medium text-slate-700"
+									onclick={() => (isMenuOpen = false)}
 								>
-									<rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-									<line x1="1" y1="10" x2="23" y2="10" />
-								</svg>
-								Billing
-							</a>
-						</li>
-						<li>
-							<a
-								href="/admin/user-analysis"
-								class="font-medium text-slate-700"
-								onclick={() => (isMenuOpen = false)}
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="20"
-									height="20"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="20"
+										height="20"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+									>
+										<rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+										<line x1="1" y1="10" x2="23" y2="10" />
+									</svg>
+									Billing
+								</a>
+							</li>
+							<li>
+								<a
+									href="/admin/user-analysis"
+									class="font-medium text-slate-700"
+									onclick={() => (isMenuOpen = false)}
 								>
-									<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-									<circle cx="9" cy="7" r="4" />
-									<path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-									<path d="M16 3.13a4 4 0 0 1 0 7.75" />
-								</svg>
-								Customers
-							</a>
-						</li>
-						<li>
-							<a
-								href="/admin/today-menu"
-								class="font-medium text-slate-700"
-								onclick={() => (isMenuOpen = false)}
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="20"
-									height="20"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="20"
+										height="20"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+									>
+										<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+										<circle cx="9" cy="7" r="4" />
+										<path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+										<path d="M16 3.13a4 4 0 0 1 0 7.75" />
+									</svg>
+									Customers
+								</a>
+							</li>
+							<li>
+								<a
+									href="/admin/restaurant-settings"
+									class="font-medium text-slate-700"
+									onclick={() => (isMenuOpen = false)}
 								>
-									<path d="M12 2v20M2 12h20" />
-									<circle cx="12" cy="12" r="10" />
-								</svg>
-								Today's Menu
-							</a>
-						</li>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="20"
+										height="20"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+									>
+										<path
+											d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+										/>
+										<circle cx="12" cy="12" r="3" />
+									</svg>
+									Settings
+								</a>
+							</li>
+							{#if $isManagerOrOwner || $isKitchen}
+								<li>
+									<a
+										href="/admin/today-menu"
+										class="font-medium text-slate-700"
+										onclick={() => (isMenuOpen = false)}
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											width="20"
+											height="20"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+										>
+											<path d="M12 2v20M2 12h20" />
+											<circle cx="12" cy="12" r="10" />
+										</svg>
+										Today's Menu
+									</a>
+								</li>
+							{/if}
+						{/if}
 					{/if}
 				</ul>
 
