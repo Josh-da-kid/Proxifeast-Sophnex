@@ -64,6 +64,15 @@
 		return currentMinutes >= openTime && currentMinutes <= closeTime;
 	}
 
+	function formatTime(time: string): string {
+		if (!time) return '';
+		const [hours, minutes] = time.split(':');
+		const h = parseInt(hours);
+		const ampm = h >= 12 ? 'PM' : 'AM';
+		const h12 = h % 12 || 12;
+		return `${h12}:${minutes} ${ampm}`;
+	}
+
 	function isRestaurantNew(restaurant: any): boolean {
 		if (!restaurant.created) return false;
 
@@ -248,9 +257,9 @@
 											<polyline points="12 6 12 12 16 14" />
 										</svg>
 										<span class="line-clamp-1 font-medium">
-											{r.openingTime || ''}{r.openingTime && r.closingTime
+											{formatTime(r.openingTime)}{r.openingTime && r.closingTime
 												? ' - '
-												: ''}{r.closingTime || ''}
+												: ''}{formatTime(r.closingTime)}
 										</span>
 									</div>
 								{/if}
