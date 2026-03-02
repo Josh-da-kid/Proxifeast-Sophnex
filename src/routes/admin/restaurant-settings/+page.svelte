@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import Notification from '$lib/Notification.svelte';
 	import Footer from '$lib/Footer.svelte';
 
@@ -11,12 +12,18 @@
 		homeDelivery: true
 	};
 	const teamMembers = data?.teamMembers ?? [];
+	const restaurants = data?.restaurants ?? [];
 	const currentUserId = $page.data.user?.id;
+	const currentRestaurantId = data?.restaurantId;
 
 	let successAlert = $state(false);
 	let errorAlert = $state(false);
 	let errorMessage = $state('');
 	let successMessage = $state('');
+
+	function switchRestaurant(restaurantId: string) {
+		goto(`/admin/restaurant-settings?restaurantId=${restaurantId}`);
+	}
 
 	$effect(() => {
 		if ($page.form?.success) {
@@ -124,8 +131,23 @@
 <div class="min-h-screen bg-slate-50">
 	<header class="bg-white shadow-sm">
 		<div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-			<h1 class="text-2xl font-bold text-slate-900">Restaurant Settings</h1>
-			<p class="mt-1 text-sm text-slate-600">Manage your restaurant's configuration and team</p>
+			<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+				<div>
+					<h1 class="text-2xl font-bold text-slate-900">Restaurant Settings</h1>
+					<p class="mt-1 text-sm text-slate-600">Manage your restaurant's configuration and team</p>
+				</div>
+				{#if restaurants.length > 1}
+					<select
+						value={currentRestaurantId}
+						onchange={(e) => switchRestaurant(e.currentTarget.value)}
+						class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none"
+					>
+						{#each restaurants as rest}
+							<option value={rest.id}>{rest.name}</option>
+						{/each}
+					</select>
+				{/if}
+			</div>
 		</div>
 	</header>
 
@@ -145,6 +167,7 @@
 				</div>
 
 				<form method="POST" action="?/updateOrderServices" class="p-6">
+					<input type="hidden" name="restaurantId" value={currentRestaurantId} />
 					<div class="space-y-6">
 						<div class="flex items-center justify-between rounded-lg border border-slate-200 p-4">
 							<div>
@@ -349,6 +372,7 @@
 				</div>
 
 				<form method="POST" action="?/updateRestaurantInfo" class="p-6">
+					<input type="hidden" name="restaurantId" value={currentRestaurantId} />
 					<div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
 						<div>
 							<label for="name" class="block text-sm font-medium text-slate-700"

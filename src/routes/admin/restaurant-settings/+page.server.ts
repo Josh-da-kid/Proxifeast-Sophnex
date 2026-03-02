@@ -1,24 +1,31 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
-		return { restaurant: null, orderServices: null, teamMembers: [] };
-	}
-
-	const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
-	const restaurantIds = locals.user?.restaurantIds || [];
-	const restaurantId = adminRestaurantIds[0] || restaurantIds[0];
-
-	if (!restaurantId) {
-		return { restaurant: null, orderServices: null, teamMembers: [] };
+		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
 	}
 
 	const userRole = locals.user?.role || 'manager';
 	const isManagerOrOwner = userRole === 'owner' || userRole === 'manager';
 
 	if (!isManagerOrOwner) {
-		return { restaurant: null, orderServices: null, teamMembers: [] };
+		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
+	}
+
+	const restaurantId = url.searchParams.get('restaurantId') || locals.restaurant?.id;
+
+	if (!restaurantId) {
+		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
+	}
+
+	const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
+	const userRestaurantIds = locals.user?.restaurantIds || [];
+	const hasAccess =
+		adminRestaurantIds.includes(restaurantId) || userRestaurantIds.includes(restaurantId);
+
+	if (!hasAccess) {
+		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
 	}
 
 	try {
@@ -29,19 +36,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 			homeDelivery: true
 		};
 
-		console.log('Fetching team members for restaurant:', restaurantId);
-
 		const teamMembers = await locals.pb.collection('users').getFullList({
-			filter: `adminRestaurantIds.id ?~ "${restaurantId}" || restaurantIds.id ?~ "${restaurantId}" || adminRestaurantIds ?~ "${restaurantId}" || restaurantIds ?~ "${restaurantId}"`,
+			filter: `adminRestaurantIds ?~ "${restaurantId}" || restaurantIds ?~ "${restaurantId}"`,
 			sort: 'name'
 		});
 
-		console.log('Found team members:', teamMembers.length, teamMembers.map((m: any) => ({ name: m.name, email: m.email, restaurantIds: m.restaurantIds, adminRestaurantIds: m.adminRestaurantIds })));
+		const restaurants = await locals.pb.collection('restaurants').getFullList({
+			filter: `id ?~ "${adminRestaurantIds.join('" || id ?~ "')}" || id ?~ "${userRestaurantIds.join('" || id ?~ "')}"`
+		});
 
 		return {
 			restaurant,
 			orderServices,
 			restaurantId,
+			restaurants: restaurants.map((r: any) => ({ id: r.id, name: r.name })),
 			teamMembers: teamMembers.map((member: any) => ({
 				id: member.id,
 				name: member.name,
@@ -51,15 +59,17 @@ export const load: PageServerLoad = async ({ locals }) => {
 			}))
 		};
 	} catch (error) {
-		return { restaurant: null, orderServices: null, teamMembers: [] };
+		console.error('Error loading settings:', error);
+		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
 	}
 };
 
 export const actions: Actions = {
-	updateOrderServices: async ({ request, locals }) => {
-		const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
-		const restaurantIds = locals.user?.restaurantIds || [];
-		const restaurantId = adminRestaurantIds[0] || restaurantIds[0];
+	updateOrderServices: async ({ request, locals, url }) => {
+		const restaurantId =
+			((await request.formData()).get('restaurantId') as string) ||
+			url.searchParams.get('restaurantId') ||
+			locals.restaurant?.id;
 
 		if (!restaurantId) {
 			return fail(400, { error: 'No restaurant selected' });
@@ -94,10 +104,11 @@ export const actions: Actions = {
 		}
 	},
 
-	updateRestaurantInfo: async ({ request, locals }) => {
-		const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
-		const restaurantIds = locals.user?.restaurantIds || [];
-		const restaurantId = adminRestaurantIds[0] || restaurantIds[0];
+	updateRestaurantInfo: async ({ request, locals, url }) => {
+		const restaurantId =
+			((await request.formData()).get('restaurantId') as string) ||
+			url.searchParams.get('restaurantId') ||
+			locals.restaurant?.id;
 
 		if (!restaurantId) {
 			return fail(400, { error: 'No restaurant selected' });
@@ -135,10 +146,11 @@ export const actions: Actions = {
 		}
 	},
 
-	updateUserRole: async ({ request, locals }) => {
-		const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
-		const restaurantIds = locals.user?.restaurantIds || [];
-		const restaurantId = adminRestaurantIds[0] || restaurantIds[0];
+	updateUserRole: async ({ request, locals, url }) => {
+		const restaurantId =
+			((await request.formData()).get('restaurantId') as string) ||
+			url.searchParams.get('restaurantId') ||
+			locals.restaurant?.id;
 
 		if (!restaurantId) {
 			return fail(400, { error: 'No restaurant selected' });
@@ -174,10 +186,11 @@ export const actions: Actions = {
 		}
 	},
 
-	removeTeamMember: async ({ request, locals }) => {
-		const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
-		const restaurantIds = locals.user?.restaurantIds || [];
-		const restaurantId = adminRestaurantIds[0] || restaurantIds[0];
+	removeTeamMember: async ({ request, locals, url }) => {
+		const restaurantId =
+			((await request.formData()).get('restaurantId') as string) ||
+			url.searchParams.get('restaurantId') ||
+			locals.restaurant?.id;
 
 		if (!restaurantId) {
 			return fail(400, { error: 'No restaurant selected' });
