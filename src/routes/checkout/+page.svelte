@@ -375,6 +375,14 @@
 		return restaurant || null;
 	});
 
+	const restaurantOrderServices = $derived(
+		cartRestaurantInfo?.orderServices ?? {
+			tableService: true,
+			pickup: true,
+			homeDelivery: true
+		}
+	);
+
 	function isValidPhone(prefix: string, phone: string): boolean {
 		prefix = prefix.trim();
 		phone = phone.trim().replace(/\s+/g, '');
@@ -904,403 +912,416 @@
 										<p class="flex items-center gap-2 text-sm font-semibold">
 											{@html iconPackage} Select Delivery Method
 										</p>
-										<label
-											class="block cursor-pointer"
-											class:opacity-50={isMultiRestaurantOrder || !cartLocationInfo.valid}
-										>
-											<input
-												type="radio"
-												bind:group={deliveryOption}
-												value="tableService"
-												class="peer sr-only"
-												required
-												disabled={isMultiRestaurantOrder || !cartLocationInfo.valid}
-											/>
-											<div
-												class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
+										{#if restaurantOrderServices.tableService}
+											<label
+												class="block cursor-pointer"
 												class:opacity-50={isMultiRestaurantOrder || !cartLocationInfo.valid}
 											>
+												<input
+													type="radio"
+													bind:group={deliveryOption}
+													value="tableService"
+													class="peer sr-only"
+													required
+													disabled={isMultiRestaurantOrder || !cartLocationInfo.valid}
+												/>
 												<div
-													class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
+													class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
+													class:opacity-50={isMultiRestaurantOrder || !cartLocationInfo.valid}
 												>
-													{@html iconUtensilsCrossed}
-												</div>
-												<div class="flex-1">
-													<div class="mb-1 flex items-center justify-between">
-														<p class="font-semibold">Table Service</p>
-														<div
-															class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
-														>
-															<div class="h-2 w-2 rounded-full bg-white"></div>
-														</div>
+													<div
+														class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
+													>
+														{@html iconUtensilsCrossed}
 													</div>
-													<p class="text-base-content/70 text-sm">
-														We'll serve you at your table in the restaurant
-														{#if isMultiRestaurantOrder}
-															<span class="text-error"
-																>(Not available for multi-restaurant orders)</span
+													<div class="flex-1">
+														<div class="mb-1 flex items-center justify-between">
+															<p class="font-semibold">Table Service</p>
+															<div
+																class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
 															>
-														{:else if !cartLocationInfo.valid}
-															<span class="text-error">(Not available for your location)</span>
-														{/if}
-													</p>
+																<div class="h-2 w-2 rounded-full bg-white"></div>
+															</div>
+														</div>
+														<p class="text-base-content/70 text-sm">
+															We'll serve you at your table in the restaurant
+															{#if isMultiRestaurantOrder}
+																<span class="text-error"
+																	>(Not available for multi-restaurant orders)</span
+																>
+															{:else if !cartLocationInfo.valid}
+																<span class="text-error">(Not available for your location)</span>
+															{/if}
+														</p>
+													</div>
 												</div>
-											</div>
-										</label>
-										<label class="block cursor-pointer">
-											<input
-												type="radio"
-												bind:group={deliveryOption}
-												value="restaurantPickup"
-												class="peer sr-only"
-											/>
-											<div
-												class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
-											>
+											</label>
+										{/if}
+
+										{#if restaurantOrderServices.pickup}
+											<label class="block cursor-pointer">
+												<input
+													type="radio"
+													bind:group={deliveryOption}
+													value="restaurantPickup"
+													class="peer sr-only"
+												/>
 												<div
-													class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
+													class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
 												>
-													{@html iconPackage}
-												</div>
-												<div class="flex-1">
-													<div class="mb-1 flex items-center justify-between">
-														<p class="font-semibold">Pickup</p>
-														<div
-															class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
-														>
-															<div class="h-2 w-2 rounded-full bg-white"></div>
-														</div>
+													<div
+														class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
+													>
+														{@html iconPackage}
 													</div>
-													<p class="text-base-content/70 text-sm">
-														Pick up your order at the restaurant counter
-													</p>
+													<div class="flex-1">
+														<div class="mb-1 flex items-center justify-between">
+															<p class="font-semibold">Pickup</p>
+															<div
+																class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
+															>
+																<div class="h-2 w-2 rounded-full bg-white"></div>
+															</div>
+														</div>
+														<p class="text-base-content/70 text-sm">
+															Pick up your order at the restaurant counter
+														</p>
+													</div>
 												</div>
-											</div>
-										</label>
-										<label class="block cursor-pointer">
-											<input
-												type="radio"
-												bind:group={deliveryOption}
-												value="home"
-												class="peer sr-only"
-											/>
-											<div
-												class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
-											>
+											</label>
+										{/if}
+
+										{#if restaurantOrderServices.homeDelivery}
+											<label class="block cursor-pointer">
+												<input
+													type="radio"
+													bind:group={deliveryOption}
+													value="home"
+													class="peer sr-only"
+												/>
 												<div
-													class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
+													class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
 												>
-													{@html iconHome}
-												</div>
-												<div class="flex-1">
-													<div class="mb-1 flex items-center justify-between">
-														<p class="font-semibold">Home Delivery</p>
-														<div
-															class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
-														>
-															<div class="h-2 w-2 rounded-full bg-white"></div>
+													<div
+														class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
+													>
+														{@html iconHome}
+													</div>
+													<div class="flex-1">
+														<div class="mb-1 flex items-center justify-between">
+															<p class="font-semibold">Home Delivery</p>
+															<div
+																class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
+															>
+																<div class="h-2 w-2 rounded-full bg-white"></div>
+															</div>
 														</div>
-													</div>
-													<p class="text-base-content/70 text-sm">We'll deliver to your doorstep</p>
-												</div>
-											</div>
-										</label>
-									</div>
-									{#if showPickupWarning}
-										{@const uniqueRestaurantCount = new Set(
-											$cart.map((item: any) => item.expand?.dish?.restaurantId || item.restaurantId)
-										).size}
-										<div class="bg-warning/10 rounded-xl p-4">
-											<div class="flex items-start gap-2">
-												{@html iconAlertCircle}
-												<div class="text-sm">
-													<p class="font-medium">Pickup from multiple locations!</p>
-													<p class="mt-1 opacity-80">
-														You have items from {uniqueRestaurantCount} different restaurants. You'll
-														need to pick up from {uniqueRestaurantCount} different locations.
-													</p>
-													<button
-														type="button"
-														class="btn btn-primary btn-sm mt-3"
-														onclick={() => (deliveryOption = 'home')}
-													>
-														Switch to Home Delivery
-													</button>
-												</div>
-											</div>
-										</div>
-									{/if}
-									{#if deliveryOption}
-										<div class="space-y-4" transition:slide={{ duration: 300 }}>
-											{#if deliveryOption === 'tableService'}
-												<div class="space-y-2">
-													<label class="block flex items-center gap-2 text-sm font-medium"
-														>{@html iconHash} Table Number</label
-													>
-													<div class="relative">
-														<input
-															type="number"
-															bind:value={tableNumber}
-															placeholder="e.g., 12"
-															min="1"
-															class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-full rounded-xl border-2 px-4 py-3 transition-all outline-none focus:ring-4"
-															required
-														/>
-													</div>
-													<p class="text-base-content/60 flex items-center gap-1 text-xs">
-														{@html iconInfo} Enter the table number where you're currently seated
-													</p>
-												</div>
-											{:else if deliveryOption === 'restaurantPickup'}
-												<div class="space-y-2">
-													<label class="block flex items-center gap-2 text-sm font-medium"
-														>{@html iconClock} Pickup Time</label
-													>
-													<div class="flex gap-3">
-														<select
-															bind:value={hour}
-															class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 flex-1 cursor-pointer appearance-none rounded-xl border-2 px-4 py-3 outline-none focus:ring-4"
-														>
-															{#each Array.from({ length: 12 }, (_, i) => i + 1) as h}<option
-																	value={h}>{h}</option
-																>{/each}
-														</select>
-														<div class="text-base-content/30 flex items-center text-xl font-bold">
-															:
-														</div>
-														<select
-															bind:value={minutes}
-															class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 flex-1 cursor-pointer appearance-none rounded-xl border-2 px-4 py-3 outline-none focus:ring-4"
-														>
-															{#each ['00', '15', '30', '45'] as m}<option value={m}>{m}</option
-																>{/each}
-														</select>
-														<select
-															bind:value={meridian}
-															class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-24 cursor-pointer appearance-none rounded-xl border-2 px-4 py-3 outline-none focus:ring-4"
-														>
-															<option>AM</option><option>PM</option>
-														</select>
+														<p class="text-base-content/70 text-sm">
+															We'll deliver to your doorstep
+														</p>
 													</div>
 												</div>
-											{:else if deliveryOption === 'home'}
-												<div class="space-y-2">
-													<label class="block flex items-center gap-2 text-sm font-medium"
-														>{@html iconMapPin} Delivery Address</label
-													>
-													<textarea
-														bind:value={homeAddress}
-														placeholder="Enter your complete address including landmarks..."
-														rows="3"
-														maxlength="200"
-														class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-full resize-none rounded-xl border-2 px-4 py-3 transition-all outline-none focus:ring-4"
-														required
-													></textarea>
-													<div class="flex justify-between text-xs">
-														<span class="text-base-content/60 flex items-center gap-1"
-															>{@html iconInfo} Include landmarks for easier delivery</span
-														>
-														<span class="text-base-content/40">{homeAddress.length}/200</span>
-													</div>
-												</div>
-											{/if}
-										</div>
-									{/if}
-									<div class="border-base-200 space-y-4 border-t pt-6">
-										<div class="space-y-2">
-											<label class="block flex items-center gap-2 text-sm font-medium"
-												>{@html iconPhone} Phone Number</label
-											>
-											<div class="flex gap-3">
-												<select
-													bind:value={prefix}
-													class="border-base-300 bg-base-200 text-base-content/70 focus:border-primary cursor-pointer rounded-xl border-2 px-2 py-3 font-medium outline-none"
-												>
-													<option value="+234">🇳🇬 +234</option>
-													<option value="+233">🇬🇭 +233</option>
-													<option value="+229">🇧🇯 +229</option>
-													<option value="+228">🇹🇬 +228</option>
-													<option value="+227">🇳🇪 +227</option>
-													<option value="+235">🇹🇩 +235</option>
-													<option value="+237">🇨🇲 +237</option>
-													<option value="+241">🇬🇦 +241</option>
-													<option value="+244">🇦🇴 +244</option>
-													<option value="+231">🇱🇷 +231</option>
-												</select>
-												<div class="relative flex-1">
-													<input
-														type="tel"
-														bind:value={phone}
-														placeholder="801 234 5678"
-														class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-full rounded-xl border-2 px-4 py-3 transition-all outline-none focus:ring-4"
-														required
-													/>
-													{#if phone && !isValidPhone(prefix, phone)}
-														<div
-															class="text-error absolute -bottom-6 left-0 flex items-center gap-1 text-xs"
-														>
-															{@html iconAlertCircle} Enter a valid phone number
-														</div>
-													{/if}
-												</div>
-											</div>
-										</div>
-									</div>
-									<div class="border-base-200 space-y-6 border-t pt-6">
-										{#if cartRestaurantInfo && deliveryOption === 'home'}
-											<div class="bg-info/10 rounded-xl p-4">
+											</label>
+										{/if}
+
+										{#if showPickupWarning}
+											{@const uniqueRestaurantCount = new Set(
+												$cart.map(
+													(item: any) => item.expand?.dish?.restaurantId || item.restaurantId
+												)
+											).size}
+											<div class="bg-warning/10 rounded-xl p-4">
 												<div class="flex items-start gap-2">
 													{@html iconAlertCircle}
 													<div class="text-sm">
-														<p class="font-medium">Location Check</p>
+														<p class="font-medium">Pickup from multiple locations!</p>
 														<p class="mt-1 opacity-80">
-															Please confirm that your delivery address is in <strong
-																>{cartRestaurantInfo.state}</strong
-															>
-															{cartRestaurantInfo.localGovernment
-																? `, ${cartRestaurantInfo.localGovernment} LGA`
-																: ''} to order from <strong>{cartRestaurantInfo.name}</strong>.
+															You have items from {uniqueRestaurantCount} different restaurants. You'll
+															need to pick up from {uniqueRestaurantCount} different locations.
 														</p>
-														<label class="mt-3 flex cursor-pointer items-start gap-3">
-															<div class="relative mt-0.5 flex items-center">
-																<input
-																	type="checkbox"
-																	bind:checked={locationConfirmed}
-																	class="peer sr-only"
-																/>
-																<div
-																	class="border-base-300 peer-checked:border-primary peer-checked:bg-primary h-5 w-5 rounded border-2 transition-all"
-																></div>
-																<span
-																	class="pointer-events-none absolute top-1 left-1 opacity-0 peer-checked:opacity-100"
-																	>{@html iconCheck}</span
-																>
-															</div>
-															<span class="text-sm leading-relaxed"
-																>I confirm my delivery address is in the same state/LGA as the
-																restaurant</span
-															>
-														</label>
+														<button
+															type="button"
+															class="btn btn-primary btn-sm mt-3"
+															onclick={() => (deliveryOption = 'home')}
+														>
+															Switch to Home Delivery
+														</button>
 													</div>
 												</div>
 											</div>
 										{/if}
-										<label class="group flex cursor-pointer items-start gap-3">
-											<div class="relative mt-0.5 flex items-center">
-												<input type="checkbox" required class="peer sr-only" />
-												<div
-													class="border-base-300 peer-checked:border-primary peer-checked:bg-primary h-5 w-5 rounded border-2 transition-all"
-												></div>
-												<span
-													class="pointer-events-none absolute top-1 left-1 opacity-0 peer-checked:opacity-100"
-													>{@html iconCheck}</span
-												>
-											</div>
-											<span class="text-base-content/80 text-sm leading-relaxed"
-												>I agree to the <a
-													href="/terms"
-													class="text-primary font-medium hover:underline">Terms of Service</a
-												>
-												and
-												<a href="/refund" class="text-primary font-medium hover:underline"
-													>Refund Policy</a
-												></span
-											>
-										</label>
-										{#if $cart.length > 0}
-											{#if !cartLocationInfo.valid}
-												<div class="bg-warning/10 space-y-3 rounded-xl p-4">
-													<div class="flex items-start gap-2">
-														{@html iconAlertCircle}
-														<span class="text-sm">{cartLocationInfo.message}</span>
-													</div>
-													{#if cartLocationInfo.mismatchedRestaurants.length > 0}
-														<div class="mt-3 space-y-2">
-															<p class="text-xs font-medium">Restaurants in cart:</p>
-															{#each cartLocationInfo.mismatchedRestaurants as restaurant}
-																{@const cartItemsForRestaurant = $cart.filter(
-																	(item: any) =>
-																		(item.expand?.dish?.restaurantId || item.restaurantId) ===
-																		restaurant.id
-																)}
-																{#if cartItemsForRestaurant.length > 0}
-																	<div
-																		class="bg-base-100 flex items-center justify-between rounded-lg p-2"
-																	>
-																		<div class="flex flex-col">
-																			<span class="font-medium">{restaurant.name}</span>
-																			<span class="text-xs opacity-70"
-																				>{restaurant.state}{restaurant.localGovernment
-																					? `, ${restaurant.localGovernment} LGA`
-																					: ''}</span
-																			>
-																		</div>
-																		<button
-																			type="button"
-																			class="btn btn-error btn-sm text-white"
-																			onclick={async () => {
-																				for (const item of cartItemsForRestaurant) {
-																					await removeFromCart(item.id);
-																				}
-																			}}
-																		>
-																			{@html iconTrash2} Remove
-																		</button>
-																	</div>
-																{/if}
-															{/each}
+										{#if deliveryOption}
+											<div class="space-y-4" transition:slide={{ duration: 300 }}>
+												{#if deliveryOption === 'tableService'}
+													<div class="space-y-2">
+														<label class="block flex items-center gap-2 text-sm font-medium"
+															>{@html iconHash} Table Number</label
+														>
+														<div class="relative">
+															<input
+																type="number"
+																bind:value={tableNumber}
+																placeholder="e.g., 12"
+																min="1"
+																class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-full rounded-xl border-2 px-4 py-3 transition-all outline-none focus:ring-4"
+																required
+															/>
 														</div>
-													{/if}
-												</div>
-											{/if}
-										{/if}
-										<button
-											type="button"
-											class="bg-primary hover:bg-primary/90 text-primary-content shadow-primary/20 flex w-full transform items-center justify-center gap-3 rounded-xl px-6 py-4 text-lg font-bold shadow-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
-											disabled={$cart.length === 0 ||
-												!deliveryOption ||
-												!cartLocationInfo.valid ||
-												(deliveryOption === 'home' && !locationConfirmed)}
-											onclick={payWithPaystack}
-										>
-											{@html iconLock}<span>Pay ₦{$total.toLocaleString()}</span>
-										</button>
-										<div
-											class="text-base-content/50 flex items-center justify-center gap-4 text-xs"
-										>
-											<div class="flex items-center gap-1">
-												{@html iconShield}<span>SSL Secured</span>
+														<p class="text-base-content/60 flex items-center gap-1 text-xs">
+															{@html iconInfo} Enter the table number where you're currently seated
+														</p>
+													</div>
+												{:else if deliveryOption === 'restaurantPickup'}
+													<div class="space-y-2">
+														<label class="block flex items-center gap-2 text-sm font-medium"
+															>{@html iconClock} Pickup Time</label
+														>
+														<div class="flex gap-3">
+															<select
+																bind:value={hour}
+																class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 flex-1 cursor-pointer appearance-none rounded-xl border-2 px-4 py-3 outline-none focus:ring-4"
+															>
+																{#each Array.from({ length: 12 }, (_, i) => i + 1) as h}<option
+																		value={h}>{h}</option
+																	>{/each}
+															</select>
+															<div class="text-base-content/30 flex items-center text-xl font-bold">
+																:
+															</div>
+															<select
+																bind:value={minutes}
+																class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 flex-1 cursor-pointer appearance-none rounded-xl border-2 px-4 py-3 outline-none focus:ring-4"
+															>
+																{#each ['00', '15', '30', '45'] as m}<option value={m}>{m}</option
+																	>{/each}
+															</select>
+															<select
+																bind:value={meridian}
+																class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-24 cursor-pointer appearance-none rounded-xl border-2 px-4 py-3 outline-none focus:ring-4"
+															>
+																<option>AM</option><option>PM</option>
+															</select>
+														</div>
+													</div>
+												{:else if deliveryOption === 'home'}
+													<div class="space-y-2">
+														<label class="block flex items-center gap-2 text-sm font-medium"
+															>{@html iconMapPin} Delivery Address</label
+														>
+														<textarea
+															bind:value={homeAddress}
+															placeholder="Enter your complete address including landmarks..."
+															rows="3"
+															maxlength="200"
+															class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-full resize-none rounded-xl border-2 px-4 py-3 transition-all outline-none focus:ring-4"
+															required
+														></textarea>
+														<div class="flex justify-between text-xs">
+															<span class="text-base-content/60 flex items-center gap-1"
+																>{@html iconInfo} Include landmarks for easier delivery</span
+															>
+															<span class="text-base-content/40">{homeAddress.length}/200</span>
+														</div>
+													</div>
+												{/if}
 											</div>
-											<div class="bg-base-content/30 h-1 w-1 rounded-full"></div>
-											<div class="flex items-center gap-1">
-												{@html iconCreditCard}<span>Secure Payment</span>
+										{/if}
+										<div class="border-base-200 space-y-4 border-t pt-6">
+											<div class="space-y-2">
+												<label class="block flex items-center gap-2 text-sm font-medium"
+													>{@html iconPhone} Phone Number</label
+												>
+												<div class="flex gap-3">
+													<select
+														bind:value={prefix}
+														class="border-base-300 bg-base-200 text-base-content/70 focus:border-primary cursor-pointer rounded-xl border-2 px-2 py-3 font-medium outline-none"
+													>
+														<option value="+234">🇳🇬 +234</option>
+														<option value="+233">🇬🇭 +233</option>
+														<option value="+229">🇧🇯 +229</option>
+														<option value="+228">🇹🇬 +228</option>
+														<option value="+227">🇳🇪 +227</option>
+														<option value="+235">🇹🇩 +235</option>
+														<option value="+237">🇨🇲 +237</option>
+														<option value="+241">🇬🇦 +241</option>
+														<option value="+244">🇦🇴 +244</option>
+														<option value="+231">🇱🇷 +231</option>
+													</select>
+													<div class="relative flex-1">
+														<input
+															type="tel"
+															bind:value={phone}
+															placeholder="801 234 5678"
+															class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-full rounded-xl border-2 px-4 py-3 transition-all outline-none focus:ring-4"
+															required
+														/>
+														{#if phone && !isValidPhone(prefix, phone)}
+															<div
+																class="text-error absolute -bottom-6 left-0 flex items-center gap-1 text-xs"
+															>
+																{@html iconAlertCircle} Enter a valid phone number
+															</div>
+														{/if}
+													</div>
+												</div>
 											</div>
 										</div>
-										<div
-											class="mt-4 rounded-xl border border-green-100 bg-gradient-to-r from-green-50 to-emerald-50 p-4"
-										>
-											<div class="flex items-center justify-center gap-3">
-												<div
-													class="flex h-10 w-10 items-center justify-center rounded-full bg-green-100"
-												>
-													<svg
-														xmlns="http://www.w3.org/2000/svg"
-														class="h-5 w-5 text-green-600"
-														viewBox="0 0 20 20"
-														fill="currentColor"
-													>
-														<path
-															fill-rule="evenodd"
-															d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-															clip-rule="evenodd"
-														/>
-													</svg>
+										<div class="border-base-200 space-y-6 border-t pt-6">
+											{#if cartRestaurantInfo && deliveryOption === 'home'}
+												<div class="bg-info/10 rounded-xl p-4">
+													<div class="flex items-start gap-2">
+														{@html iconAlertCircle}
+														<div class="text-sm">
+															<p class="font-medium">Location Check</p>
+															<p class="mt-1 opacity-80">
+																Please confirm that your delivery address is in <strong
+																	>{cartRestaurantInfo.state}</strong
+																>
+																{cartRestaurantInfo.localGovernment
+																	? `, ${cartRestaurantInfo.localGovernment} LGA`
+																	: ''} to order from <strong>{cartRestaurantInfo.name}</strong>.
+															</p>
+															<label class="mt-3 flex cursor-pointer items-start gap-3">
+																<div class="relative mt-0.5 flex items-center">
+																	<input
+																		type="checkbox"
+																		bind:checked={locationConfirmed}
+																		class="peer sr-only"
+																	/>
+																	<div
+																		class="border-base-300 peer-checked:border-primary peer-checked:bg-primary h-5 w-5 rounded border-2 transition-all"
+																	></div>
+																	<span
+																		class="pointer-events-none absolute top-1 left-1 opacity-0 peer-checked:opacity-100"
+																		>{@html iconCheck}</span
+																	>
+																</div>
+																<span class="text-sm leading-relaxed"
+																	>I confirm my delivery address is in the same state/LGA as the
+																	restaurant</span
+																>
+															</label>
+														</div>
+													</div>
 												</div>
-												<div class="text-center">
-													<p class="text-sm font-semibold text-green-700">Secured by Paystack</p>
-													<p class="text-xs text-green-600">
-														Your payment information is encrypted and secure
-													</p>
+											{/if}
+											<label class="group flex cursor-pointer items-start gap-3">
+												<div class="relative mt-0.5 flex items-center">
+													<input type="checkbox" required class="peer sr-only" />
+													<div
+														class="border-base-300 peer-checked:border-primary peer-checked:bg-primary h-5 w-5 rounded border-2 transition-all"
+													></div>
+													<span
+														class="pointer-events-none absolute top-1 left-1 opacity-0 peer-checked:opacity-100"
+														>{@html iconCheck}</span
+													>
+												</div>
+												<span class="text-base-content/80 text-sm leading-relaxed"
+													>I agree to the <a
+														href="/terms"
+														class="text-primary font-medium hover:underline">Terms of Service</a
+													>
+													and
+													<a href="/refund" class="text-primary font-medium hover:underline"
+														>Refund Policy</a
+													></span
+												>
+											</label>
+											{#if $cart.length > 0}
+												{#if !cartLocationInfo.valid}
+													<div class="bg-warning/10 space-y-3 rounded-xl p-4">
+														<div class="flex items-start gap-2">
+															{@html iconAlertCircle}
+															<span class="text-sm">{cartLocationInfo.message}</span>
+														</div>
+														{#if cartLocationInfo.mismatchedRestaurants.length > 0}
+															<div class="mt-3 space-y-2">
+																<p class="text-xs font-medium">Restaurants in cart:</p>
+																{#each cartLocationInfo.mismatchedRestaurants as restaurant}
+																	{@const cartItemsForRestaurant = $cart.filter(
+																		(item: any) =>
+																			(item.expand?.dish?.restaurantId || item.restaurantId) ===
+																			restaurant.id
+																	)}
+																	{#if cartItemsForRestaurant.length > 0}
+																		<div
+																			class="bg-base-100 flex items-center justify-between rounded-lg p-2"
+																		>
+																			<div class="flex flex-col">
+																				<span class="font-medium">{restaurant.name}</span>
+																				<span class="text-xs opacity-70"
+																					>{restaurant.state}{restaurant.localGovernment
+																						? `, ${restaurant.localGovernment} LGA`
+																						: ''}</span
+																				>
+																			</div>
+																			<button
+																				type="button"
+																				class="btn btn-error btn-sm text-white"
+																				onclick={async () => {
+																					for (const item of cartItemsForRestaurant) {
+																						await removeFromCart(item.id);
+																					}
+																				}}
+																			>
+																				{@html iconTrash2} Remove
+																			</button>
+																		</div>
+																	{/if}
+																{/each}
+															</div>
+														{/if}
+													</div>
+												{/if}
+											{/if}
+											<button
+												type="button"
+												class="bg-primary hover:bg-primary/90 text-primary-content shadow-primary/20 flex w-full transform items-center justify-center gap-3 rounded-xl px-6 py-4 text-lg font-bold shadow-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
+												disabled={$cart.length === 0 ||
+													!deliveryOption ||
+													!cartLocationInfo.valid ||
+													(deliveryOption === 'home' && !locationConfirmed)}
+												onclick={payWithPaystack}
+											>
+												{@html iconLock}<span>Pay ₦{$total.toLocaleString()}</span>
+											</button>
+											<div
+												class="text-base-content/50 flex items-center justify-center gap-4 text-xs"
+											>
+												<div class="flex items-center gap-1">
+													{@html iconShield}<span>SSL Secured</span>
+												</div>
+												<div class="bg-base-content/30 h-1 w-1 rounded-full"></div>
+												<div class="flex items-center gap-1">
+													{@html iconCreditCard}<span>Secure Payment</span>
+												</div>
+											</div>
+											<div
+												class="mt-4 rounded-xl border border-green-100 bg-gradient-to-r from-green-50 to-emerald-50 p-4"
+											>
+												<div class="flex items-center justify-center gap-3">
+													<div
+														class="flex h-10 w-10 items-center justify-center rounded-full bg-green-100"
+													>
+														<svg
+															xmlns="http://www.w3.org/2000/svg"
+															class="h-5 w-5 text-green-600"
+															viewBox="0 0 20 20"
+															fill="currentColor"
+														>
+															<path
+																fill-rule="evenodd"
+																d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+																clip-rule="evenodd"
+															/>
+														</svg>
+													</div>
+													<div class="text-center">
+														<p class="text-sm font-semibold text-green-700">Secured by Paystack</p>
+														<p class="text-xs text-green-600">
+															Your payment information is encrypted and secure
+														</p>
+													</div>
 												</div>
 											</div>
 										</div>

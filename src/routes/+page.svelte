@@ -1315,6 +1315,36 @@
 								>
 							</div>
 						{/if}
+
+						<!-- Order Services -->
+						{#if selectedRestaurant.orderServices}
+							{@const orderServices = selectedRestaurant.orderServices}
+							{#if orderServices.tableService || orderServices.pickup || orderServices.homeDelivery}
+								<div class="flex flex-wrap gap-1.5 pt-2">
+									{#if orderServices.tableService}
+										<span
+											class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700"
+										>
+											Table Service
+										</span>
+									{/if}
+									{#if orderServices.pickup}
+										<span
+											class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700"
+										>
+											Pickup
+										</span>
+									{/if}
+									{#if orderServices.homeDelivery}
+										<span
+											class="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700"
+										>
+											Delivery
+										</span>
+									{/if}
+								</div>
+							{/if}
+						{/if}
 					</div>
 
 					<!-- CTA Button -->

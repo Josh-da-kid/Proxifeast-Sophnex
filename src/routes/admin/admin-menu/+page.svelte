@@ -8,6 +8,7 @@
 	import { fly, fade } from 'svelte/transition';
 	import Notification from '$lib/Notification.svelte';
 	import Carousel from '$lib/Carousel.svelte';
+	import ImageCropper from '$lib/ImageCropper.svelte';
 
 	let dishes = $state($page.form?.dishes ?? $page.data.dishes ?? []);
 	const categories = $page.data.categories ?? [];
@@ -60,6 +61,22 @@
 		defaultAmount: '',
 		promoAmount: ''
 	});
+
+	// Image cropper state
+	let showImageCropper = $state(false);
+	let croppedImageBlob: Blob | null = $state(null);
+	let croppedImageBase64 = $state('');
+
+	function handleDishImageCrop(blob: Blob, base64: string) {
+		croppedImageBlob = blob;
+		croppedImageBase64 = base64;
+		selectedDish.image = base64;
+		showImageCropper = false;
+	}
+
+	function openImageCropper() {
+		showImageCropper = true;
+	}
 
 	const groupedDishes = $derived.by(() => {
 		const sourceDishes =
@@ -407,6 +424,41 @@
 									</div>
 								{/if}
 
+								<!-- Image Cropper Modal -->
+								{#if showImageCropper}
+									<div
+										class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4"
+									>
+										<div class="w-full max-w-2xl rounded-2xl bg-white p-6">
+											<div class="mb-4 flex items-center justify-between">
+												<h3 class="text-lg font-semibold text-slate-900">Upload Dish Image</h3>
+												<button
+													onclick={() => (showImageCropper = false)}
+													class="rounded-lg p-2 hover:bg-slate-100"
+												>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														class="h-5 w-5"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+													>
+														<path d="M18 6L6 18M6 6l12 12" />
+													</svg>
+												</button>
+											</div>
+
+											<ImageCropper
+												uploadType="dish"
+												initialImage={selectedDish.image}
+												onCropComplete={handleDishImageCrop}
+												onCancel={() => (showImageCropper = false)}
+											/>
+										</div>
+									</div>
+								{/if}
+
 								<!-- Dish Image -->
 								<figure class="relative overflow-hidden">
 									<img
@@ -656,14 +708,44 @@
 
 						<!-- Image URL -->
 						<div>
-							<label class="mb-1.5 block text-sm font-medium text-slate-700">Image URL</label>
-							<input
-								type="url"
-								name="imageUrl"
-								bind:value={selectedDish.image}
-								class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
-								placeholder="https://example.com/image.jpg"
-							/>
+							<label class="mb-1.5 block text-sm font-medium text-slate-700">Dish Image</label>
+							{#if selectedDish.image}
+								<div class="relative mb-3">
+									<img
+										src={selectedDish.image}
+										alt="Dish preview"
+										class="h-32 w-full rounded-lg object-cover"
+									/>
+									<button
+										type="button"
+										onclick={openImageCropper}
+										class="absolute right-2 bottom-2 rounded-lg bg-white/90 px-2 py-1 text-xs font-medium text-slate-700 shadow hover:bg-white"
+									>
+										Change
+									</button>
+								</div>
+							{:else}
+								<button
+									type="button"
+									onclick={openImageCropper}
+									class="flex w-full items-center justify-center rounded-lg border-2 border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500 hover:border-amber-500 hover:text-amber-500"
+								>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										class="mr-2 h-5 w-5"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+									>
+										<path
+											d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+										/>
+									</svg>
+									Upload Image
+								</button>
+							{/if}
+							<input type="hidden" name="imageUrl" value={selectedDish.image} />
 						</div>
 
 						<!-- Quantity -->

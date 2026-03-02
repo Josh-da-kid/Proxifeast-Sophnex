@@ -16,24 +16,19 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
 	const userRestaurantIds = locals.user?.restaurantIds || [];
 
-	// Try URL param first, then fallback to user's first adminRestaurantIds
-	let restaurantId =
-		url.searchParams.get('restaurantId') || adminRestaurantIds[0] || userRestaurantIds[0];
+	// Get all accessible restaurant IDs
+	const allAccessibleIds = [...new Set([...adminRestaurantIds, ...userRestaurantIds])];
+
+	// Try URL param first, then fallback to first accessible restaurant
+	let restaurantId = url.searchParams.get('restaurantId') || allAccessibleIds[0];
 
 	if (!restaurantId) {
-		console.log(
-			'No restaurant ID found. adminRestaurantIds:',
-			adminRestaurantIds,
-			'userRestaurantIds:',
-			userRestaurantIds
-		);
+		console.log('No restaurant ID found. User data:', { adminRestaurantIds, userRestaurantIds });
 		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
 	}
 
-	const hasAccess =
-		adminRestaurantIds.includes(restaurantId) || userRestaurantIds.includes(restaurantId);
-
-	if (!hasAccess) {
+	// Verify user has access to the requested restaurant
+	if (!allAccessibleIds.includes(restaurantId)) {
 		console.log('User does not have access to restaurant:', restaurantId);
 		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
 	}
@@ -41,34 +36,38 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	try {
 		console.log('Loading restaurant:', restaurantId);
 		const restaurant = await locals.pb.collection('restaurants').getOne(restaurantId);
+
+		console.log('Restaurant fields:', Object.keys(restaurant));
+
 		const orderServices = restaurant.orderServices || {
 			tableService: true,
 			pickup: true,
 			homeDelivery: true
 		};
 
+		// Fetch team members for this restaurant
 		const teamMembers = await locals.pb.collection('users').getFullList({
 			filter: `adminRestaurantIds ?~ "${restaurantId}" || restaurantIds ?~ "${restaurantId}"`,
 			sort: 'name'
 		});
 
-		console.log('Found team members:', teamMembers.length);
-
-		// Get all restaurants user has access to
-		const allAccessibleIds = [...new Set([...adminRestaurantIds, ...userRestaurantIds])];
+		// Fetch all accessible restaurants for the dropdown
 		let restaurants: any[] = [];
-
 		if (allAccessibleIds.length > 0) {
-			// Build filter for all accessible restaurants
 			const filterParts = allAccessibleIds.map((id) => `id = "${id}"`);
 			restaurants = await locals.pb.collection('restaurants').getFullList({
 				filter: filterParts.join(' || ')
 			});
 		}
 
+		const isSuper = locals.user?.isSuper || locals.isSuper || false;
+
+		const galleryImages = restaurant.galleryImages || [];
+
 		return {
 			restaurant,
 			orderServices,
+			galleryImages,
 			restaurantId,
 			restaurants: restaurants.map((r: any) => ({ id: r.id, name: r.name })),
 			teamMembers: teamMembers.map((member: any) => ({
@@ -77,7 +76,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				email: member.email,
 				role: member.role || 'manager',
 				isActive: member.isActive !== false
-			}))
+			})),
+			isSuper
 		};
 	} catch (error) {
 		console.error('Error loading settings:', error);
@@ -87,8 +87,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 export const actions: Actions = {
 	updateOrderServices: async ({ request, locals, url }) => {
+		const formData = await request.formData();
+
 		const restaurantId =
-			((await request.formData()).get('restaurantId') as string) ||
+			(formData.get('restaurantId') as string) ||
 			url.searchParams.get('restaurantId') ||
 			locals.restaurant?.id;
 
@@ -103,7 +105,6 @@ export const actions: Actions = {
 			return fail(403, { error: 'Unauthorized' });
 		}
 
-		const formData = await request.formData();
 		const tableService = formData.get('tableService') === 'on';
 		const pickup = formData.get('pickup') === 'on';
 		const homeDelivery = formData.get('homeDelivery') === 'on';
@@ -126,8 +127,10 @@ export const actions: Actions = {
 	},
 
 	updateRestaurantInfo: async ({ request, locals, url }) => {
+		const formData = await request.formData();
+
 		const restaurantId =
-			((await request.formData()).get('restaurantId') as string) ||
+			(formData.get('restaurantId') as string) ||
 			url.searchParams.get('restaurantId') ||
 			locals.restaurant?.id;
 
@@ -142,21 +145,44 @@ export const actions: Actions = {
 			return fail(403, { error: 'Unauthorized' });
 		}
 
-		const formData = await request.formData();
 		const name = formData.get('name') as string;
 		const domain = formData.get('domain') as string;
+		const category = formData.get('category') as string;
+		const motto = formData.get('motto') as string;
+		const description = formData.get('description') as string;
 		const openingTime = formData.get('openingTime') as string;
 		const closingTime = formData.get('closingTime') as string;
 		const address = formData.get('address') as string;
 		const phone = formData.get('phone') as string;
+		const state = formData.get('state') as string;
+		const localGovernment = formData.get('localGovernment') as string;
+		const imageUrl = formData.get('imageUrl') as string;
+		const logoUrl = formData.get('logoUrl') as string;
+		const bannerUrl = formData.get('bannerUrl') as string;
 
 		const updateData: Record<string, any> = {};
 		if (name) updateData.name = name;
 		if (domain) updateData.domain = domain;
+		if (category) updateData.category = category;
+		if (motto) updateData.motto = motto;
+		if (description) updateData.description = description;
 		if (openingTime) updateData.openingTime = openingTime;
 		if (closingTime) updateData.closingTime = closingTime;
-		if (address) updateData.address = address;
-		if (phone) updateData.phone = phone;
+		if (address) {
+			updateData.address = address;
+			updateData.restaurantAddress = address;
+		}
+		if (phone) {
+			updateData.phone = phone;
+			updateData.phoneNumber = phone;
+		}
+		if (state) updateData.state = state;
+		if (localGovernment) updateData.localGovernment = localGovernment;
+		if (imageUrl) updateData.imageUrl = imageUrl;
+		if (logoUrl) updateData.logoUrl = logoUrl;
+		if (bannerUrl) updateData.bannerUrl = bannerUrl;
+
+		console.log('Updating restaurant:', restaurantId, updateData);
 
 		try {
 			await locals.pb.collection('restaurants').update(restaurantId, updateData);
@@ -164,6 +190,47 @@ export const actions: Actions = {
 			return { success: true, message: 'Restaurant information saved successfully' };
 		} catch (error) {
 			return fail(500, { error: 'Failed to save restaurant information' });
+		}
+	},
+
+	updateGallery: async ({ request, locals, url }) => {
+		const formData = await request.formData();
+
+		const restaurantId =
+			(formData.get('restaurantId') as string) ||
+			url.searchParams.get('restaurantId') ||
+			locals.restaurant?.id;
+
+		if (!restaurantId) {
+			return fail(400, { error: 'No restaurant selected' });
+		}
+
+		const userRole = locals.user?.role || 'manager';
+		const isManagerOrOwner = userRole === 'owner' || userRole === 'manager';
+
+		if (!isManagerOrOwner) {
+			return fail(403, { error: 'Unauthorized' });
+		}
+
+		const galleryImagesJson = formData.get('galleryImages') as string;
+		let galleryImages: string[] = [];
+
+		if (galleryImagesJson) {
+			try {
+				galleryImages = JSON.parse(galleryImagesJson);
+			} catch {
+				return fail(400, { error: 'Invalid gallery images format' });
+			}
+		}
+
+		try {
+			await locals.pb.collection('restaurants').update(restaurantId, {
+				galleryImages
+			});
+
+			return { success: true, message: 'Gallery updated successfully' };
+		} catch (error) {
+			return fail(500, { error: 'Failed to update gallery' });
 		}
 	},
 
