@@ -13,22 +13,33 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
 	}
 
-	const restaurantId = url.searchParams.get('restaurantId') || locals.restaurant?.id;
+	const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
+	const userRestaurantIds = locals.user?.restaurantIds || [];
+
+	// Try URL param first, then fallback to user's first adminRestaurantIds
+	let restaurantId =
+		url.searchParams.get('restaurantId') || adminRestaurantIds[0] || userRestaurantIds[0];
 
 	if (!restaurantId) {
+		console.log(
+			'No restaurant ID found. adminRestaurantIds:',
+			adminRestaurantIds,
+			'userRestaurantIds:',
+			userRestaurantIds
+		);
 		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
 	}
 
-	const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
-	const userRestaurantIds = locals.user?.restaurantIds || [];
 	const hasAccess =
 		adminRestaurantIds.includes(restaurantId) || userRestaurantIds.includes(restaurantId);
 
 	if (!hasAccess) {
+		console.log('User does not have access to restaurant:', restaurantId);
 		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
 	}
 
 	try {
+		console.log('Loading restaurant:', restaurantId);
 		const restaurant = await locals.pb.collection('restaurants').getOne(restaurantId);
 		const orderServices = restaurant.orderServices || {
 			tableService: true,
@@ -41,9 +52,19 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			sort: 'name'
 		});
 
-		const restaurants = await locals.pb.collection('restaurants').getFullList({
-			filter: `id ?~ "${adminRestaurantIds.join('" || id ?~ "')}" || id ?~ "${userRestaurantIds.join('" || id ?~ "')}"`
-		});
+		console.log('Found team members:', teamMembers.length);
+
+		// Get all restaurants user has access to
+		const allAccessibleIds = [...new Set([...adminRestaurantIds, ...userRestaurantIds])];
+		let restaurants: any[] = [];
+
+		if (allAccessibleIds.length > 0) {
+			// Build filter for all accessible restaurants
+			const filterParts = allAccessibleIds.map((id) => `id = "${id}"`);
+			restaurants = await locals.pb.collection('restaurants').getFullList({
+				filter: filterParts.join(' || ')
+			});
+		}
 
 		return {
 			restaurant,
