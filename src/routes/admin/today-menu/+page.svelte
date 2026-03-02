@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { fly, fade } from 'svelte/transition';
 	import { page } from '$app/stores';
+	import { invalidateAll } from '$app/navigation';
 	import Carousel from '$lib/Carousel.svelte';
 	import pb from '$lib/pb';
 
@@ -39,7 +40,7 @@
 		isProcessing = true;
 		try {
 			await pb.collection('dishes').update(dishId, { isFeatured: true });
-			window.location.reload();
+			await invalidateAll();
 		} catch (err) {
 			console.error('Failed to add dish:', err);
 		} finally {
@@ -52,8 +53,7 @@
 		isProcessing = true;
 		try {
 			await pb.collection('dishes').update(dishId, { isFeatured: false });
-			// Trigger a page reload to refresh data
-			window.location.reload();
+			await invalidateAll();
 		} catch (err) {
 			console.error('Failed to remove dish:', err);
 		} finally {

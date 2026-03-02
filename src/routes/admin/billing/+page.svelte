@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { fly, fade } from 'svelte/transition';
 	import pb from '$lib/pb';
 
@@ -42,11 +42,10 @@
 			if (!data.subscriptions || data.subscriptions.length === 0) {
 				isLoadingSuperData = true;
 
-				// Auto-hide loading after a delay and force refresh
-				setTimeout(() => {
+				// Auto-hide loading after a delay and refresh data
+				setTimeout(async () => {
 					isLoadingSuperData = false;
-					// Force page reload to get data
-					window.location.reload();
+					await invalidateAll();
 				}, 2000);
 			}
 		}
@@ -288,11 +287,11 @@
 				})
 			})
 				.then((res) => res.json())
-				.then((result) => {
+				.then(async (result) => {
 					console.log('Free trial result:', result);
 					if (result.success) {
 						paymentSuccess = true;
-						window.location.reload();
+						await invalidateAll();
 					} else {
 						paymentError = result.error || result.details || 'Failed to create free trial';
 					}
@@ -345,10 +344,10 @@
 						})
 					})
 						.then((res) => res.json())
-						.then((result) => {
+						.then(async (result) => {
 							if (result.success) {
 								paymentSuccess = true;
-								window.location.reload();
+								await invalidateAll();
 							} else {
 								paymentError = 'Failed to save subscription: ' + (result.error || '');
 							}
@@ -434,10 +433,10 @@
 						})
 					})
 						.then((res) => res.json())
-						.then((result) => {
+						.then(async (result) => {
 							if (result.success) {
 								paymentSuccess = true;
-								window.location.reload();
+								await invalidateAll();
 							} else {
 								paymentError = 'Failed to renew subscription';
 							}
@@ -480,7 +479,7 @@
 
 			if (result.success) {
 				paymentSuccess = true;
-				window.location.reload();
+				await invalidateAll();
 			} else {
 				paymentError = 'Failed to toggle auto-renew: ' + (result.error || '');
 			}
@@ -518,7 +517,7 @@
 
 			if (result.success) {
 				paymentSuccess = true;
-				window.location.reload();
+				await invalidateAll();
 			} else {
 				paymentError = 'Failed to delete subscription: ' + (result.error || '');
 			}

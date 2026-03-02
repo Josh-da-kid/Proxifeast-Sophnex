@@ -170,7 +170,7 @@
 			deleteModal.close();
 			deleteSuccessful = true;
 			setTimeout(() => (deleteSuccessful = false), 3000);
-			window.location.reload();
+			await invalidateAll();
 		} catch (error) {
 			console.error('Failed to delete dish:', error);
 			deleteUnsuccessful = true;

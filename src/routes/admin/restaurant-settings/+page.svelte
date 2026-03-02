@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import Notification from '$lib/Notification.svelte';
 	import Footer from '$lib/Footer.svelte';
 	import ImageCropper from '$lib/ImageCropper.svelte';
@@ -348,7 +348,7 @@
 			setTimeout(() => {
 				successAlert = false;
 			}, 3000);
-			window.location.reload();
+			await invalidateAll();
 		} else {
 			errorAlert = true;
 			errorMessage = result.data?.error || 'Failed to update role';
@@ -383,7 +383,7 @@
 			setTimeout(() => {
 				successAlert = false;
 			}, 3000);
-			window.location.reload();
+			await invalidateAll();
 		} else {
 			errorAlert = true;
 			errorMessage = result.data?.error || 'Failed to remove team member';
