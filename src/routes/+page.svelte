@@ -1923,51 +1923,94 @@
 
 								<!-- Description -->
 								{#if r.description}
-									<p class="mb-5 line-clamp-3 text-sm leading-relaxed text-slate-600">
+									<p class="mb-3 line-clamp-2 text-sm leading-relaxed text-slate-600">
 										{r.description}
 									</p>
 								{/if}
 
-								<!-- Address -->
-								{#if r.restaurantAddress}
-									<div class="mb-5 flex items-start gap-2 text-sm text-slate-500">
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											class="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2"
+								<!-- Category -->
+								{#if r.category}
+									<div class="mb-3">
+										<span
+											class="inline-block rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700"
 										>
-											<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-											<circle cx="12" cy="10" r="3" />
-										</svg>
-										<span class="line-clamp-2">{r.restaurantAddress}</span>
+											{r.category}
+										</span>
 									</div>
 								{/if}
 
-								<!-- Opening Hours -->
-								{#if r.openingTime || r.closingTime}
-									<div class="mb-4 flex items-center gap-2 text-sm">
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											class="h-4 w-4 {isOpen ? 'text-green-500' : 'text-red-500'}"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2"
+								<!-- Location & Hours -->
+								<div class="mb-4 grid grid-cols-2 gap-2 text-xs">
+									{#if r.state || r.localGovernment}
+										<div class="flex items-center gap-1.5 text-slate-500">
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												class="h-3.5 w-3.5 shrink-0 text-amber-500"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+											>
+												<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+												<circle cx="12" cy="10" r="3" />
+											</svg>
+											<span class="line-clamp-1">
+												{r.localGovernment ? `${r.localGovernment}, ` : ''}{r.state || ''}
+											</span>
+										</div>
+									{/if}
+									{#if r.openingTime || r.closingTime}
+										<div
+											class="flex items-center gap-1.5 {isOpen ? 'text-green-600' : 'text-red-600'}"
 										>
-											<circle cx="12" cy="12" r="10" />
-											<polyline points="12 6 12 12 16 14" />
-										</svg>
-										<span class="{isOpen ? 'text-green-600' : 'text-red-600'} font-medium">
-											{#if isOpen}
-												Open • {formatTime(r.openingTime)} - {formatTime(r.closingTime)}
-											{:else}
-												Closed • Opens at {formatTime(r.openingTime)}
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												class="h-3.5 w-3.5 shrink-0"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+											>
+												<circle cx="12" cy="12" r="10" />
+												<polyline points="12 6 12 12 16 14" />
+											</svg>
+											<span class="line-clamp-1 font-medium">
+												{r.openingTime || ''}{r.openingTime && r.closingTime
+													? ' - '
+													: ''}{r.closingTime || ''}
+											</span>
+										</div>
+									{/if}
+								</div>
+
+								<!-- Order Services -->
+								{#if r.orderServices}
+									{@const os = r.orderServices}
+									{#if os.tableService || os.pickup || os.homeDelivery}
+										<div class="mb-4 flex flex-wrap gap-1.5">
+											{#if os.tableService}
+												<span
+													class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700"
+												>
+													Table
+												</span>
 											{/if}
-										</span>
-									</div>
+											{#if os.pickup}
+												<span
+													class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700"
+												>
+													Pickup
+												</span>
+											{/if}
+											{#if os.homeDelivery}
+												<span
+													class="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700"
+												>
+													Delivery
+												</span>
+											{/if}
+										</div>
+									{/if}
 								{/if}
 
 								<!-- Action -->

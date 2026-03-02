@@ -5,22 +5,30 @@
 	import Carousel from '$lib/Carousel.svelte';
 	import pb from '$lib/pb';
 	import { addToCartPB } from '$lib/addToCart';
+	import { cart, fetchCart } from '$lib/stores/cart';
 
 	const restaurant = $derived($page.data.restaurant);
 	const featuredDishes = $derived($page.data.featuredDishes ?? []);
 	const categories = $derived($page.data.categories ?? []);
 	const menuByCategory = $derived($page.data.menuByCategory ?? {});
 	const user = $derived($page.data.user);
+	const allRestaurants = $derived($page.data.allRestaurants ?? []);
 
 	let currentTime = $state(new Date());
 	let timeInterval: ReturnType<typeof setInterval>;
 	let isAddingToCart = $state<string | null>(null);
 	let addToCartAlert = $state(false);
+	let locationMismatchAlert = $state(false);
+	let locationMismatchMessage = $state('');
 
 	onMount(() => {
 		timeInterval = setInterval(() => {
 			currentTime = new Date();
 		}, 1000);
+
+		if (user) {
+			fetchCart();
+		}
 
 		return () => {
 			if (timeInterval) clearInterval(timeInterval);
@@ -54,6 +62,42 @@
 		}
 
 		if (dish.availability !== 'Available') return;
+
+		// Check for location mismatch with cart items
+		const currentCart = $cart;
+		if (currentCart.length > 0) {
+			const cartRestaurantIds = [
+				...new Set(currentCart.map((item: any) => item.restaurantId || item.restaurant))
+			];
+
+			for (const cartRestaurantId of cartRestaurantIds) {
+				const cartRestaurant = allRestaurants.find((r: any) => r.id === cartRestaurantId);
+				if (cartRestaurant && restaurant) {
+					const newState = restaurant.state?.toLowerCase().trim();
+					const cartState = cartRestaurant.state?.toLowerCase().trim();
+					const newLGA = restaurant.localGovernment?.toLowerCase().trim();
+					const cartLGA = cartRestaurant.localGovernment?.toLowerCase().trim();
+
+					if (newState && cartState && newState !== cartState) {
+						locationMismatchMessage = `${restaurant.name} (${restaurant.state}) is in a different state from ${cartRestaurant.name} (${cartRestaurant.state}). Remove ${cartRestaurant.name} from cart to add ${restaurant.name}.`;
+						locationMismatchAlert = true;
+						setTimeout(() => {
+							locationMismatchAlert = false;
+						}, 6000);
+						return;
+					}
+
+					if (newLGA && cartLGA && newLGA !== cartLGA) {
+						locationMismatchMessage = `${restaurant.name} (${restaurant.localGovernment} LGA) is in a different LGA from ${cartRestaurant.name} (${cartRestaurant.localGovernment} LGA). Remove ${cartRestaurant.name} from cart to add ${restaurant.name}.`;
+						locationMismatchAlert = true;
+						setTimeout(() => {
+							locationMismatchAlert = false;
+						}, 6000);
+						return;
+					}
+				}
+			}
+		}
 
 		isAddingToCart = dish.id;
 
@@ -136,6 +180,38 @@
 			<div>
 				<p class="text-sm font-semibold">Added to cart</p>
 				<p class="text-xs text-gray-400">Item has been added successfully</p>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Location Mismatch Alert -->
+{#if locationMismatchAlert}
+	<div
+		class="toast toast-top toast-center z-50"
+		in:fly={{ y: -50, duration: 300 }}
+		out:fly={{ y: -50, duration: 300 }}
+	>
+		<div
+			class="alert max-w-md gap-3 rounded-2xl border-0 bg-gray-900 px-5 py-3 text-white shadow-2xl"
+		>
+			<div class="rounded-full bg-amber-500/20 p-1">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-5 w-5 text-amber-400"
+					viewBox="0 0 20 20"
+					fill="currentColor"
+				>
+					<path
+						fill-rule="evenodd"
+						d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+						clip-rule="evenodd"
+					/>
+				</svg>
+			</div>
+			<div>
+				<p class="text-sm font-semibold">Location Mismatch</p>
+				<p class="text-xs text-gray-400">{locationMismatchMessage}</p>
 			</div>
 		</div>
 	</div>

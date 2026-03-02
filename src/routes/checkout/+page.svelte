@@ -200,8 +200,9 @@
 				if (isDishInCart) await fetchCart();
 			}
 		});
+		// Only fetch cart for OTHER users' changes, not our own (we update locally)
 		unsubscribeCart = await pb.collection('cart').subscribe('*', async ({ action, record }) => {
-			if (record.user === userData.id) await fetchCart();
+			if (record.user !== userData.id) await fetchCart();
 		});
 
 		// Subscribe to restaurant changes for real-time opening/closing time updates
@@ -229,7 +230,8 @@
 		itemsBeingUpdated.set(id, true);
 		try {
 			await pb.collection('cart').delete(id);
-			await fetchCart();
+			// Update cart store locally instead of re-fetching
+			cart.update((items) => items.filter((item: any) => item.id !== id));
 		} catch (err) {
 			console.error('Failed to remove item:', err);
 		} finally {
@@ -245,7 +247,8 @@
 		try {
 			const items = await pb.collection('cart').getFullList({ filter: `user="${userId}"` });
 			await Promise.all(items.map((item) => pb.collection('cart').delete(item.id)));
-			await fetchCart();
+			// Update cart store locally instead of re-fetching
+			cart.set([]);
 			clearModal?.close();
 		} catch (err) {
 			console.error('Failed to clear cart:', err);
@@ -274,7 +277,15 @@
 		itemsBeingUpdated.set(itemId, true);
 		try {
 			await pb.collection('cart').update(itemId, { quantity: newQty, amount: unitPrice * newQty });
-			await fetchCart();
+			// Update cart store locally instead of re-fetching
+			cart.update((items) => {
+				return items.map((item: any) => {
+					if (item.id === itemId) {
+						return { ...item, quantity: newQty, amount: unitPrice * newQty };
+					}
+					return item;
+				});
+			});
 		} catch (err) {
 			console.error('Failed to update quantity:', err);
 		} finally {

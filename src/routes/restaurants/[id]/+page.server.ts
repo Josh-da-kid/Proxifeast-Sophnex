@@ -32,13 +32,18 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			}
 		}
 
+		const allRestaurants = await locals.pb.collection('restaurants').getFullList({
+			fields: 'id,name,state,localGovernment,orderServices'
+		});
+
 		return {
 			restaurant,
 			dishes: dishesResult.items,
 			featuredDishes: featuredDishesResult.items,
 			categories,
 			menuByCategory,
-			user: locals.user || null
+			user: locals.user || null,
+			allRestaurants
 		};
 	} catch (err) {
 		console.error('Failed to load restaurant:', err);
