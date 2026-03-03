@@ -92,49 +92,62 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		// Fetch team members based on super user status
 		let teamMembers;
 		if (isSuperUser) {
-			// For super users, show ALL users in the system
-			teamMembers = await locals.pb.collection('users').getFullList({
+			// For super users, show ALL restaurants (especially super restaurants) with their info
+			const allRestaurantsData = await locals.pb.collection('restaurants').getFullList({
 				sort: 'name'
 			});
 
-			console.log('All users fetched for super admin:', teamMembers.length);
+			// Filter to show only super restaurants
+			const superRestaurants = allRestaurantsData.filter((r: any) => r.isSuper === true);
 
-			// Fetch all restaurants to map IDs to names
-			const allRestaurants = await locals.pb.collection('restaurants').getFullList();
-			const restaurantMap = new Map(allRestaurants.map((r: any) => [r.id, r.name]));
+			// Get all users who are admins of these super restaurants
+			const allUsers = await locals.pb.collection('users').getFullList({
+				sort: 'name'
+			});
 
-			// Add restaurant names to each member (remove duplicates)
-			teamMembers = teamMembers.map((member: any) => {
-				const adminRestaurants = (member.adminRestaurantIds || [])
-					.map((id: string) => restaurantMap.get(id))
-					.filter(Boolean);
-				const userRestaurants = (member.restaurantIds || [])
-					.map((id: string) => restaurantMap.get(id))
-					.filter(Boolean);
-				// Combine and remove duplicates using Set
-				const allRestaurants = [...new Set([...adminRestaurants, ...userRestaurants])];
+			// Map super restaurants with their admin info
+			teamMembers = superRestaurants.map((restaurant: any) => {
+				// Find users who are admins of this restaurant
+				const admins = allUsers.filter((u: any) =>
+					(u.adminRestaurantIds || []).includes(restaurant.id)
+				);
 				return {
-					...member,
-					adminRestaurants: allRestaurants
+					id: restaurant.id,
+					name: restaurant.name,
+					email: restaurant.email || '',
+					domain: restaurant.domain,
+					isSuper: restaurant.isSuper,
+					role: 'restaurant',
+					adminUsers: admins.map((a: any) => ({ name: a.name, email: a.email, role: a.role }))
 				};
 			});
+
+			console.log('Super restaurants with admins:', teamMembers.length);
 		} else {
-			// For regular restaurants, show ALL users - the filter will be applied in a more relaxed way
-			// First get all users, then filter by restaurant access
+			// For regular restaurants, show users who are ADMINS of this specific restaurant
 			teamMembers = await locals.pb.collection('users').getFullList({
 				sort: 'name'
 			});
 
 			console.log('All users fetched (non-super):', teamMembers.length);
 
-			// Filter to users who have this restaurant in their admin or regular restaurant list
+			// Filter to users who are ADMINS of this specific restaurant (not just have access)
 			teamMembers = teamMembers.filter((m: any) => {
 				const adminIds = m.adminRestaurantIds || [];
-				const regularIds = m.restaurantIds || [];
-				return adminIds.includes(restaurantId) || regularIds.includes(restaurantId);
+				return adminIds.includes(restaurantId);
 			});
 
-			console.log('Users with access to restaurant', restaurantId, ':', teamMembers.length);
+			// Also get the restaurant info
+			const restaurantMap = new Map();
+			restaurantMap.set(restaurantId, restaurant?.name);
+
+			// Add restaurant name to each member
+			teamMembers = teamMembers.map((member: any) => ({
+				...member,
+				adminRestaurants: [restaurant?.name]
+			}));
+
+			console.log('Admin users for restaurant', restaurantId, ':', teamMembers.length);
 		}
 
 		// Fetch all accessible restaurants for the dropdown
@@ -182,14 +195,31 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			galleryImages,
 			restaurantId,
 			restaurants: restaurants.map((r: any) => ({ id: r.id, name: r.name })),
-			teamMembers: teamMembers.map((member: any) => ({
-				id: member.id,
-				name: member.name,
-				email: member.email,
-				role: member.role || 'manager',
-				isActive: member.isActive !== false,
-				adminRestaurants: member.adminRestaurants || []
-			})),
+			teamMembers: teamMembers.map((member: any) => {
+				if (isSuperUser) {
+					// For super users, return restaurant data with admin users
+					return {
+						id: member.id,
+						name: member.name,
+						email: member.email,
+						domain: member.domain,
+						isSuper: member.isSuper,
+						role: 'restaurant',
+						isActive: true,
+						adminUsers: member.adminUsers || []
+					};
+				} else {
+					// For regular users, return user data
+					return {
+						id: member.id,
+						name: member.name,
+						email: member.email,
+						role: member.role || 'manager',
+						isActive: member.isActive !== false,
+						adminRestaurants: member.adminRestaurants || []
+					};
+				}
+			}),
 			isSuper: isSuperUser,
 			setupInquiries
 		};

@@ -582,17 +582,17 @@
 						>
 							+ Add Restaurant
 						</button>
-					{/if}
-					{#if isSuper && restaurants.length > 1}
-						<select
-							value={currentRestaurantId}
-							onchange={(e) => switchRestaurant(e.currentTarget.value)}
-							class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none"
-						>
-							{#each restaurants as rest}
-								<option value={rest.id}>{rest.name}</option>
-							{/each}
-						</select>
+						{#if restaurants.length > 1}
+							<select
+								value={currentRestaurantId}
+								onchange={(e) => switchRestaurant(e.currentTarget.value)}
+								class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none"
+							>
+								{#each restaurants as rest}
+									<option value={rest.id}>{rest.name}</option>
+								{/each}
+							</select>
+						{/if}
 					{/if}
 				</div>
 			</div>
@@ -698,11 +698,13 @@
 			<!-- Team Management Section -->
 			<div class="rounded-lg bg-white shadow">
 				<div class="border-b border-slate-200 px-6 py-4">
-					<h2 class="text-lg font-semibold text-slate-900">Team Management</h2>
+					<h2 class="text-lg font-semibold text-slate-900">
+						{isSuper ? 'Super Restaurants Management' : 'Team Management'}
+					</h2>
 					<p class="mt-1 text-sm text-slate-600">
 						{isSuper
-							? 'All restaurant admins in the system'
-							: 'Manage team members and their roles for this restaurant'}
+							? 'Manage all super restaurants and their administrators'
+							: 'Manage team members who are admins for this restaurant'}
 					</p>
 				</div>
 
@@ -714,104 +716,159 @@
 							<table class="min-w-full divide-y divide-slate-200">
 								<thead class="bg-slate-50">
 									<tr>
-										<th
-											class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
-										>
-											Member
-										</th>
-										<th
-											class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
-										>
-											Email
-										</th>
 										{#if isSuper}
 											<th
 												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
 											>
-												Restaurants
+												Restaurant
+											</th>
+											<th
+												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
+											>
+												Domain
+											</th>
+											<th
+												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
+											>
+												Admin Users
+											</th>
+											<th
+												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
+											>
+												Status
+											</th>
+										{:else}
+											<th
+												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
+											>
+												Member
+											</th>
+											<th
+												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
+											>
+												Email
+											</th>
+											<th
+												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
+											>
+												Role
+											</th>
+											<th
+												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
+											>
+												Actions
 											</th>
 										{/if}
-										<th
-											class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
-										>
-											Role
-										</th>
-										<th
-											class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
-										>
-											Actions
-										</th>
 									</tr>
 								</thead>
 								<tbody class="divide-y divide-slate-200 bg-white">
 									{#each teamMembers as member}
-										<tr>
-											<td class="px-4 py-3 whitespace-nowrap">
-												<div class="flex items-center">
-													<div
-														class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 font-medium text-amber-700"
-													>
-														{member.name?.charAt(0).toUpperCase() || 'U'}
-													</div>
-													<span class="ml-3 text-sm font-medium text-slate-900">
-														{member.name || 'Unknown'}
-														{#if member.id === currentUserId}
-															<span class="ml-1 text-xs text-slate-500">(You)</span>
-														{/if}
-													</span>
-												</div>
-											</td>
-											<td class="px-4 py-3 text-sm whitespace-nowrap text-slate-600">
-												{member.email || 'N/A'}
-											</td>
-											{#if isSuper}
-												<td class="px-4 py-3">
-													<div class="flex flex-wrap gap-1">
-														{#each member.adminRestaurants || [] as restName}
-															<span
-																class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700"
-															>
-																{restName}
-															</span>
-														{/each}
+										{#if isSuper}
+											<!-- Super Admin View: Show Restaurants -->
+											<tr>
+												<td class="px-4 py-3 whitespace-nowrap">
+													<div class="flex items-center">
+														<div
+															class="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 font-medium text-purple-700"
+														>
+															{member.name?.charAt(0).toUpperCase() || 'R'}
+														</div>
+														<span class="ml-3 text-sm font-medium text-slate-900">
+															{member.name || 'Unknown'}
+														</span>
 													</div>
 												</td>
-											{/if}
-											<td class="px-4 py-3 whitespace-nowrap">
-												{#if member.id === currentUserId}
-													<span
-														class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold {getRoleBadgeClass(
-															member.role
-														)}"
-													>
-														{member.role || 'manager'}
-													</span>
-												{:else}
-													<select
-														value={member.role || 'manager'}
-														onchange={(e) => updateRole(member.id, e.currentTarget.value)}
-														class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none"
-													>
-														<option value="owner">Owner</option>
-														<option value="manager">Manager</option>
-														<option value="kitchen">Kitchen</option>
-														<option value="waiter">Waiter</option>
-													</select>
-												{/if}
-											</td>
-											<td class="px-4 py-3 whitespace-nowrap">
-												{#if member.id !== currentUserId}
-													<button
-														onclick={() => removeTeamMember(member.id)}
-														class="text-sm font-medium text-red-600 hover:text-red-800"
-													>
-														Remove
-													</button>
-												{:else}
-													<span class="text-sm text-slate-400">-</span>
-												{/if}
-											</td>
-										</tr>
+												<td class="px-4 py-3 text-sm text-slate-600">
+													{member.domain || 'N/A'}
+												</td>
+												<td class="px-4 py-3">
+													{#if member.adminUsers && member.adminUsers.length > 0}
+														<div class="flex flex-wrap gap-1">
+															{#each member.adminUsers as admin}
+																<span
+																	class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700"
+																>
+																	{admin.name} ({admin.role})
+																</span>
+															{/each}
+														</div>
+													{:else}
+														<span class="text-xs text-slate-400">No admins assigned</span>
+													{/if}
+												</td>
+												<td class="px-4 py-3 whitespace-nowrap">
+													{#if member.isSuper}
+														<span
+															class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700"
+														>
+															Super
+														</span>
+													{:else}
+														<span
+															class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700"
+														>
+															Regular
+														</span>
+													{/if}
+												</td>
+											</tr>
+										{:else}
+											<!-- Regular Admin View: Show Team Members -->
+											<tr>
+												<td class="px-4 py-3 whitespace-nowrap">
+													<div class="flex items-center">
+														<div
+															class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 font-medium text-amber-700"
+														>
+															{member.name?.charAt(0).toUpperCase() || 'U'}
+														</div>
+														<span class="ml-3 text-sm font-medium text-slate-900">
+															{member.name || 'Unknown'}
+															{#if member.id === currentUserId}
+																<span class="ml-1 text-xs text-slate-500">(You)</span>
+															{/if}
+														</span>
+													</div>
+												</td>
+												<td class="px-4 py-3 text-sm whitespace-nowrap text-slate-600">
+													{member.email || 'N/A'}
+												</td>
+												<td class="px-4 py-3 whitespace-nowrap">
+													{#if member.id === currentUserId}
+														<span
+															class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold {getRoleBadgeClass(
+																member.role
+															)}"
+														>
+															{member.role || 'manager'}
+														</span>
+													{:else}
+														<select
+															value={member.role || 'manager'}
+															onchange={(e) => updateRole(member.id, e.currentTarget.value)}
+															class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none"
+														>
+															<option value="owner">Owner</option>
+															<option value="manager">Manager</option>
+															<option value="kitchen">Kitchen</option>
+															<option value="waiter">Waiter</option>
+														</select>
+													{/if}
+												</td>
+												<td class="px-4 py-3 whitespace-nowrap">
+													{#if member.id !== currentUserId}
+														<button
+															onclick={() => removeTeamMember(member.id)}
+															class="text-sm font-medium text-red-600 hover:text-red-800"
+														>
+															Remove
+														</button>
+													{:else}
+														<span class="text-sm text-slate-400">-</span>
+													{/if}
+												</td>
+											</tr>
+										{/if}
 									{/each}
 								</tbody>
 							</table>
