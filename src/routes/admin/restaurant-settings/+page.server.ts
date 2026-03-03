@@ -61,34 +61,49 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		const shouldShowSuperData = isCurrentRestaurantSuper;
 		console.log('Should show super data:', shouldShowSuperData);
 
-		// Fetch team members based on super user status
+		// OPTIMIZATION: Fetch all needed data in parallel to reduce requests
+		let allRestaurantsData: any[] = [];
+		let allUsers: any[] = [];
+		let setupInquiries: any[] = [];
+
+		try {
+			// Fetch restaurants and users in parallel
+			const [restaurantsResult, usersResult] = await Promise.all([
+				locals.pb.collection('restaurants').getFullList({ sort: 'name' }),
+				locals.pb.collection('users').getFullList({ sort: 'name' })
+			]);
+			allRestaurantsData = restaurantsResult;
+			allUsers = usersResult;
+		} catch (e) {
+			console.log('Error fetching initial data:', e);
+		}
+
+		// Fetch setup inquiries in parallel (only if super)
+		if (shouldShowSuperData) {
+			try {
+				setupInquiries = await locals.pb.collection('setupInquiries').getFullList({
+					sort: '-created'
+				});
+			} catch (e) {
+				console.log('No setup inquiries found');
+			}
+		}
+
+		// Process team members based on super status
 		let teamMembers;
 		if (shouldShowSuperData) {
-			// For super users, show ALL restaurants (especially super restaurants) with their info
-			const allRestaurantsData = await locals.pb.collection('restaurants').getFullList({
-				sort: 'name'
-			});
-
 			// Filter to show only super restaurants
 			const superRestaurants = allRestaurantsData.filter((r: any) => r.isSuper === true);
 
-			// Get all users who are admins of these super restaurants
-			const allUsers = await locals.pb.collection('users').getFullList({
-				sort: 'name'
-			});
-
 			// Map super restaurants with their admin info
-			teamMembers = superRestaurants.map((restaurant: any) => {
-				// Find users who are admins of this restaurant
-				const admins = allUsers.filter((u: any) =>
-					(u.adminRestaurantIds || []).includes(restaurant.id)
-				);
+			teamMembers = superRestaurants.map((r: any) => {
+				const admins = allUsers.filter((u: any) => (u.adminRestaurantIds || []).includes(r.id));
 				return {
-					id: restaurant.id,
-					name: restaurant.name,
-					email: restaurant.email || '',
-					domain: restaurant.domain,
-					isSuper: restaurant.isSuper,
+					id: r.id,
+					name: r.name,
+					email: r.email || '',
+					domain: r.domain,
+					isSuper: r.isSuper,
 					role: 'restaurant',
 					adminUsers: admins.map((a: any) => ({ name: a.name, email: a.email, role: a.role }))
 				};
@@ -97,21 +112,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			console.log('Super restaurants with admins:', teamMembers.length);
 		} else {
 			// For regular restaurants, show users who are ADMINS of this specific restaurant
-			teamMembers = await locals.pb.collection('users').getFullList({
-				sort: 'name'
-			});
-
-			console.log('All users fetched (non-super):', teamMembers.length);
-
-			// Filter to users who are ADMINS of this specific restaurant (not just have access)
-			teamMembers = teamMembers.filter((m: any) => {
+			teamMembers = allUsers.filter((m: any) => {
 				const adminIds = m.adminRestaurantIds || [];
 				return adminIds.includes(restaurantId);
 			});
-
-			// Also get the restaurant info
-			const restaurantMap = new Map();
-			restaurantMap.set(restaurantId, restaurant?.name);
 
 			// Add restaurant name to each member
 			teamMembers = teamMembers.map((member: any) => ({
@@ -125,33 +129,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		// Fetch all accessible restaurants for the dropdown
 		let restaurants: any[] = [];
 		if (shouldShowSuperData) {
-			// Super users can see all restaurants in the system
-			// Sort by putting current restaurant first, then alphabetically
-			const allRestaurants = await locals.pb.collection('restaurants').getFullList({
-				sort: 'name'
-			});
-
 			// Put current restaurant first
-			const currentRest = allRestaurants.find((r: any) => r.id === restaurantId);
-			const otherRestaurants = allRestaurants.filter((r: any) => r.id !== restaurantId);
-			restaurants = currentRest ? [currentRest, ...otherRestaurants] : allRestaurants;
+			const currentRest = allRestaurantsData.find((r: any) => r.id === restaurantId);
+			const otherRestaurants = allRestaurantsData.filter((r: any) => r.id !== restaurantId);
+			restaurants = currentRest ? [currentRest, ...otherRestaurants] : allRestaurantsData;
 		} else if (allAccessibleIds.length > 0) {
-			const filterParts = allAccessibleIds.map((id) => `id = "${id}"`);
-			restaurants = await locals.pb.collection('restaurants').getFullList({
-				filter: filterParts.join(' || ')
-			});
-		}
-
-		// Load setup inquiries for super users
-		let setupInquiries: any[] = [];
-		if (shouldShowSuperData) {
-			try {
-				setupInquiries = await locals.pb.collection('setupInquiries').getFullList({
-					sort: '-created'
-				});
-			} catch (e) {
-				console.log('No setup inquiries found');
-			}
+			// Use the already fetched allRestaurantsData instead of making another request
+			restaurants = allRestaurantsData.filter((r: any) => allAccessibleIds.includes(r.id));
 		}
 
 		let galleryImages: string[] = [];

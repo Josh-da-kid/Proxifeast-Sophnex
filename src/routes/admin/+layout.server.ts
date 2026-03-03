@@ -85,26 +85,26 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		const fullHost = request.headers.get('host') || '';
 		const domainOnly = fullHost.split(':')[0].replace('www.', '').toLowerCase();
 
+		// Use already fetched allRestaurantsForCheck to find the restaurant
 		let restaurant: any = null;
-		try {
-			restaurant = await locals.pb
-				.collection('restaurants')
-				.getFirstListItem(`domain = "${domainOnly}"`);
-		} catch {
-			try {
-				const results = await locals.pb.collection('restaurants').getList(1, 5, {
-					filter: `domain ~ "${domainOnly}"`
-				});
-				if (results.items.length > 0) {
-					restaurant = results.items[0];
-				}
-			} catch {}
 
-			if (!restaurant) {
-				try {
-					restaurant = await locals.pb.collection('restaurants').getFirstListItem('isSuper = true');
-				} catch {}
-			}
+		// Try exact match first
+		restaurant = allRestaurantsForCheck.find((r: any) => {
+			const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
+			return rDomain === domainOnly;
+		});
+
+		// Try partial match
+		if (!restaurant) {
+			restaurant = allRestaurantsForCheck.find((r: any) => {
+				const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
+				return domainOnly.includes(rDomain) || rDomain.includes(domainOnly);
+			});
+		}
+
+		// Fallback to super restaurant
+		if (!restaurant) {
+			restaurant = allRestaurantsForCheck.find((r: any) => r.isSuper === true);
 		}
 
 		if (!restaurant) {
@@ -170,11 +170,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		}
 
 		if (locals.isSuper) {
-			let allRestaurantsIncludingSuper: any[] = [];
-			try {
-				allRestaurantsIncludingSuper = await locals.pb.collection('restaurants').getFullList();
-			} catch {}
-
+			// Reuse already fetched allRestaurantsForCheck instead of making another request
 			return {
 				user: locals.user,
 				restaurant,
@@ -184,7 +180,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 				restaurantId: restaurant?.id,
 				subscription: null,
 				subscriptionStatus: 'active',
-				allRestaurantsIncludingSuper,
+				allRestaurantsIncludingSuper: allRestaurantsForCheck,
 				userRole: userRole,
 				isKitchen,
 				isWaiter

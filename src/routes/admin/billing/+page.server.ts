@@ -113,15 +113,16 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		} else if (restaurant?.id) {
 			console.log('Fetching subscription for restaurant:', restaurant.id, restaurant.name);
 
-			const subs: any = await locals.pb.collection('subscriptions').getList(1, 1, {
+			// Fetch all subscriptions for this restaurant in one call
+			const allSubs: any = await locals.pb.collection('subscriptions').getList(1, 50, {
 				filter: `restaurantId = "${restaurant.id}"`,
 				sort: '-created'
 			});
+			previousSubscriptions = allSubs.items || [];
 
-			console.log('Subscription query result:', subs.items);
-
-			if (subs.items && subs.items.length > 0) {
-				subscription = subs.items[0];
+			// Use the first subscription (most recent)
+			if (previousSubscriptions.length > 0) {
+				subscription = previousSubscriptions[0];
 				console.log('Found subscription:', subscription);
 
 				const now = new Date();
@@ -150,11 +151,6 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 
 			console.log('Final subscriptionStatus:', subscriptionStatus);
 
-			const allSubs: any = await locals.pb.collection('subscriptions').getList(1, 50, {
-				filter: `restaurantId = "${restaurant.id}"`,
-				sort: '-created'
-			});
-			previousSubscriptions = allSubs.items || [];
 			subscriptions = subscription ? [subscription] : [];
 			restaurantsList = [restaurant];
 		}
