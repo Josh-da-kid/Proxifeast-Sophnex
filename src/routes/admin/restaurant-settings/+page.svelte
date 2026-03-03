@@ -25,11 +25,21 @@
 	let newRestaurantForm = $state({
 		name: '',
 		domain: '',
+		slug: '',
+		description: '',
+		motto: '',
 		category: '',
+		email: '',
+		phone: '',
 		state: '',
 		localGovernment: '',
-		phone: '',
-		address: ''
+		address: '',
+		openingTime: '09:00',
+		closingTime: '22:00',
+		serviceFee: '0',
+		deliveryFeePerKm: '0',
+		maxDeliveryRadius: '10',
+		isSuper: false
 	});
 
 	async function createRestaurant(event: SubmitEvent) {
@@ -38,7 +48,12 @@
 
 		const formData = new FormData();
 		Object.entries(newRestaurantForm).forEach(([key, value]) => {
-			formData.append(key, value);
+			// Handle checkbox - send 'true' if checked, empty string if not
+			if (key === 'isSuper') {
+				formData.append(key, value ? 'true' : '');
+			} else {
+				formData.append(key, String(value ?? ''));
+			}
 		});
 
 		try {
@@ -54,11 +69,21 @@
 				newRestaurantForm = {
 					name: '',
 					domain: '',
+					slug: '',
+					description: '',
+					motto: '',
 					category: '',
+					email: '',
+					phone: '',
 					state: '',
 					localGovernment: '',
-					phone: '',
-					address: ''
+					address: '',
+					openingTime: '09:00',
+					closingTime: '22:00',
+					serviceFee: '0',
+					deliveryFeePerKm: '0',
+					maxDeliveryRadius: '10',
+					isSuper: false
 				};
 				successAlert = true;
 				successMessage = 'Restaurant created successfully!';
@@ -619,7 +644,9 @@
 				<div class="border-b border-slate-200 px-6 py-4">
 					<h2 class="text-lg font-semibold text-slate-900">Team Management</h2>
 					<p class="mt-1 text-sm text-slate-600">
-						Manage team members and their roles for this restaurant
+						{isSuper
+							? 'All restaurant admins in the system'
+							: 'Manage team members and their roles for this restaurant'}
 					</p>
 				</div>
 
@@ -641,6 +668,13 @@
 										>
 											Email
 										</th>
+										{#if isSuper}
+											<th
+												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
+											>
+												Restaurants
+											</th>
+										{/if}
 										<th
 											class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
 										>
@@ -674,6 +708,19 @@
 											<td class="px-4 py-3 text-sm whitespace-nowrap text-slate-600">
 												{member.email || 'N/A'}
 											</td>
+											{#if isSuper}
+												<td class="px-4 py-3">
+													<div class="flex flex-wrap gap-1">
+														{#each member.adminRestaurants || [] as restName}
+															<span
+																class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700"
+															>
+																{restName}
+															</span>
+														{/each}
+													</div>
+												</td>
+											{/if}
 											<td class="px-4 py-3 whitespace-nowrap">
 												{#if member.id === currentUserId}
 													<span
@@ -1227,122 +1274,299 @@
 <!-- New Restaurant Modal -->
 {#if showNewRestaurantModal}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-		<div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-			<div class="mb-6 flex items-center justify-between">
-				<h2 class="text-xl font-bold text-slate-900">Add New Restaurant</h2>
-				<button
-					onclick={() => (showNewRestaurantModal = false)}
-					class="rounded-lg p-2 hover:bg-slate-100"
-				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-5 w-5"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
+		<div class="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-xl">
+			<div class="sticky top-0 border-b border-slate-200 bg-white px-6 py-4">
+				<div class="flex items-center justify-between">
+					<div>
+						<h2 class="text-xl font-bold text-slate-900">Add New Restaurant</h2>
+						<p class="mt-1 text-sm text-slate-500">Fill in the restaurant details below</p>
+					</div>
+					<button
+						onclick={() => (showNewRestaurantModal = false)}
+						class="rounded-lg p-2 hover:bg-slate-100"
 					>
-						<path d="M18 6L6 18M6 6l12 12" />
-					</svg>
-				</button>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="h-5 w-5"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path d="M18 6L6 18M6 6l12 12" />
+						</svg>
+					</button>
+				</div>
 			</div>
 
-			<form onsubmit={createRestaurant} class="space-y-4">
-				<div>
-					<label for="new-name" class="block text-sm font-medium text-slate-700"
-						>Restaurant Name *</label
-					>
-					<input
-						type="text"
-						id="new-name"
-						bind:value={newRestaurantForm.name}
-						required
-						class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-						placeholder="e.g., My Restaurant"
-					/>
-				</div>
+			<form onsubmit={createRestaurant} class="p-6">
+				<!-- Basic Information Section -->
+				<div class="mb-6">
+					<h3 class="mb-4 text-sm font-semibold tracking-wider text-slate-500 uppercase">
+						Basic Information
+					</h3>
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+						<div class="md:col-span-2">
+							<label for="new-name" class="block text-sm font-medium text-slate-700"
+								>Restaurant Name <span class="text-red-500">*</span></label
+							>
+							<input
+								type="text"
+								id="new-name"
+								bind:value={newRestaurantForm.name}
+								required
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+								placeholder="e.g., The Italian Bistro"
+							/>
+						</div>
 
-				<div>
-					<label for="new-domain" class="block text-sm font-medium text-slate-700">Domain *</label>
-					<input
-						type="text"
-						id="new-domain"
-						bind:value={newRestaurantForm.domain}
-						required
-						class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-						placeholder="e.g., myrestaurant.com"
-					/>
-				</div>
+						<div>
+							<label for="new-domain" class="block text-sm font-medium text-slate-700"
+								>Domain <span class="text-red-500">*</span></label
+							>
+							<input
+								type="text"
+								id="new-domain"
+								bind:value={newRestaurantForm.domain}
+								required
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+								placeholder="e.g., italianbistro.com"
+							/>
+							<p class="mt-1 text-xs text-slate-500">
+								The domain name for the restaurant's website
+							</p>
+						</div>
 
-				<div>
-					<label for="new-category" class="block text-sm font-medium text-slate-700">Category</label
-					>
-					<input
-						type="text"
-						id="new-category"
-						bind:value={newRestaurantForm.category}
-						class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-						placeholder="e.g., Italian, Chinese, Fast Food"
-					/>
-				</div>
+						<div>
+							<label for="new-slug" class="block text-sm font-medium text-slate-700">Slug</label>
+							<input
+								type="text"
+								id="new-slug"
+								bind:value={newRestaurantForm.slug}
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+								placeholder="e.g., italian-bistro"
+							/>
+						</div>
 
-				<div class="grid grid-cols-2 gap-4">
-					<div>
-						<label for="new-state" class="block text-sm font-medium text-slate-700">State</label>
-						<input
-							type="text"
-							id="new-state"
-							bind:value={newRestaurantForm.state}
-							class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-							placeholder="e.g., Lagos"
-						/>
+						<div>
+							<label for="new-category" class="block text-sm font-medium text-slate-700"
+								>Category</label
+							>
+							<input
+								type="text"
+								id="new-category"
+								bind:value={newRestaurantForm.category}
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+								placeholder="e.g., Italian, Chinese, Fast Food"
+							/>
+						</div>
+
+						<div>
+							<label for="new-motto" class="block text-sm font-medium text-slate-700">Motto</label>
+							<input
+								type="text"
+								id="new-motto"
+								bind:value={newRestaurantForm.motto}
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+								placeholder="e.g., Authentic Italian Cuisine"
+							/>
+						</div>
+
+						<div class="md:col-span-2">
+							<label for="new-description" class="block text-sm font-medium text-slate-700"
+								>Description</label
+							>
+							<textarea
+								id="new-description"
+								bind:value={newRestaurantForm.description}
+								rows="3"
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+								placeholder="Describe your restaurant..."
+							></textarea>
+						</div>
 					</div>
-					<div>
-						<label for="new-lga" class="block text-sm font-medium text-slate-700">LGA</label>
-						<input
-							type="text"
-							id="new-lga"
-							bind:value={newRestaurantForm.localGovernment}
-							class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-							placeholder="e.g., Ikeja"
-						/>
+				</div>
+
+				<!-- Contact Information Section -->
+				<div class="mb-6 border-t border-slate-200 pt-6">
+					<h3 class="mb-4 text-sm font-semibold tracking-wider text-slate-500 uppercase">
+						Contact Information
+					</h3>
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+						<div>
+							<label for="new-email" class="block text-sm font-medium text-slate-700">Email</label>
+							<input
+								type="email"
+								id="new-email"
+								bind:value={newRestaurantForm.email}
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+								placeholder="e.g., info@italianbistro.com"
+							/>
+						</div>
+
+						<div>
+							<label for="new-phone" class="block text-sm font-medium text-slate-700">Phone</label>
+							<input
+								type="tel"
+								id="new-phone"
+								bind:value={newRestaurantForm.phone}
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+								placeholder="e.g., +2348012345678"
+							/>
+						</div>
+
+						<div>
+							<label for="new-state" class="block text-sm font-medium text-slate-700">State</label>
+							<input
+								type="text"
+								id="new-state"
+								bind:value={newRestaurantForm.state}
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+								placeholder="e.g., Lagos"
+							/>
+						</div>
+
+						<div>
+							<label for="new-lga" class="block text-sm font-medium text-slate-700"
+								>Local Government Area</label
+							>
+							<input
+								type="text"
+								id="new-lga"
+								bind:value={newRestaurantForm.localGovernment}
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+								placeholder="e.g., Ikeja"
+							/>
+						</div>
+
+						<div class="md:col-span-2">
+							<label for="new-address" class="block text-sm font-medium text-slate-700"
+								>Address</label
+							>
+							<textarea
+								id="new-address"
+								bind:value={newRestaurantForm.address}
+								rows="2"
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+								placeholder="Full restaurant address"
+							></textarea>
+						</div>
 					</div>
 				</div>
 
-				<div>
-					<label for="new-phone" class="block text-sm font-medium text-slate-700">Phone</label>
-					<input
-						type="tel"
-						id="new-phone"
-						bind:value={newRestaurantForm.phone}
-						class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-						placeholder="e.g., +2348012345678"
-					/>
+				<!-- Business Hours Section -->
+				<div class="mb-6 border-t border-slate-200 pt-6">
+					<h3 class="mb-4 text-sm font-semibold tracking-wider text-slate-500 uppercase">
+						Business Hours
+					</h3>
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+						<div>
+							<label for="new-openingTime" class="block text-sm font-medium text-slate-700"
+								>Opening Time</label
+							>
+							<input
+								type="time"
+								id="new-openingTime"
+								bind:value={newRestaurantForm.openingTime}
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+							/>
+						</div>
+
+						<div>
+							<label for="new-closingTime" class="block text-sm font-medium text-slate-700"
+								>Closing Time</label
+							>
+							<input
+								type="time"
+								id="new-closingTime"
+								bind:value={newRestaurantForm.closingTime}
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+							/>
+						</div>
+					</div>
 				</div>
 
-				<div>
-					<label for="new-address" class="block text-sm font-medium text-slate-700">Address</label>
-					<textarea
-						id="new-address"
-						bind:value={newRestaurantForm.address}
-						rows="2"
-						class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-						placeholder="Restaurant address"
-					></textarea>
+				<!-- Pricing & Delivery Section -->
+				<div class="mb-6 border-t border-slate-200 pt-6">
+					<h3 class="mb-4 text-sm font-semibold tracking-wider text-slate-500 uppercase">
+						Pricing & Delivery
+					</h3>
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+						<div>
+							<label for="new-serviceFee" class="block text-sm font-medium text-slate-700"
+								>Service Fee (₦)</label
+							>
+							<input
+								type="number"
+								id="new-serviceFee"
+								bind:value={newRestaurantForm.serviceFee}
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+								placeholder="0"
+								min="0"
+							/>
+						</div>
+
+						<div>
+							<label for="new-deliveryFeePerKm" class="block text-sm font-medium text-slate-700"
+								>Delivery Fee per Km (₦)</label
+							>
+							<input
+								type="number"
+								id="new-deliveryFeePerKm"
+								bind:value={newRestaurantForm.deliveryFeePerKm}
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+								placeholder="0"
+								min="0"
+							/>
+						</div>
+
+						<div>
+							<label for="new-maxDeliveryRadius" class="block text-sm font-medium text-slate-700"
+								>Max Delivery Radius (km)</label
+							>
+							<input
+								type="number"
+								id="new-maxDeliveryRadius"
+								bind:value={newRestaurantForm.maxDeliveryRadius}
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+								placeholder="10"
+								min="0"
+							/>
+						</div>
+					</div>
 				</div>
 
-				<div class="mt-6 flex justify-end gap-3">
+				<!-- Settings Section -->
+				<div class="mb-6 border-t border-slate-200 pt-6">
+					<h3 class="mb-4 text-sm font-semibold tracking-wider text-slate-500 uppercase">
+						Settings
+					</h3>
+					<div class="flex items-center gap-3">
+						<input
+							type="checkbox"
+							id="new-isSuper"
+							bind:checked={newRestaurantForm.isSuper}
+							class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+						/>
+						<label for="new-isSuper" class="text-sm text-slate-700"
+							>This is a Super Restaurant (can manage other restaurants)</label
+						>
+					</div>
+				</div>
+
+				<!-- Action Buttons -->
+				<div class="flex justify-end gap-3 border-t border-slate-200 pt-6">
 					<button
 						type="button"
 						onclick={() => (showNewRestaurantModal = false)}
-						class="rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+						class="rounded-lg border border-slate-300 px-6 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
 					>
 						Cancel
 					</button>
 					<button
 						type="submit"
 						disabled={creatingRestaurant}
-						class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+						class="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
 					>
 						{creatingRestaurant ? 'Creating...' : 'Create Restaurant'}
 					</button>

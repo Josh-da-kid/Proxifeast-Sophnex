@@ -311,7 +311,7 @@
 										placeholder="Your full name"
 									/>
 								</div>
-								/>
+							
 							</div>
 
 							<div class="grid gap-6 md:grid-cols-2">

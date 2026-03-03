@@ -22,20 +22,28 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Try URL param first, then fallback to first accessible restaurant
 	let restaurantId = url.searchParams.get('restaurantId') || allAccessibleIds[0];
 
+	console.log('Restaurant ID to load:', restaurantId);
+	console.log('All accessible IDs:', allAccessibleIds);
+
 	if (!restaurantId) {
 		console.log('No restaurant ID found. User data:', { adminRestaurantIds, userRestaurantIds });
 		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
 	}
 
 	// Verify user has access to the requested restaurant
-	if (!allAccessibleIds.includes(restaurantId)) {
+	if (restaurantId && !allAccessibleIds.includes(restaurantId)) {
 		console.log('User does not have access to restaurant:', restaurantId);
-		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
+		// Instead of returning error, try to use the first accessible restaurant
+		restaurantId = allAccessibleIds[0];
+		if (!restaurantId) {
+			return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
+		}
 	}
 
 	try {
 		console.log('Loading restaurant:', restaurantId);
 		const restaurant = await locals.pb.collection('restaurants').getOne(restaurantId);
+		console.log('Restaurant loaded successfully:', restaurant?.name);
 
 		console.log('Restaurant fields:', Object.keys(restaurant));
 
@@ -45,26 +53,95 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			homeDelivery: true
 		};
 
-		// Fetch team members for this restaurant
-		const teamMembers = await locals.pb.collection('users').getFullList({
-			filter: `adminRestaurantIds ?~ "${restaurantId}" || restaurantIds ?~ "${restaurantId}"`,
-			sort: 'name'
+		// Check if user is super admin by checking if they have access to a super restaurant
+		let allRestaurantsForSuperCheck: any[] = [];
+		try {
+			allRestaurantsForSuperCheck = await locals.pb.collection('restaurants').getFullList();
+			console.log('All restaurants fetched:', allRestaurantsForSuperCheck.length);
+		} catch (e) {
+			console.error('Error fetching restaurants for super check:', e);
+		}
+
+		const userAdminRestaurantIds = locals.user?.adminRestaurantIds || [];
+		const userRestaurantIdsList = locals.user?.restaurantIds || [];
+		const allUserRestaurantIds = [
+			...new Set([...userAdminRestaurantIds, ...userRestaurantIdsList])
+		];
+
+		const isSuperUser = allUserRestaurantIds.some((id: string) => {
+			const rest = allRestaurantsForSuperCheck.find((r: any) => r.id === id);
+			return rest?.isSuper === true;
 		});
+
+		console.log('isSuperUser check:', {
+			userAdminRestaurantIds,
+			allUserRestaurantIds,
+			isSuperUser
+		});
+
+		// Fetch team members based on super user status
+		let teamMembers;
+		if (isSuperUser) {
+			// For super users, show ALL users in the system
+			teamMembers = await locals.pb.collection('users').getFullList({
+				sort: 'name'
+			});
+
+			console.log('All users fetched for super admin:', teamMembers.length);
+
+			// Fetch all restaurants to map IDs to names
+			const allRestaurants = await locals.pb.collection('restaurants').getFullList();
+			const restaurantMap = new Map(allRestaurants.map((r: any) => [r.id, r.name]));
+
+			// Add restaurant names to each member
+			teamMembers = teamMembers.map((member: any) => {
+				const adminRestaurants = (member.adminRestaurantIds || [])
+					.map((id: string) => restaurantMap.get(id))
+					.filter(Boolean);
+				const userRestaurants = (member.restaurantIds || [])
+					.map((id: string) => restaurantMap.get(id))
+					.filter(Boolean);
+				return {
+					...member,
+					adminRestaurants: [...adminRestaurants, ...userRestaurants]
+				};
+			});
+		} else {
+			// For regular restaurants, show ALL users - the filter will be applied in a more relaxed way
+			// First get all users, then filter by restaurant access
+			teamMembers = await locals.pb.collection('users').getFullList({
+				sort: 'name'
+			});
+
+			console.log('All users fetched (non-super):', teamMembers.length);
+
+			// Filter to users who have this restaurant in their admin or regular restaurant list
+			teamMembers = teamMembers.filter((m: any) => {
+				const adminIds = m.adminRestaurantIds || [];
+				const regularIds = m.restaurantIds || [];
+				return adminIds.includes(restaurantId) || regularIds.includes(restaurantId);
+			});
+
+			console.log('Users with access to restaurant', restaurantId, ':', teamMembers.length);
+		}
 
 		// Fetch all accessible restaurants for the dropdown
 		let restaurants: any[] = [];
-		if (allAccessibleIds.length > 0) {
+		if (isSuperUser) {
+			// Super users can see all restaurants in the system
+			restaurants = await locals.pb.collection('restaurants').getFullList({
+				sort: 'name'
+			});
+		} else if (allAccessibleIds.length > 0) {
 			const filterParts = allAccessibleIds.map((id) => `id = "${id}"`);
 			restaurants = await locals.pb.collection('restaurants').getFullList({
 				filter: filterParts.join(' || ')
 			});
 		}
 
-		const isSuper = locals.user?.isSuper || locals.isSuper || false;
-
 		// Load setup inquiries for super users
 		let setupInquiries: any[] = [];
-		if (isSuper) {
+		if (isSuperUser) {
 			try {
 				setupInquiries = await locals.pb.collection('setupInquiries').getFullList({
 					sort: '-created'
@@ -98,14 +175,24 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				name: member.name,
 				email: member.email,
 				role: member.role || 'manager',
-				isActive: member.isActive !== false
+				isActive: member.isActive !== false,
+				adminRestaurants: member.adminRestaurants || []
 			})),
-			isSuper,
+			isSuper: isSuperUser,
 			setupInquiries
 		};
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error loading settings:', error);
-		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
+		// Return more info for debugging
+		const errorMessage = error?.message || error?.data?.message || 'Unknown error';
+		console.error('Detailed error:', errorMessage);
+		return {
+			restaurant: null,
+			orderServices: null,
+			teamMembers: [],
+			restaurants: [],
+			error: errorMessage
+		};
 	}
 };
 
@@ -348,34 +435,94 @@ export const actions: Actions = {
 	createRestaurant: async ({ request, locals, url }) => {
 		const formData = await request.formData();
 
-		const isSuper = locals.user?.isSuper || locals.isSuper || false;
-		if (!isSuper) {
+		// Check if user is super admin by checking if they have access to a super restaurant
+		const allRestaurantsForSuperCheck = await locals.pb.collection('restaurants').getFullList();
+		const userAdminRestaurantIds = locals.user?.adminRestaurantIds || [];
+		const userRestaurantIdsList = locals.user?.restaurantIds || [];
+		const allUserRestaurantIds = [
+			...new Set([...userAdminRestaurantIds, ...userRestaurantIdsList])
+		];
+
+		const isSuperUser = allUserRestaurantIds.some((id: string) => {
+			const rest = allRestaurantsForSuperCheck.find((r: any) => r.id === id);
+			return rest?.isSuper === true;
+		});
+
+		console.log('isSuperUser for create:', {
+			userAdminRestaurantIds,
+			allUserRestaurantIds,
+			isSuperUser
+		});
+
+		if (!isSuperUser) {
 			return fail(403, { error: 'Only super admins can create restaurants' });
 		}
 
 		const name = formData.get('name') as string;
 		const domain = formData.get('domain') as string;
+		const slug = formData.get('slug') as string;
+		const description = formData.get('description') as string;
+		const motto = formData.get('motto') as string;
 		const category = formData.get('category') as string;
+		const email = formData.get('email') as string;
+		const phone = formData.get('phone') as string;
 		const state = formData.get('state') as string;
 		const localGovernment = formData.get('localGovernment') as string;
-		const phone = formData.get('phone') as string;
 		const address = formData.get('address') as string;
+		const openingTime = formData.get('openingTime') as string;
+		const closingTime = formData.get('closingTime') as string;
+		const serviceFee = formData.get('serviceFee') as string;
+		const deliveryFeePerKm = formData.get('deliveryFeePerKm') as string;
+		const maxDeliveryRadius = formData.get('maxDeliveryRadius') as string;
+		const isSuperValue = formData.get('isSuper') as string;
 
 		if (!name || !domain) {
 			return fail(400, { error: 'Restaurant name and domain are required' });
 		}
 
 		try {
-			const newRestaurant = await locals.pb.collection('restaurants').create({
+			console.log('Creating restaurant with data:', {
 				name,
 				domain,
+				category,
+				state,
+				localGovernment,
+				phone,
+				address
+			});
+
+			// Check if domain already exists
+			try {
+				const existing = await locals.pb
+					.collection('restaurants')
+					.getFirstListItem(`domain = "${domain}"`);
+				if (existing) {
+					return fail(400, { error: 'A restaurant with this domain already exists' });
+				}
+			} catch (e) {
+				// Domain doesn't exist, continue
+			}
+
+			// Create restaurant with all fields
+			const newRestaurant = await locals.pb.collection('restaurants').create({
+				name: name,
+				domain: domain,
+				slug: slug || name.toLowerCase().replace(/\s+/g, '-'),
+				description: description || '',
+				motto: motto || '',
 				category: category || '',
+				email: email || '',
+				phone: phone || '',
 				state: state || '',
 				localGovernment: localGovernment || '',
-				phone: phone || '',
-				address: address || '',
 				restaurantAddress: address || '',
-				isSuper: false,
+				address: address || '',
+				openingTime: openingTime || '09:00',
+				closingTime: closingTime || '22:00',
+				serviceFee: serviceFee ? parseFloat(serviceFee) : 0,
+				deliveryFeePerKm: deliveryFeePerKm ? parseFloat(deliveryFeePerKm) : 0,
+				maxDeliveryRadius: maxDeliveryRadius ? parseInt(maxDeliveryRadius) : 10,
+				isSuper: isSuperValue === 'on' || isSuperValue === 'true',
 				orderServices: {
 					tableService: true,
 					pickup: true,
@@ -383,24 +530,34 @@ export const actions: Actions = {
 				}
 			});
 
-			// Add trial to the new restaurant
-			await locals.pb.collection('restaurants').update(newRestaurant.id, {
-				trialUsed: false,
-				trialStartDate: null,
-				trialEndDate: null,
-				subscriptionStatus: null,
-				subscriptionPlan: null,
-				subscriptionExpiry: null
-			});
+			// Add the new restaurant to the current user's adminRestaurantIds
+			const currentUser = locals.user;
+			if (currentUser) {
+				const currentAdminIds = currentUser.adminRestaurantIds || [];
+				const currentRestaurantIds = currentUser.restaurantIds || [];
+
+				await locals.pb.collection('users').update(currentUser.id, {
+					adminRestaurantIds: [...currentAdminIds, newRestaurant.id],
+					restaurantIds: [...currentRestaurantIds, newRestaurant.id]
+				});
+			}
+
+			console.log('Restaurant created successfully:', newRestaurant.id);
 
 			return {
 				success: true,
 				message: 'Restaurant created successfully',
 				restaurantId: newRestaurant.id
 			};
-		} catch (error) {
-			console.error('Failed to create restaurant:', error);
-			return fail(500, { error: 'Failed to create restaurant' });
+		} catch (error: any) {
+			console.error('Failed to create restaurant - full error:', JSON.stringify(error, null, 2));
+			let errorMsg = 'Failed to create restaurant';
+			if (error?.data) {
+				errorMsg = JSON.stringify(error.data);
+			} else if (error?.message) {
+				errorMsg = error.message;
+			}
+			return fail(500, { error: errorMsg });
 		}
 	},
 
