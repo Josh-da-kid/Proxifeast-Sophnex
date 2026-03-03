@@ -1,13 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals, url, parent }) => {
-	// Get isSuper from parent layout
-	const parentData = await parent();
-	const isSuperUser = parentData.isSuper === true;
-
-	console.log('isSuper from parent layout:', parentData.isSuper, 'isSuperUser:', isSuperUser);
-
+export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
 		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
 	}
@@ -59,12 +53,17 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 			homeDelivery: true
 		};
 
-		// Use isSuper from parent layout (calculated in layout server)
-		// isSuperUser is already defined at the top from parent()
+		// Check if the CURRENT restaurant being viewed is a super restaurant - this is the KEY check
+		const isCurrentRestaurantSuper = restaurant?.isSuper === true;
+		console.log('Current restaurant:', restaurant?.name, 'isSuper:', isCurrentRestaurantSuper);
+
+		// Use the current restaurant's isSuper status directly
+		const shouldShowSuperData = isCurrentRestaurantSuper;
+		console.log('Should show super data:', shouldShowSuperData);
 
 		// Fetch team members based on super user status
 		let teamMembers;
-		if (isSuperUser) {
+		if (shouldShowSuperData) {
 			// For super users, show ALL restaurants (especially super restaurants) with their info
 			const allRestaurantsData = await locals.pb.collection('restaurants').getFullList({
 				sort: 'name'
@@ -125,7 +124,7 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 
 		// Fetch all accessible restaurants for the dropdown
 		let restaurants: any[] = [];
-		if (isSuperUser) {
+		if (shouldShowSuperData) {
 			// Super users can see all restaurants in the system
 			// Sort by putting current restaurant first, then alphabetically
 			const allRestaurants = await locals.pb.collection('restaurants').getFullList({
@@ -145,7 +144,7 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 
 		// Load setup inquiries for super users
 		let setupInquiries: any[] = [];
-		if (isSuperUser) {
+		if (shouldShowSuperData) {
 			try {
 				setupInquiries = await locals.pb.collection('setupInquiries').getFullList({
 					sort: '-created'
@@ -175,7 +174,7 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 			restaurantId,
 			restaurants: restaurants.map((r: any) => ({ id: r.id, name: r.name })),
 			teamMembers: teamMembers.map((member: any) => {
-				if (isSuperUser) {
+				if (shouldShowSuperData) {
 					// For super users, return restaurant data with admin users
 					return {
 						id: member.id,
@@ -199,7 +198,7 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 					};
 				}
 			}),
-			isSuper: isSuperUser,
+			isSuper: shouldShowSuperData,
 			setupInquiries
 		};
 	} catch (error: any) {
