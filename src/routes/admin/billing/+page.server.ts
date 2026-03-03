@@ -72,12 +72,26 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		// Determine if this is a super restaurant - check directly from restaurant data
 		const isSuperRestaurant = restaurant?.isSuper === true;
 
+		// Also check if user has access to any super restaurant
+		const userAdminRestaurantIds = locals.user?.adminRestaurantIds || [];
+		const userRestaurantIdsList = locals.user?.restaurantIds || [];
+		const allUserRestaurantIds = [
+			...new Set([...userAdminRestaurantIds, ...userRestaurantIdsList])
+		];
+
+		const userHasSuperAccess = allUserRestaurantIds.some((id: string) => {
+			const rest = allRestaurants.find((r: any) => r.id === id);
+			return rest?.isSuper === true;
+		});
+
 		console.log('=== BILLING PAGE DEBUG ===');
 		console.log('Host:', host);
 		console.log('Domain:', domainOnly);
 		console.log('Restaurant found:', restaurant?.name, restaurant?.id);
 		console.log('restaurant.isSuper:', restaurant?.isSuper);
 		console.log('isSuperRestaurant:', isSuperRestaurant);
+		console.log('userHasSuperAccess:', userHasSuperAccess);
+		console.log('user adminRestaurantIds:', userAdminRestaurantIds);
 		console.log('=========================');
 
 		// Get super restaurant for settings (for paystack key)
@@ -87,13 +101,14 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		const supportEmail = superRest?.supportEmail || 'support@proxifeast.com';
 
 		let subscription: any = null;
-		let subscriptionStatus = isSuperRestaurant ? 'active' : 'not_subscribed';
+		// If user has super access OR restaurant is super, show as active
+		let subscriptionStatus = isSuperRestaurant || userHasSuperAccess ? 'active' : 'not_subscribed';
 		let subscriptions: any[] = [];
 		let restaurantsList: any[] = [];
 		let previousSubscriptions: any[] = [];
 
-		// If super restaurant, show all subscriptions overview
-		if (isSuperRestaurant) {
+		// If super restaurant OR user has super access, show all subscriptions overview
+		if (isSuperRestaurant || userHasSuperAccess) {
 			subscriptions = await locals.pb.collection('subscriptions').getFullList({
 				sort: '-created'
 			});
@@ -181,7 +196,7 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			subscriptionStatus,
 			subscription,
 			previousSubscriptions,
-			isSuper: isSuperRestaurant,
+			isSuper: isSuperRestaurant || userHasSuperAccess,
 			paystackKey,
 			supportEmail,
 			expired: url.searchParams.get('expired') === '1',

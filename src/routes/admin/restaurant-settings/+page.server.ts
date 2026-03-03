@@ -2,6 +2,16 @@ import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
+	// Force refresh user data from PocketBase to get latest adminRestaurantIds
+	if (locals.user && locals.pb.authStore.isValid) {
+		try {
+			const freshUser = await locals.pb.collection('users').getOne(locals.user.id);
+			locals.user = freshUser;
+		} catch (e) {
+			console.log('Could not refresh user:', e);
+		}
+	}
+
 	if (!locals.user) {
 		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
 	}
@@ -290,8 +300,19 @@ export const actions: Actions = {
 		if (state) updateData.state = state;
 		if (localGovernment) updateData.localGovernment = localGovernment;
 		if (imageUrl) updateData.imageUrl = imageUrl;
-		if (logoUrl) updateData.logoUrl = logoUrl;
-		if (bannerUrl) updateData.bannerUrl = bannerUrl;
+		// Only update logoUrl if it's a valid URL (http, https, or data URI for base64)
+		if (
+			logoUrl &&
+			(logoUrl.startsWith('http') || logoUrl.startsWith('data:') || logoUrl.startsWith('/'))
+		) {
+			updateData.logoUrl = logoUrl;
+		}
+		if (
+			bannerUrl &&
+			(bannerUrl.startsWith('http') || bannerUrl.startsWith('data:') || bannerUrl.startsWith('/'))
+		) {
+			updateData.bannerUrl = bannerUrl;
+		}
 
 		console.log('Updating restaurant:', restaurantId, updateData);
 
@@ -540,6 +561,9 @@ export const actions: Actions = {
 					adminRestaurantIds: [...currentAdminIds, newRestaurant.id],
 					restaurantIds: [...currentRestaurantIds, newRestaurant.id]
 				});
+
+				// Refresh auth to get updated user record
+				await locals.pb.collection('users').authRefresh();
 			}
 
 			console.log('Restaurant created successfully:', newRestaurant.id);

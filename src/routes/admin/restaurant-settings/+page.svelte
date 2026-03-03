@@ -222,13 +222,45 @@
 		showImageCropper = true;
 	}
 
-	function handleImageCrop(blob: Blob, base64: string) {
-		if (cropperType === 'image') {
-			restImageUrl = base64;
-		} else if (cropperType === 'logo') {
-			restLogoUrl = base64;
-		} else if (cropperType === 'banner') {
-			restBannerUrl = base64;
+	async function uploadImageToPocketBase(blob: Blob, restaurantId: string): Promise<string> {
+		const formData = new FormData();
+		const fileName = `${cropperType}_${Date.now()}.png`;
+		formData.append('file', blob, fileName);
+
+		const response = await fetch(`/api/upload-image?restaurantId=${restaurantId}`, {
+			method: 'POST',
+			body: formData
+		});
+
+		if (response.ok) {
+			const data = await response.json();
+			return data.url;
+		}
+		throw new Error('Failed to upload image');
+	}
+
+	async function handleImageCrop(blob: Blob, base64: string) {
+		// Upload to PocketBase and get URL
+		try {
+			const url = await uploadImageToPocketBase(blob, restaurant?.id || '');
+
+			if (cropperType === 'image') {
+				restImageUrl = url;
+			} else if (cropperType === 'logo') {
+				restLogoUrl = url;
+			} else if (cropperType === 'banner') {
+				restBannerUrl = url;
+			}
+		} catch (err) {
+			console.error('Failed to upload image:', err);
+			// Fallback to base64 if upload fails
+			if (cropperType === 'image') {
+				restImageUrl = base64;
+			} else if (cropperType === 'logo') {
+				restLogoUrl = base64;
+			} else if (cropperType === 'banner') {
+				restBannerUrl = base64;
+			}
 		}
 		showImageCropper = false;
 	}

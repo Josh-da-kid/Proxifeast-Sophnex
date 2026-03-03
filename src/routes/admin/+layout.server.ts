@@ -25,6 +25,16 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		const isAdminLoginPage = pathname === '/admin/admin-login';
 		const isBillingPage = pathname.startsWith('/admin/billing');
 
+		// Force refresh user data from PocketBase to get latest adminRestaurantIds
+		if (locals.user && locals.pb.authStore.isValid) {
+			try {
+				const freshUser = await locals.pb.collection('users').getOne(locals.user.id);
+				locals.user = freshUser;
+			} catch (e) {
+				console.log('Could not refresh user:', e);
+			}
+		}
+
 		if (!token && !isAdminLoginPage) {
 			throw redirect(302, `/admin/admin-login?redirectTo=${pathname}`);
 		}
@@ -84,18 +94,33 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		}
 
 		locals.restaurant = restaurant;
-		locals.isSuper = !!restaurant?.isSuper;
 
+		// Check if user has access to any super restaurant
 		const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
 		const userRestaurantIds = locals.user?.restaurantIds || [];
+		const allUserRestaurantIds = [...new Set([...adminRestaurantIds, ...userRestaurantIds])];
+
+		// Check if any of the user's restaurants is a super restaurant
+		let userHasSuperAccess = false;
+		try {
+			const allRestaurantsForCheck = await locals.pb.collection('restaurants').getFullList();
+			userHasSuperAccess = allUserRestaurantIds.some((id: string) => {
+				const rest = allRestaurantsForCheck.find((r: any) => r.id === id);
+				return rest?.isSuper === true;
+			});
+		} catch {}
+
+		// User is super if they have access to a super restaurant OR if the current restaurant is super
+		locals.isSuper = userHasSuperAccess || !!restaurant?.isSuper;
+
+		const allAccessibleIds = allUserRestaurantIds;
 
 		let isAdminForRestaurant = false;
 
-		if (adminRestaurantIds.length > 0) {
-			isAdminForRestaurant = adminRestaurantIds.includes(restaurant.id);
+		if (allAccessibleIds.length > 0) {
+			isAdminForRestaurant = allAccessibleIds.includes(restaurant.id);
 		} else {
-			isAdminForRestaurant =
-				locals.user?.isAdmin === true && userRestaurantIds.includes(restaurant.id);
+			isAdminForRestaurant = locals.user?.isAdmin === true;
 		}
 
 		if (!isAdminForRestaurant && !isAdminLoginPage) {

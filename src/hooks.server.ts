@@ -12,6 +12,7 @@ export async function handle({ event, resolve }) {
 	try {
 		// verify and refresh the user
 		if (event.locals.pb.authStore.isValid) {
+			// Force a fresh fetch of the user record to get latest adminRestaurantIds
 			const authData = await event.locals.pb.collection('users').authRefresh();
 			event.locals.user = authData.record;
 		} else {
