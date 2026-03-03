@@ -16,7 +16,8 @@
 	const restaurants = data?.restaurants ?? [];
 	const currentUserId = $page.data.user?.id;
 	const currentRestaurantId = data?.restaurantId;
-	const isSuper = data?.isSuper ?? false;
+	// Use isSuper from layout (more reliable) with fallback to page data
+	const isSuper = $page.data.isSuper ?? data?.isSuper ?? false;
 	const setupInquiries = data?.setupInquiries ?? [];
 
 	// New restaurant form state
