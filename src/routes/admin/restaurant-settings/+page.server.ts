@@ -2,6 +2,12 @@ import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
+	// Set cache control headers to prevent caching
+	const headers = new Headers();
+	headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+	headers.set('Pragma', 'no-cache');
+	headers.set('Expires', '0');
+
 	// Force refresh user data from PocketBase to get latest adminRestaurantIds
 	if (locals.user && locals.pb.authStore.isValid) {
 		try {
@@ -63,31 +69,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			homeDelivery: true
 		};
 
-		// Check if user is super admin by checking if they have access to a super restaurant
-		let allRestaurantsForSuperCheck: any[] = [];
-		try {
-			allRestaurantsForSuperCheck = await locals.pb.collection('restaurants').getFullList();
-			console.log('All restaurants fetched:', allRestaurantsForSuperCheck.length);
-		} catch (e) {
-			console.error('Error fetching restaurants for super check:', e);
-		}
+		// Use locals.isSuper which is set in the layout server
+		const isSuperUser = locals.isSuper === true;
 
-		const userAdminRestaurantIds = locals.user?.adminRestaurantIds || [];
-		const userRestaurantIdsList = locals.user?.restaurantIds || [];
-		const allUserRestaurantIds = [
-			...new Set([...userAdminRestaurantIds, ...userRestaurantIdsList])
-		];
-
-		const isSuperUser = allUserRestaurantIds.some((id: string) => {
-			const rest = allRestaurantsForSuperCheck.find((r: any) => r.id === id);
-			return rest?.isSuper === true;
-		});
-
-		console.log('isSuperUser check:', {
-			userAdminRestaurantIds,
-			allUserRestaurantIds,
-			isSuperUser
-		});
+		console.log('Using isSuper from locals:', locals.isSuper, 'isSuperUser:', isSuperUser);
 
 		// Fetch team members based on super user status
 		let teamMembers;
@@ -154,9 +139,15 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		let restaurants: any[] = [];
 		if (isSuperUser) {
 			// Super users can see all restaurants in the system
-			restaurants = await locals.pb.collection('restaurants').getFullList({
+			// Sort by putting current restaurant first, then alphabetically
+			const allRestaurants = await locals.pb.collection('restaurants').getFullList({
 				sort: 'name'
 			});
+
+			// Put current restaurant first
+			const currentRest = allRestaurants.find((r: any) => r.id === restaurantId);
+			const otherRestaurants = allRestaurants.filter((r: any) => r.id !== restaurantId);
+			restaurants = currentRest ? [currentRest, ...otherRestaurants] : allRestaurants;
 		} else if (allAccessibleIds.length > 0) {
 			const filterParts = allAccessibleIds.map((id) => `id = "${id}"`);
 			restaurants = await locals.pb.collection('restaurants').getFullList({

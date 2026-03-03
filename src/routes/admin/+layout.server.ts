@@ -30,10 +30,36 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			try {
 				const freshUser = await locals.pb.collection('users').getOne(locals.user.id);
 				locals.user = freshUser;
+				console.log('User refreshed, adminRestaurantIds:', freshUser.adminRestaurantIds);
 			} catch (e) {
 				console.log('Could not refresh user:', e);
 			}
 		}
+
+		// Check if user has access to any super restaurant BEFORE setting isSuper
+		const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
+		const userRestaurantIds = locals.user?.restaurantIds || [];
+		const allUserRestaurantIds = [...new Set([...adminRestaurantIds, ...userRestaurantIds])];
+		console.log('All user restaurant IDs:', allUserRestaurantIds);
+
+		// Get all restaurants to check
+		let allRestaurantsForCheck: any[] = [];
+		try {
+			allRestaurantsForCheck = await locals.pb.collection('restaurants').getFullList();
+			console.log(
+				'All restaurants:',
+				allRestaurantsForCheck.map((r: any) => ({ id: r.id, name: r.name, isSuper: r.isSuper }))
+			);
+		} catch {}
+
+		// Check if any of the user's restaurants is a super restaurant
+		const userHasSuperAccess = allUserRestaurantIds.some((id: string) => {
+			const rest = allRestaurantsForCheck.find((r: any) => r.id === id);
+			console.log('Checking restaurant:', id, 'isSuper:', rest?.isSuper);
+			return rest?.isSuper === true;
+		});
+
+		console.log('User has super access:', userHasSuperAccess);
 
 		if (!token && !isAdminLoginPage) {
 			throw redirect(302, `/admin/admin-login?redirectTo=${pathname}`);
@@ -95,23 +121,11 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 
 		locals.restaurant = restaurant;
 
-		// Check if user has access to any super restaurant
-		const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
-		const userRestaurantIds = locals.user?.restaurantIds || [];
-		const allUserRestaurantIds = [...new Set([...adminRestaurantIds, ...userRestaurantIds])];
-
-		// Check if any of the user's restaurants is a super restaurant
-		let userHasSuperAccess = false;
-		try {
-			const allRestaurantsForCheck = await locals.pb.collection('restaurants').getFullList();
-			userHasSuperAccess = allUserRestaurantIds.some((id: string) => {
-				const rest = allRestaurantsForCheck.find((r: any) => r.id === id);
-				return rest?.isSuper === true;
-			});
-		} catch {}
-
+		// Use already calculated values from above
 		// User is super if they have access to a super restaurant OR if the current restaurant is super
 		locals.isSuper = userHasSuperAccess || !!restaurant?.isSuper;
+
+		console.log('Setting locals.isSuper:', locals.isSuper);
 
 		const allAccessibleIds = allUserRestaurantIds;
 
