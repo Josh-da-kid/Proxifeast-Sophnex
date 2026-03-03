@@ -147,39 +147,57 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		let subscription = null;
 		let subscriptionStatus = 'not_subscribed';
 
-		try {
-			const subs = await locals.pb
-				.collection('subscriptions')
-				.getFirstListItem(`restaurantId = "${restaurant.id}"`);
-			subscription = subs;
+		// Check trial status from restaurant collection
+		const trialStatus = restaurant?.subscriptionStatus;
+		const trialEndDate = restaurant?.trialEndDate;
 
+		// If restaurant has trial status and trial hasn't expired, allow access
+		if (trialStatus === 'trial' && trialEndDate) {
 			const now = new Date();
-			const endDate = new Date(subs.endDate);
-			const sevenDaysFromNow = new Date();
-			sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-
-			if (subs.status === 'test') {
-				if (endDate <= now) {
-					subscriptionStatus = 'expired';
-				} else {
-					subscriptionStatus = 'active';
-				}
-			} else if (subs.status === 'pending') {
-				subscriptionStatus = 'pending';
-			} else if (subs.status === 'cancelled' || subs.status === 'inactive') {
-				subscriptionStatus = 'cancelled';
-			} else if (subs.status === 'active') {
-				if (endDate <= now) {
-					subscriptionStatus = 'expired';
-				} else if (endDate <= sevenDaysFromNow) {
-					subscriptionStatus = 'expiring_soon';
-				} else {
-					subscriptionStatus = 'active';
-				}
+			const trialEnd = new Date(trialEndDate);
+			if (now < trialEnd) {
+				// Trial is still valid
+				subscriptionStatus = 'trial';
+			} else {
+				// Trial has expired - lock access
+				subscriptionStatus = 'expired';
 			}
-		} catch {
-			subscriptionStatus = 'not_subscribed';
-			subscription = null;
+		} else {
+			// Check existing subscriptions collection
+			try {
+				const subs = await locals.pb
+					.collection('subscriptions')
+					.getFirstListItem(`restaurantId = "${restaurant.id}"`);
+				subscription = subs;
+
+				const now = new Date();
+				const endDate = new Date(subs.endDate);
+				const sevenDaysFromNow = new Date();
+				sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+
+				if (subs.status === 'test') {
+					if (endDate <= now) {
+						subscriptionStatus = 'expired';
+					} else {
+						subscriptionStatus = 'active';
+					}
+				} else if (subs.status === 'pending') {
+					subscriptionStatus = 'pending';
+				} else if (subs.status === 'cancelled' || subs.status === 'inactive') {
+					subscriptionStatus = 'cancelled';
+				} else if (subs.status === 'active') {
+					if (endDate <= now) {
+						subscriptionStatus = 'expired';
+					} else if (endDate <= sevenDaysFromNow) {
+						subscriptionStatus = 'expiring_soon';
+					} else {
+						subscriptionStatus = 'active';
+					}
+				}
+			} catch {
+				subscriptionStatus = 'not_subscribed';
+				subscription = null;
+			}
 		}
 
 		const isSubscriptionActive =
@@ -194,7 +212,15 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 
 		return {
 			user: locals.user,
-			restaurant,
+			restaurant: {
+				...restaurant,
+				trialUsed: restaurant?.trialUsed ?? false,
+				trialStartDate: restaurant?.trialStartDate ?? null,
+				trialEndDate: restaurant?.trialEndDate ?? null,
+				subscriptionStatus: restaurant?.subscriptionStatus ?? null,
+				subscriptionPlan: restaurant?.subscriptionPlan ?? null,
+				subscriptionExpiry: restaurant?.subscriptionExpiry ?? null
+			},
 			isSuper: locals.isSuper,
 			isSuperUser: locals.isSuper,
 			isAdminForRestaurant,

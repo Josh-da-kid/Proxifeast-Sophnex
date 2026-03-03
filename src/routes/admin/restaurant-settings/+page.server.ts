@@ -62,6 +62,18 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 		const isSuper = locals.user?.isSuper || locals.isSuper || false;
 
+		// Load setup inquiries for super users
+		let setupInquiries: any[] = [];
+		if (isSuper) {
+			try {
+				setupInquiries = await locals.pb.collection('setupInquiries').getFullList({
+					sort: '-created'
+				});
+			} catch (e) {
+				console.log('No setup inquiries found');
+			}
+		}
+
 		let galleryImages: string[] = [];
 		if (restaurant.galleryImages) {
 			if (typeof restaurant.galleryImages === 'string') {
@@ -88,7 +100,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				role: member.role || 'manager',
 				isActive: member.isActive !== false
 			})),
-			isSuper
+			isSuper,
+			setupInquiries
 		};
 	} catch (error) {
 		console.error('Error loading settings:', error);
@@ -329,6 +342,91 @@ export const actions: Actions = {
 			return { success: true, message: 'Team member removed successfully' };
 		} catch (error) {
 			return fail(500, { error: 'Failed to remove team member' });
+		}
+	},
+
+	createRestaurant: async ({ request, locals, url }) => {
+		const formData = await request.formData();
+
+		const isSuper = locals.user?.isSuper || locals.isSuper || false;
+		if (!isSuper) {
+			return fail(403, { error: 'Only super admins can create restaurants' });
+		}
+
+		const name = formData.get('name') as string;
+		const domain = formData.get('domain') as string;
+		const category = formData.get('category') as string;
+		const state = formData.get('state') as string;
+		const localGovernment = formData.get('localGovernment') as string;
+		const phone = formData.get('phone') as string;
+		const address = formData.get('address') as string;
+
+		if (!name || !domain) {
+			return fail(400, { error: 'Restaurant name and domain are required' });
+		}
+
+		try {
+			const newRestaurant = await locals.pb.collection('restaurants').create({
+				name,
+				domain,
+				category: category || '',
+				state: state || '',
+				localGovernment: localGovernment || '',
+				phone: phone || '',
+				address: address || '',
+				restaurantAddress: address || '',
+				isSuper: false,
+				orderServices: {
+					tableService: true,
+					pickup: true,
+					homeDelivery: true
+				}
+			});
+
+			// Add trial to the new restaurant
+			await locals.pb.collection('restaurants').update(newRestaurant.id, {
+				trialUsed: false,
+				trialStartDate: null,
+				trialEndDate: null,
+				subscriptionStatus: null,
+				subscriptionPlan: null,
+				subscriptionExpiry: null
+			});
+
+			return {
+				success: true,
+				message: 'Restaurant created successfully',
+				restaurantId: newRestaurant.id
+			};
+		} catch (error) {
+			console.error('Failed to create restaurant:', error);
+			return fail(500, { error: 'Failed to create restaurant' });
+		}
+	},
+
+	updateInquiryStatus: async ({ request, locals, url }) => {
+		const formData = await request.formData();
+
+		const isSuper = locals.user?.isSuper || locals.isSuper || false;
+		if (!isSuper) {
+			return fail(403, { error: 'Only super admins can update inquiries' });
+		}
+
+		const inquiryId = formData.get('inquiryId') as string;
+		const status = formData.get('status') as string;
+
+		if (!inquiryId || !status) {
+			return fail(400, { error: 'Inquiry ID and status are required' });
+		}
+
+		try {
+			await locals.pb.collection('setupInquiries').update(inquiryId, {
+				status
+			});
+
+			return { success: true, message: 'Inquiry status updated' };
+		} catch (error) {
+			return fail(500, { error: 'Failed to update inquiry status' });
 		}
 	}
 };

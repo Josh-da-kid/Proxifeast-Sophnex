@@ -17,6 +17,88 @@
 	const currentUserId = $page.data.user?.id;
 	const currentRestaurantId = data?.restaurantId;
 	const isSuper = data?.isSuper ?? false;
+	const setupInquiries = data?.setupInquiries ?? [];
+
+	// New restaurant form state
+	let showNewRestaurantModal = $state(false);
+	let creatingRestaurant = $state(false);
+	let newRestaurantForm = $state({
+		name: '',
+		domain: '',
+		category: '',
+		state: '',
+		localGovernment: '',
+		phone: '',
+		address: ''
+	});
+
+	async function createRestaurant(event: SubmitEvent) {
+		event.preventDefault();
+		creatingRestaurant = true;
+
+		const formData = new FormData();
+		Object.entries(newRestaurantForm).forEach(([key, value]) => {
+			formData.append(key, value);
+		});
+
+		try {
+			const response = await fetch('?/createRestaurant', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = await response.json();
+
+			if (result.type === 'success') {
+				showNewRestaurantModal = false;
+				newRestaurantForm = {
+					name: '',
+					domain: '',
+					category: '',
+					state: '',
+					localGovernment: '',
+					phone: '',
+					address: ''
+				};
+				successAlert = true;
+				successMessage = 'Restaurant created successfully!';
+				setTimeout(() => (successAlert = false), 3000);
+				await invalidateAll();
+			} else {
+				errorAlert = true;
+				errorMessage = result.data?.error || 'Failed to create restaurant';
+				setTimeout(() => (errorAlert = false), 3000);
+			}
+		} catch (err) {
+			console.error('Error creating restaurant:', err);
+			errorAlert = true;
+			errorMessage = 'Failed to create restaurant';
+			setTimeout(() => (errorAlert = false), 3000);
+		} finally {
+			creatingRestaurant = false;
+		}
+	}
+
+	async function updateInquiryStatus(inquiryId: string, status: string) {
+		const formData = new FormData();
+		formData.append('inquiryId', inquiryId);
+		formData.append('status', status);
+
+		try {
+			const response = await fetch('?/updateInquiryStatus', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = await response.json();
+
+			if (result.type === 'success') {
+				await invalidateAll();
+			}
+		} catch (err) {
+			console.error('Error updating inquiry:', err);
+		}
+	}
 
 	// Form state - use restaurant data as initial values
 	let tableServiceEnabled = $state(orderServices.tableService);
@@ -410,17 +492,28 @@
 					<h1 class="text-2xl font-bold text-slate-900">Restaurant Settings</h1>
 					<p class="mt-1 text-sm text-slate-600">Manage your restaurant's configuration and team</p>
 				</div>
-				{#if isSuper && restaurants.length > 1}
-					<select
-						value={currentRestaurantId}
-						onchange={(e) => switchRestaurant(e.currentTarget.value)}
-						class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none"
-					>
-						{#each restaurants as rest}
-							<option value={rest.id}>{rest.name}</option>
-						{/each}
-					</select>
-				{/if}
+				<div class="flex items-center gap-3">
+					{#if isSuper}
+						<button
+							type="button"
+							onclick={() => (showNewRestaurantModal = true)}
+							class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+						>
+							+ Add Restaurant
+						</button>
+					{/if}
+					{#if isSuper && restaurants.length > 1}
+						<select
+							value={currentRestaurantId}
+							onchange={(e) => switchRestaurant(e.currentTarget.value)}
+							class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none"
+						>
+							{#each restaurants as rest}
+								<option value={rest.id}>{rest.name}</option>
+							{/each}
+						</select>
+					{/if}
+				</div>
 			</div>
 		</div>
 	</header>
@@ -645,6 +738,80 @@
 					</div>
 				</div>
 			</div>
+
+			<!-- Setup Inquiries Section (Super Admin Only) -->
+			{#if isSuper && setupInquiries.length > 0}
+				<div class="rounded-lg bg-white shadow">
+					<div class="border-b border-slate-200 px-6 py-4">
+						<h2 class="text-lg font-semibold text-slate-900">Setup Inquiries</h2>
+						<p class="mt-1 text-sm text-slate-600">Hardware setup requests from restaurants</p>
+					</div>
+					<div class="p-6">
+						<div class="overflow-x-auto">
+							<table class="w-full">
+								<thead>
+									<tr class="border-b border-slate-200">
+										<th class="pb-3 text-left text-sm font-medium text-slate-600">Restaurant</th>
+										<th class="pb-3 text-left text-sm font-medium text-slate-600">Contact</th>
+										<th class="pb-3 text-left text-sm font-medium text-slate-600">Package</th>
+										<th class="pb-3 text-left text-sm font-medium text-slate-600">Status</th>
+										<th class="pb-3 text-left text-sm font-medium text-slate-600">Date</th>
+										<th class="pb-3 text-right text-sm font-medium text-slate-600">Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									{#each setupInquiries as inquiry}
+										<tr class="border-b border-slate-100">
+											<td class="py-3">
+												<p class="font-medium text-slate-900">{inquiry.restaurantName}</p>
+												<p class="text-xs text-slate-500">{inquiry.location}</p>
+											</td>
+											<td class="py-3">
+												<p class="text-sm text-slate-700">{inquiry.contactName}</p>
+												<p class="text-xs text-slate-500">{inquiry.phone}</p>
+											</td>
+											<td class="py-3">
+												<span
+													class="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-700 capitalize"
+												>
+													{inquiry.package}
+												</span>
+											</td>
+											<td class="py-3">
+												<span
+													class="rounded-full px-2 py-1 text-xs font-medium capitalize {inquiry.status ===
+													'pending'
+														? 'bg-yellow-100 text-yellow-700'
+														: inquiry.status === 'contacted'
+															? 'bg-blue-100 text-blue-700'
+															: 'bg-green-100 text-green-700'}"
+												>
+													{inquiry.status}
+												</span>
+											</td>
+											<td class="py-3 text-sm text-slate-500">
+												{new Date(inquiry.created).toLocaleDateString()}
+											</td>
+											<td class="py-3 text-right">
+												<select
+													value={inquiry.status}
+													onchange={(e) => updateInquiryStatus(inquiry.id, e.currentTarget.value)}
+													class="rounded border border-slate-300 px-2 py-1 text-xs"
+												>
+													<option value="pending">Pending</option>
+													<option value="contacted">Contacted</option>
+													<option value="completed">Completed</option>
+													<option value="cancelled">Cancelled</option>
+												</select>
+											</td>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			{/if}
 
 			<!-- Restaurant Info Section -->
 			<div class="rounded-lg bg-white shadow">
@@ -1056,3 +1223,131 @@
 
 	<Footer restaurant={$page.data.restaurant} />
 </div>
+
+<!-- New Restaurant Modal -->
+{#if showNewRestaurantModal}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+		<div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+			<div class="mb-6 flex items-center justify-between">
+				<h2 class="text-xl font-bold text-slate-900">Add New Restaurant</h2>
+				<button
+					onclick={() => (showNewRestaurantModal = false)}
+					class="rounded-lg p-2 hover:bg-slate-100"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="h-5 w-5"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<path d="M18 6L6 18M6 6l12 12" />
+					</svg>
+				</button>
+			</div>
+
+			<form onsubmit={createRestaurant} class="space-y-4">
+				<div>
+					<label for="new-name" class="block text-sm font-medium text-slate-700"
+						>Restaurant Name *</label
+					>
+					<input
+						type="text"
+						id="new-name"
+						bind:value={newRestaurantForm.name}
+						required
+						class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+						placeholder="e.g., My Restaurant"
+					/>
+				</div>
+
+				<div>
+					<label for="new-domain" class="block text-sm font-medium text-slate-700">Domain *</label>
+					<input
+						type="text"
+						id="new-domain"
+						bind:value={newRestaurantForm.domain}
+						required
+						class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+						placeholder="e.g., myrestaurant.com"
+					/>
+				</div>
+
+				<div>
+					<label for="new-category" class="block text-sm font-medium text-slate-700">Category</label
+					>
+					<input
+						type="text"
+						id="new-category"
+						bind:value={newRestaurantForm.category}
+						class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+						placeholder="e.g., Italian, Chinese, Fast Food"
+					/>
+				</div>
+
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label for="new-state" class="block text-sm font-medium text-slate-700">State</label>
+						<input
+							type="text"
+							id="new-state"
+							bind:value={newRestaurantForm.state}
+							class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+							placeholder="e.g., Lagos"
+						/>
+					</div>
+					<div>
+						<label for="new-lga" class="block text-sm font-medium text-slate-700">LGA</label>
+						<input
+							type="text"
+							id="new-lga"
+							bind:value={newRestaurantForm.localGovernment}
+							class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+							placeholder="e.g., Ikeja"
+						/>
+					</div>
+				</div>
+
+				<div>
+					<label for="new-phone" class="block text-sm font-medium text-slate-700">Phone</label>
+					<input
+						type="tel"
+						id="new-phone"
+						bind:value={newRestaurantForm.phone}
+						class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+						placeholder="e.g., +2348012345678"
+					/>
+				</div>
+
+				<div>
+					<label for="new-address" class="block text-sm font-medium text-slate-700">Address</label>
+					<textarea
+						id="new-address"
+						bind:value={newRestaurantForm.address}
+						rows="2"
+						class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+						placeholder="Restaurant address"
+					></textarea>
+				</div>
+
+				<div class="mt-6 flex justify-end gap-3">
+					<button
+						type="button"
+						onclick={() => (showNewRestaurantModal = false)}
+						class="rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+					>
+						Cancel
+					</button>
+					<button
+						type="submit"
+						disabled={creatingRestaurant}
+						class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+					>
+						{creatingRestaurant ? 'Creating...' : 'Create Restaurant'}
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
