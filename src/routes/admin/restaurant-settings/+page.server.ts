@@ -103,7 +103,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			const allRestaurants = await locals.pb.collection('restaurants').getFullList();
 			const restaurantMap = new Map(allRestaurants.map((r: any) => [r.id, r.name]));
 
-			// Add restaurant names to each member
+			// Add restaurant names to each member (remove duplicates)
 			teamMembers = teamMembers.map((member: any) => {
 				const adminRestaurants = (member.adminRestaurantIds || [])
 					.map((id: string) => restaurantMap.get(id))
@@ -111,9 +111,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				const userRestaurants = (member.restaurantIds || [])
 					.map((id: string) => restaurantMap.get(id))
 					.filter(Boolean);
+				// Combine and remove duplicates using Set
+				const allRestaurants = [...new Set([...adminRestaurants, ...userRestaurants])];
 				return {
 					...member,
-					adminRestaurants: [...adminRestaurants, ...userRestaurants]
+					adminRestaurants: allRestaurants
 				};
 			});
 		} else {
@@ -299,19 +301,23 @@ export const actions: Actions = {
 		}
 		if (state) updateData.state = state;
 		if (localGovernment) updateData.localGovernment = localGovernment;
-		if (imageUrl) updateData.imageUrl = imageUrl;
-		// Only update logoUrl if it's a valid URL (http, https, or data URI for base64)
-		if (
-			logoUrl &&
-			(logoUrl.startsWith('http') || logoUrl.startsWith('data:') || logoUrl.startsWith('/'))
-		) {
-			updateData.logoUrl = logoUrl;
+
+		// Handle image URLs - only update if it's a valid URL or empty (for removal)
+		// If empty string, we'll set it to null to remove the image
+		if (imageUrl !== undefined) {
+			if (imageUrl === '' || imageUrl.startsWith('http') || imageUrl.startsWith('/')) {
+				updateData.imageUrl = imageUrl || null;
+			}
 		}
-		if (
-			bannerUrl &&
-			(bannerUrl.startsWith('http') || bannerUrl.startsWith('data:') || bannerUrl.startsWith('/'))
-		) {
-			updateData.bannerUrl = bannerUrl;
+		if (logoUrl !== undefined) {
+			if (logoUrl === '' || logoUrl.startsWith('http') || logoUrl.startsWith('/')) {
+				updateData.logoUrl = logoUrl || null;
+			}
+		}
+		if (bannerUrl !== undefined) {
+			if (bannerUrl === '' || bannerUrl.startsWith('http') || bannerUrl.startsWith('/')) {
+				updateData.bannerUrl = bannerUrl || null;
+			}
 		}
 
 		console.log('Updating restaurant:', restaurantId, updateData);

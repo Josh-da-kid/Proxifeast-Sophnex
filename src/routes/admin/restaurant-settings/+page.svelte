@@ -222,27 +222,41 @@
 		showImageCropper = true;
 	}
 
-	async function uploadImageToPocketBase(blob: Blob, restaurantId: string): Promise<string> {
+	async function uploadImageToPocketBase(
+		blob: Blob,
+		restaurantId: string,
+		imageType: string
+	): Promise<string> {
 		const formData = new FormData();
-		const fileName = `${cropperType}_${Date.now()}.png`;
+		const fileName = `${imageType}_${Date.now()}.png`;
 		formData.append('file', blob, fileName);
 
-		const response = await fetch(`/api/upload-image?restaurantId=${restaurantId}`, {
-			method: 'POST',
-			body: formData
-		});
+		const response = await fetch(
+			`/api/upload-image?restaurantId=${restaurantId}&type=${imageType}`,
+			{
+				method: 'POST',
+				body: formData
+			}
+		);
+
+		console.log('Upload response status:', response.status);
 
 		if (response.ok) {
 			const data = await response.json();
+			console.log('Upload success, URL:', data.url);
 			return data.url;
 		}
-		throw new Error('Failed to upload image');
+
+		const errorData = await response.json();
+		console.error('Upload failed:', errorData);
+		throw new Error(errorData.error || 'Failed to upload image');
 	}
 
 	async function handleImageCrop(blob: Blob, base64: string) {
 		// Upload to PocketBase and get URL
 		try {
-			const url = await uploadImageToPocketBase(blob, restaurant?.id || '');
+			const url = await uploadImageToPocketBase(blob, restaurant?.id || '', cropperType);
+			console.log('Uploaded URL for', cropperType, ':', url);
 
 			if (cropperType === 'image') {
 				restImageUrl = url;
@@ -263,6 +277,16 @@
 			}
 		}
 		showImageCropper = false;
+	}
+
+	function removeImage(type: 'image' | 'logo' | 'banner') {
+		if (type === 'image') {
+			restImageUrl = '';
+		} else if (type === 'logo') {
+			restLogoUrl = '';
+		} else if (type === 'banner') {
+			restBannerUrl = '';
+		}
 	}
 
 	// Track original values to detect changes
@@ -1045,15 +1069,24 @@
 									<img
 										src={restImageUrl}
 										alt="Restaurant"
-										class="h-24 w-full rounded-lg object-cover"
+										class="h-32 w-full rounded-lg object-cover"
 									/>
-									<button
-										type="button"
-										onclick={() => openImageCropper('image')}
-										class="absolute right-2 bottom-2 rounded-lg bg-white/90 px-2 py-1 text-xs font-medium text-slate-700 shadow hover:bg-white"
-									>
-										Change
-									</button>
+									<div class="absolute right-2 bottom-2 flex gap-1">
+										<button
+											type="button"
+											onclick={() => openImageCropper('image')}
+											class="rounded-lg bg-white/90 px-2 py-1 text-xs font-medium text-slate-700 shadow hover:bg-white"
+										>
+											Change
+										</button>
+										<button
+											type="button"
+											onclick={() => removeImage('image')}
+											class="rounded-lg bg-red-500/90 px-2 py-1 text-xs font-medium text-white shadow hover:bg-red-600"
+										>
+											Remove
+										</button>
+									</div>
 								</div>
 							{:else}
 								<button
@@ -1087,13 +1120,22 @@
 										alt="Logo"
 										class="h-24 w-24 rounded-lg bg-slate-50 object-contain"
 									/>
-									<button
-										type="button"
-										onclick={() => openImageCropper('logo')}
-										class="absolute right-2 bottom-2 rounded-lg bg-white/90 px-2 py-1 text-xs font-medium text-slate-700 shadow hover:bg-white"
-									>
-										Change
-									</button>
+									<div class="absolute right-2 bottom-2 flex gap-1">
+										<button
+											type="button"
+											onclick={() => openImageCropper('logo')}
+											class="rounded-lg bg-white/90 px-2 py-1 text-xs font-medium text-slate-700 shadow hover:bg-white"
+										>
+											Change
+										</button>
+										<button
+											type="button"
+											onclick={() => removeImage('logo')}
+											class="rounded-lg bg-red-500/90 px-2 py-1 text-xs font-medium text-white shadow hover:bg-red-600"
+										>
+											Remove
+										</button>
+									</div>
 								</div>
 							{:else}
 								<button
@@ -1127,13 +1169,22 @@
 										alt="Banner"
 										class="h-32 w-full rounded-lg object-cover"
 									/>
-									<button
-										type="button"
-										onclick={() => openImageCropper('banner')}
-										class="absolute right-2 bottom-2 rounded-lg bg-white/90 px-2 py-1 text-xs font-medium text-slate-700 shadow hover:bg-white"
-									>
-										Change
-									</button>
+									<div class="absolute right-2 bottom-2 flex gap-1">
+										<button
+											type="button"
+											onclick={() => openImageCropper('banner')}
+											class="rounded-lg bg-white/90 px-2 py-1 text-xs font-medium text-slate-700 shadow hover:bg-white"
+										>
+											Change
+										</button>
+										<button
+											type="button"
+											onclick={() => removeImage('banner')}
+											class="rounded-lg bg-red-500/90 px-2 py-1 text-xs font-medium text-white shadow hover:bg-red-600"
+										>
+											Remove
+										</button>
+									</div>
 								</div>
 							{:else}
 								<button
