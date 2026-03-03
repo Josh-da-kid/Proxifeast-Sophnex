@@ -25,21 +25,12 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		const isAdminLoginPage = pathname === '/admin/admin-login';
 		const isBillingPage = pathname.startsWith('/admin/billing');
 
-		// Force refresh user data from PocketBase to get latest adminRestaurantIds
-		if (locals.user && locals.pb.authStore.isValid) {
-			try {
-				const freshUser = await locals.pb.collection('users').getOne(locals.user.id);
-				locals.user = freshUser;
-				console.log('User refreshed, adminRestaurantIds:', freshUser.adminRestaurantIds);
-			} catch (e) {
-				console.log('Could not refresh user:', e);
-			}
-		}
-
-		// Check if user has access to any super restaurant BEFORE setting isSuper
+		// Check if user has access to any super restaurant
 		const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
 		const userRestaurantIds = locals.user?.restaurantIds || [];
 		const allUserRestaurantIds = [...new Set([...adminRestaurantIds, ...userRestaurantIds])];
+		console.log('User adminRestaurantIds:', adminRestaurantIds);
+		console.log('User restaurantIds:', userRestaurantIds);
 		console.log('All user restaurant IDs:', allUserRestaurantIds);
 
 		// Get all restaurants to check
@@ -53,13 +44,23 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		} catch {}
 
 		// Check if any of the user's restaurants is a super restaurant
-		const userHasSuperAccess = allUserRestaurantIds.some((id: string) => {
+		let userHasSuperAccess = false;
+		for (const id of allUserRestaurantIds) {
 			const rest = allRestaurantsForCheck.find((r: any) => r.id === id);
-			console.log('Checking restaurant:', id, 'isSuper:', rest?.isSuper);
-			return rest?.isSuper === true;
-		});
+			console.log(`Checking if restaurant ${id} is super:`, rest?.name, 'isSuper:', rest?.isSuper);
+			if (rest?.isSuper === true) {
+				userHasSuperAccess = true;
+				console.log('Found super restaurant:', rest.name);
+				break;
+			}
+		}
 
-		console.log('User has super access:', userHasSuperAccess);
+		// Also check if the user record itself has isSuper field (legacy)
+		const userHasOwnSuperFlag = locals.user?.isSuper === true;
+		console.log('User has own isSuper flag:', userHasOwnSuperFlag);
+
+		console.log('User has super access (from restaurant check):', userHasSuperAccess);
+		console.log('User has super access (combined):', userHasSuperAccess || userHasOwnSuperFlag);
 
 		if (!token && !isAdminLoginPage) {
 			throw redirect(302, `/admin/admin-login?redirectTo=${pathname}`);
@@ -122,10 +123,17 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		locals.restaurant = restaurant;
 
 		// Use already calculated values from above
-		// User is super if they have access to a super restaurant OR if the current restaurant is super
-		locals.isSuper = userHasSuperAccess || !!restaurant?.isSuper;
+		// User is super if:1) they have access to a super restaurant, OR 2) the current restaurant is super, OR 3) user record has isSuper flag
+		const finalIsSuper = userHasSuperAccess || userHasOwnSuperFlag || restaurant?.isSuper === true;
 
-		console.log('Setting locals.isSuper:', locals.isSuper);
+		locals.isSuper = finalIsSuper;
+
+		console.log('Final isSuper calculation:', {
+			userHasSuperAccess,
+			userHasOwnSuperFlag,
+			restaurantIsSuper: restaurant?.isSuper,
+			finalIsSuper
+		});
 
 		const allAccessibleIds = allUserRestaurantIds;
 

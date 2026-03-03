@@ -1,22 +1,12 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals, url }) => {
-	// Set cache control headers to prevent caching
-	const headers = new Headers();
-	headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-	headers.set('Pragma', 'no-cache');
-	headers.set('Expires', '0');
+export const load: PageServerLoad = async ({ locals, url, parent }) => {
+	// Get isSuper from parent layout
+	const parentData = await parent();
+	const isSuperUser = parentData.isSuper === true;
 
-	// Force refresh user data from PocketBase to get latest adminRestaurantIds
-	if (locals.user && locals.pb.authStore.isValid) {
-		try {
-			const freshUser = await locals.pb.collection('users').getOne(locals.user.id);
-			locals.user = freshUser;
-		} catch (e) {
-			console.log('Could not refresh user:', e);
-		}
-	}
+	console.log('isSuper from parent layout:', parentData.isSuper, 'isSuperUser:', isSuperUser);
 
 	if (!locals.user) {
 		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
@@ -69,10 +59,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			homeDelivery: true
 		};
 
-		// Use locals.isSuper which is set in the layout server
-		const isSuperUser = locals.isSuper === true;
-
-		console.log('Using isSuper from locals:', locals.isSuper, 'isSuperUser:', isSuperUser);
+		// Use isSuper from parent layout (calculated in layout server)
+		// isSuperUser is already defined at the top from parent()
 
 		// Fetch team members based on super user status
 		let teamMembers;
