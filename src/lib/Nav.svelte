@@ -211,40 +211,6 @@
 				</span>
 			</a>
 		{/if}
-		<a href="/about" class="nav-link">
-			<span class="flex items-center gap-2">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="16"
-					height="16"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-				>
-					<circle cx="12" cy="12" r="10" />
-					<path d="M12 16v-4" />
-					<path d="M12 8h.01" />
-				</svg>
-				About
-			</span>
-		</a>
-		<a href="/contact" class="nav-link">
-			<span class="flex items-center gap-2">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="16"
-					height="16"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-				>
-					<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-				</svg>
-				Contact
-			</span>
-		</a>
 		<a href="/reservation" class="nav-link">
 			<span class="flex items-center gap-2">
 				<svg
@@ -301,22 +267,7 @@
 				Hardware Setup
 			</span>
 		</a>
-		<a href="/install-guide" class="nav-link-ordr">
-			<span class="flex items-center gap-2">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="16"
-					height="16"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-				>
-					<path d="M12 2v20M2 12h20" />
-				</svg>
-				Install App
-			</span>
-		</a>
+
 		<a href="/checkout" class="nav-link relative flex items-center justify-center">
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
@@ -446,6 +397,9 @@
 					{#if $isSuper || $isAdminForRestaurant}
 						<li><a href="/admin" class="text-slate-700">Admin Dashboard</a></li>
 					{/if}
+					<li><a href="/about" class="text-slate-700">About</a></li>
+					<li><a href="/contact" class="text-slate-700">Contact</a></li>
+					<li><a href="/install-guide" class="text-slate-700">Install App</a></li>
 					<li>
 						<button onclick={toggleNotifications} class="w-full text-left text-slate-700">
 							{notificationsEnabled ? 'Disable Notifications' : 'Enable Notifications'}
@@ -457,6 +411,8 @@
 				</ul>
 			</div>
 		{:else}
+			<a href="/about" class="nav-link">About</a>
+			<a href="/contact" class="nav-link">Contact</a>
 			<a href="/login" class="btn-ghost-custom">Login</a>
 			<a href="/signup" class="btn-primary-custom !px-4 !py-2 !text-sm">Sign Up</a>
 		{/if}
