@@ -88,34 +88,46 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		// Use already fetched allRestaurantsForCheck to find the restaurant
 		let restaurant: any = null;
 
-		// First, check if user has access to any restaurant - use that as priority
-		if (allUserRestaurantIds.length > 0) {
-			// Try to find user's accessible restaurants that match the domain
-			const userAccessibleRestaurants = allRestaurantsForCheck.filter((r: any) =>
-				allUserRestaurantIds.includes(r.id)
-			);
+		// Helper function to check if restaurant is super
+		const isSuperRestaurant = (r: any) => r?.isSuper === true || r?.isSuper === 'true';
 
-			// Try exact match with user's accessible restaurants
+		// Get user's accessible restaurants
+		const userAccessibleRestaurants =
+			allUserRestaurantIds.length > 0
+				? allRestaurantsForCheck.filter((r: any) => allUserRestaurantIds.includes(r.id))
+				: [];
+
+		// 1. First try exact domain match with user's accessible restaurants
+		restaurant = userAccessibleRestaurants.find((r: any) => {
+			const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
+			return rDomain === domainOnly;
+		});
+
+		// 2. Try partial domain match with user's accessible restaurants
+		if (!restaurant) {
 			restaurant = userAccessibleRestaurants.find((r: any) => {
 				const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
-				return rDomain === domainOnly;
+				return domainOnly.includes(rDomain) || rDomain.includes(domainOnly);
 			});
-
-			// Try partial match
-			if (!restaurant) {
-				restaurant = userAccessibleRestaurants.find((r: any) => {
-					const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
-					return domainOnly.includes(rDomain) || rDomain.includes(domainOnly);
-				});
-			}
-
-			// Fallback to first accessible restaurant if no domain match
-			if (!restaurant) {
-				restaurant = userAccessibleRestaurants[0];
-			}
 		}
 
-		// If still no restaurant, try to find by domain in all restaurants
+		// 3. If still no match, find FIRST non-super restaurant from user's list
+		// This prevents defaulting to a super restaurant when it shouldn't be selected
+		if (!restaurant && userAccessibleRestaurants.length > 0) {
+			// Prefer non-super restaurants first
+			const nonSuperRestaurants = userAccessibleRestaurants.filter(
+				(r: any) => !isSuperRestaurant(r)
+			);
+			if (nonSuperRestaurants.length > 0) {
+				restaurant = nonSuperRestaurants[0];
+			} else {
+				// If user only has super restaurants, use the first one
+				restaurant = userAccessibleRestaurants[0];
+			}
+			console.log('Using user accessible restaurant (non-super优先):', restaurant?.name);
+		}
+
+		// 4. If user has no accessible restaurants, try domain match in all restaurants
 		if (!restaurant) {
 			restaurant = allRestaurantsForCheck.find((r: any) => {
 				const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
@@ -123,7 +135,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			});
 		}
 
-		// Try partial match
+		// 5. Try partial match in all restaurants
 		if (!restaurant) {
 			restaurant = allRestaurantsForCheck.find((r: any) => {
 				const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
@@ -131,8 +143,8 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			});
 		}
 
-		// Final fallback to super restaurant
-		if (!restaurant) {
+		// 6. Final fallback to super restaurant only if user has super access
+		if (!restaurant && userHasSuperAccess) {
 			restaurant = allRestaurantsForCheck.find(
 				(r: any) => r.isSuper === true || r.isSuper === 'true'
 			);
