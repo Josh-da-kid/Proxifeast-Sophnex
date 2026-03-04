@@ -33,7 +33,7 @@
 					About Proxifeast
 				</h1>
 				<p class="text-lg font-medium text-slate-300" in:fade={{ duration: 600, delay: 200 }}>
-					YOUR FEAST IS JUST A SCAN AWAY
+					HOSPITALITY — JUST A SCAN AWAY
 				</p>
 			</div>
 		</div>
@@ -65,15 +65,16 @@
 					<h2 class="font-playfair text-2xl font-semibold text-slate-900">What is Proxifeast?</h2>
 				</div>
 				<p class="leading-relaxed text-slate-600">
-					Proxifeast is a complete digital hospitality platform that hosts and manages restaurants
-					online. We provide seamless online menu experiences through innovative QR code scanning
-					technology, enabling restaurants to offer contactless, hassle-free ordering to their
-					customers.
+					Proxifeast is a complete QR-powered hospitality experience and management platform that
+					hosts and manages restaurants, bars, cafés, and hotels online. We provide seamless digital
+					experiences through innovative QR code scanning technology, enabling venues to offer
+					contactless, hassle-free ordering and reservations to their guests.
 				</p>
 				<p class="mt-4 leading-relaxed text-slate-600">
-					We bridge the gap between traditional dining and modern technology, making it easier than
-					ever for customers to browse menus, place orders, and enjoy their favorite meals—whether
-					dining in, taking out, or ordering for delivery.
+					We bridge the gap between traditional hospitality and modern technology, making it easier
+					than ever for guests to browse menus, place orders, make reservations, and enjoy
+					extraordinary experiences—whether dining in, taking out, ordering delivery, or booking
+					rooms.
 				</p>
 			</article>
 
@@ -132,7 +133,7 @@
 						<h2 class="font-playfair text-3xl font-semibold">Powerful Features</h2>
 						<div class="h-px w-12 bg-amber-500"></div>
 					</div>
-					<p class="text-slate-300">Everything you need to modernize your restaurant</p>
+					<p class="text-slate-300">Everything you need to modernize your hospitality venue</p>
 				</div>
 
 				<Carousel>
@@ -193,8 +194,7 @@
 						</div>
 						<h3 class="font-playfair mb-2 text-xl font-semibold">Custom Digital Menu</h3>
 						<p class="text-sm leading-relaxed text-slate-300">
-							Get your own branded website with your restaurant name, logo, colors, and custom
-							domain.
+							Get your own branded website with your venue name, logo, colors, and custom domain.
 						</p>
 					</div>
 
@@ -335,8 +335,7 @@
 						</div>
 						<h3 class="font-playfair mb-2 text-xl font-semibold">Order History</h3>
 						<p class="text-sm leading-relaxed text-slate-300">
-							Complete order tracking for both customers and restaurants. Never lose track of an
-							order.
+							Complete order tracking for both customers and venues. Never lose track of an order.
 						</p>
 					</div>
 
@@ -362,7 +361,7 @@
 						</div>
 						<h3 class="font-playfair mb-2 text-xl font-semibold">Favorites</h3>
 						<p class="text-sm leading-relaxed text-slate-300">
-							Save favorite restaurants and dishes for quick access on your next visit.
+							Save favorite venues and dishes for quick access on your next visit.
 						</p>
 					</div>
 
@@ -467,10 +466,9 @@
 								/>
 							</svg>
 						</div>
-						<h3 class="font-playfair mb-2 text-xl font-semibold">Multi-Restaurant Platform</h3>
+						<h3 class="font-playfair mb-2 text-xl font-semibold">Multi-Venue Platform</h3>
 						<p class="text-sm leading-relaxed text-slate-300">
-							Host multiple restaurants on one platform. Browse all restaurants or switch between
-							them.
+							Host multiple venues on one platform. Browse all venues or switch between them.
 						</p>
 					</div>
 
@@ -603,7 +601,7 @@
 						</div>
 						<h3 class="font-playfair mb-2 text-xl font-semibold">Email Notifications</h3>
 						<p class="text-sm leading-relaxed text-slate-300">
-							Automatic email confirmations for orders sent to customers and restaurants.
+							Automatic email confirmations for orders sent to customers and venues.
 						</p>
 					</div>
 
@@ -632,7 +630,7 @@
 						</div>
 						<h3 class="font-playfair mb-2 text-xl font-semibold">Subscription Plans</h3>
 						<p class="text-sm leading-relaxed text-slate-300">
-							Flexible subscription plans for restaurants with test periods and easy renewals.
+							Flexible subscription plans for venues with test periods and easy renewals.
 						</p>
 					</div>
 
@@ -679,7 +677,7 @@
 						</h2>
 						<div class="h-px w-12 bg-amber-500"></div>
 					</div>
-					<p class="text-slate-500">The smarter choice for modern restaurants</p>
+					<p class="text-slate-500">The smarter choice for modern hospitality venues</p>
 				</div>
 
 				<div class="mb-10">
@@ -996,7 +994,7 @@
 			>
 				<h2 class="font-playfair mb-3 text-2xl font-bold">Partner With Us</h2>
 				<p class="mb-6 text-slate-300">
-					Bring your restaurant online with Proxifeast. Scan, order, feast!
+					Bring your venue online with Proxifeast. Scan, order, reserve, experience!
 				</p>
 				<a
 					href="/contact"

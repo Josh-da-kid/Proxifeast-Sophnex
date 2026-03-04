@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
+	import { page } from '$app/stores';
+
+	let store = $derived($page.data.store);
 
 	let name = $state('');
 	let email = $state('');
@@ -15,16 +18,50 @@
 	let preference = $state('email');
 	let isSubmitting = $state(false);
 	let submitted = $state(false);
+	let error = $state('');
+	let reservationData = $state<any>(null);
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		isSubmitting = true;
+		error = '';
 
-		// Simulate submission
-		await new Promise((resolve) => setTimeout(resolve, 1500));
+		if (!store) {
+			error = 'No store selected. Please access this page from a store.';
+			isSubmitting = false;
+			return;
+		}
 
-		submitted = true;
-		isSubmitting = false;
+		try {
+			const formData = new FormData();
+			formData.append('storeId', store.id);
+			formData.append('type', 'table');
+			formData.append('reservationDate', date);
+			formData.append('checkInTime', time);
+			formData.append('guestName', name);
+			formData.append('guestEmail', email);
+			formData.append('guestPhone', phone);
+			formData.append('partySize', guests.toString());
+
+			const response = await fetch('/api/reservations', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = await response.json();
+
+			if (result.success) {
+				reservationData = result.reservation;
+				submitted = true;
+			} else {
+				error = result.error || 'Failed to create reservation';
+			}
+		} catch (err) {
+			console.error('Reservation error:', err);
+			error = 'An error occurred. Please try again.';
+		} finally {
+			isSubmitting = false;
+		}
 	}
 </script>
 
@@ -45,7 +82,33 @@
 
 	<!-- Form -->
 	<main class="container mx-auto max-w-3xl px-4 py-8">
-		{#if submitted}
+		{#if !store}
+			<div class="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="mx-auto h-12 w-12 text-amber-500"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+					/>
+				</svg>
+				<h2 class="mt-4 text-xl font-semibold text-amber-900">No Store Selected</h2>
+				<p class="mt-2 text-amber-700">
+					Please select a store to make a reservation.
+					<a href="/stores" class="font-medium underline">Browse stores</a>
+				</p>
+			</div>
+		{:else if error}
+			<div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+				{error}
+			</div>
+		{:else if submitted}
 			<div class="rounded-2xl bg-white p-8 text-center shadow-lg" in:fade>
 				<div class="mb-4 flex justify-center">
 					<div class="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
@@ -61,10 +124,24 @@
 						</svg>
 					</div>
 				</div>
-				<h2 class="font-playfair mb-2 text-2xl font-bold text-slate-900">Reservation Submitted!</h2>
+				<h2 class="font-playfair mb-2 text-2xl font-bold text-slate-900">Reservation Confirmed!</h2>
 				<p class="mb-6 text-slate-600">
-					Thank you for your reservation. We'll send a confirmation to your email shortly.
+					Your reservation has been confirmed. A QR pass has been generated for check-in.
 				</p>
+
+				{#if reservationData}
+					<div class="mb-6 rounded-lg bg-slate-50 p-4 text-left">
+						<p class="mb-2 text-sm text-slate-500">Reservation Details:</p>
+						<p class="font-semibold">{store?.name}</p>
+						<p class="text-sm text-slate-600">
+							Date: {new Date(reservationData.reservationDate).toLocaleDateString()}
+						</p>
+						<p class="text-sm text-slate-600">Time: {reservationData.checkInTime}</p>
+						<p class="text-sm text-slate-600">Guests: {reservationData.partySize}</p>
+						<p class="mt-2 text-sm text-slate-600">Confirmation ID: {reservationData.id}</p>
+					</div>
+				{/if}
+
 				<a href="/" class="btn btn-primary">Return Home</a>
 			</div>
 		{:else}

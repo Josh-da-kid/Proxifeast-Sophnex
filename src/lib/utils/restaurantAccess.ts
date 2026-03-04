@@ -1,11 +1,46 @@
 // src/lib/utils/restaurantAccess.ts
-import type { RequestEvent } from '@sveltejs/kit';
+import type { StoreFeatures } from '$lib/types/store';
 
 /**
  * Check if a restaurant is a "super" restaurant with cross-restaurant access
  */
 export function isSuperRestaurant(restaurant: any): boolean {
-	return restaurant?.isSuper === true;
+	if (!restaurant) return false;
+	return restaurant.isSuper === true || restaurant.isSuper === 'true';
+}
+
+/**
+ * Check if a store has a specific feature enabled
+ */
+export function hasFeature(store: any, feature: keyof StoreFeatures): boolean {
+	if (!store || !store.features) return false;
+	return store.features[feature] === true || store.features[feature] === 'true';
+}
+
+/**
+ * Get the store type label
+ */
+export function getStoreTypeLabel(type: string): string {
+	const labels: Record<string, string> = {
+		restaurant: 'Restaurant',
+		bar: 'Bar',
+		cafe: 'Café',
+		hotel: 'Hotel'
+	};
+	return labels[type] || 'Store';
+}
+
+/**
+ * Get color class for store type
+ */
+export function getStoreTypeColor(type: string): string {
+	const colors: Record<string, string> = {
+		restaurant: 'bg-orange-100 text-orange-800 border-orange-200',
+		bar: 'bg-purple-100 text-purple-800 border-purple-200',
+		cafe: 'bg-amber-100 text-amber-800 border-amber-200',
+		hotel: 'bg-blue-100 text-blue-800 border-blue-200'
+	};
+	return colors[type] || 'bg-gray-100 text-gray-800 border-gray-200';
 }
 
 /**

@@ -15,7 +15,7 @@
 			id: 'basic',
 			name: 'Basic Setup',
 			price: 149000,
-			description: 'Perfect for small restaurants wanting to go digital',
+			description: 'Perfect for small venues wanting to go digital',
 			features: [
 				'Full website with your branding',
 				'QR codes for each table',
@@ -29,7 +29,7 @@
 		{
 			id: 'standard',
 			name: 'Standard Setup',
-			description: 'Ideal for growing restaurants with multiple staff',
+			description: 'Ideal for growing venues with multiple staff',
 			price: 349000,
 			features: [
 				'Everything in Basic',
@@ -44,7 +44,7 @@
 		{
 			id: 'pro',
 			name: 'Pro Setup',
-			description: 'Complete solution for busy restaurants',
+			description: 'Complete solution for busy venues',
 			price: 499000,
 			features: [
 				'Everything in Standard',
@@ -60,7 +60,7 @@
 	];
 
 	let formData = $state({
-		restaurantName: '',
+		venueName: '',
 		contactName: '',
 		phone: '',
 		email: '',
@@ -76,7 +76,7 @@
 
 		try {
 			await pb.collection('setupInquiries').create({
-				restaurantName: formData.restaurantName,
+				venueName: formData.venueName,
 				contactName: formData.contactName,
 				phone: formData.phone,
 				email: formData.email,
@@ -88,7 +88,7 @@
 
 			submitSuccess = true;
 			formData = {
-				restaurantName: '',
+				venueName: '',
 				contactName: '',
 				phone: '',
 				email: '',
@@ -286,16 +286,16 @@
 
 							<div class="grid gap-6 md:grid-cols-2">
 								<div>
-									<label for="restaurantName" class="block text-sm font-medium text-slate-700">
-										Restaurant Name *
+									<label for="venueName" class="block text-sm font-medium text-slate-700">
+										Venue Name *
 									</label>
 									<input
 										type="text"
-										id="restaurantName"
-										bind:value={formData.restaurantName}
+										id="venueName"
+										bind:value={formData.venueName}
 										required
 										class="mt-1 block w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none"
-										placeholder="Your restaurant name"
+										placeholder="Your venue name"
 									/>
 								</div>
 								<div>
@@ -311,7 +311,6 @@
 										placeholder="Your full name"
 									/>
 								</div>
-							
 							</div>
 
 							<div class="grid gap-6 md:grid-cols-2">
@@ -338,7 +337,7 @@
 										bind:value={formData.email}
 										required
 										class="mt-1 block w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none"
-										placeholder="you@restaurant.com"
+										placeholder="you@example.com"
 									/>
 								</div>
 							</div>
@@ -402,10 +401,8 @@
 	<!-- CTA Section -->
 	<section class="bg-slate-900 py-16 text-center text-white">
 		<div class="container mx-auto px-4">
-			<h2 class="font-playfair text-3xl font-bold">Ready to Transform Your Restaurant?</h2>
-			<p class="mt-4 text-lg text-slate-300">
-				Join hundreds of restaurants already using Proxifeast
-			</p>
+			<h2 class="font-playfair text-3xl font-bold">Ready to Transform Your Venue?</h2>
+			<p class="mt-4 text-lg text-slate-300">Join hundreds of venues already using Proxifeast</p>
 			<div class="mt-8 flex flex-wrap justify-center gap-4">
 				<a
 					href="/subscriptions"

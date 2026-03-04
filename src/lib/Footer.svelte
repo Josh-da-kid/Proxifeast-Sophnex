@@ -41,7 +41,7 @@
 	const currentYear = new Date().getFullYear();
 </script>
 
-<footer class="bg-[#0f172a] text-white mt-12">
+<footer class="mt-12 bg-[#0f172a] text-white">
 	<div class="mx-auto max-w-7xl px-6 py-16">
 		<div class="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-5">
 			<!-- Brand Column -->
@@ -64,7 +64,7 @@
 				</div>
 				<p class="mb-6 max-w-sm text-sm leading-relaxed text-slate-400">
 					{restaurantData?.description ||
-						"Nigeria's premier digital menu and online ordering platform. Transform your restaurant with modern technology."}
+						"Nigeria's premier hospitality experience platform. Transform your restaurant, bar, café, or hotel with modern QR-powered technology."}
 				</p>
 				<!-- Contact Info -->
 				<div class="space-y-2 text-sm">
@@ -129,7 +129,7 @@
 							href="/business/restaurants"
 							class="text-sm text-slate-400 transition-colors hover:text-orange-400"
 						>
-							For Restaurants
+							For Restaurants & Bars
 						</a>
 					</li>
 					<li>
@@ -138,6 +138,14 @@
 							class="text-sm text-slate-400 transition-colors hover:text-orange-400"
 						>
 							For Hotels
+						</a>
+					</li>
+					<li>
+						<a
+							href="/business/cafes"
+							class="text-sm text-slate-400 transition-colors hover:text-orange-400"
+						>
+							For Cafés
 						</a>
 					</li>
 					<li>

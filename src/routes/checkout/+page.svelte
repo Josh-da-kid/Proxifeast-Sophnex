@@ -133,7 +133,7 @@
 		if (closedRestaurants.length > 0) {
 			return {
 				valid: false,
-				message: `The following restaurants are currently closed: ${closedRestaurants.map((r: any) => r.name).join(', ')}. Please remove these items from your cart to proceed.`,
+				message: `The following venues are currently closed: ${closedRestaurants.map((r: any) => r.name).join(', ')}. Please remove these items from your cart to proceed.`,
 				mismatchedRestaurants: closedRestaurants as any[]
 			};
 		}
@@ -171,7 +171,7 @@
 				.join(' vs ');
 			return {
 				valid: false,
-				message: `Your cart has restaurants from different states: ${stateMessages}. Remove all but one state to proceed.`,
+				message: `Your cart has venues from different states: ${stateMessages}. Remove all but one state to proceed.`,
 				mismatchedRestaurants: restaurants
 			};
 		}
@@ -182,7 +182,7 @@
 				.join(' vs ');
 			return {
 				valid: false,
-				message: `Your cart has restaurants from different LGAs: ${lgaMessages}. Remove all but one LGA to proceed.`,
+				message: `Your cart has venues from different LGAs: ${lgaMessages}. Remove all but one LGA to proceed.`,
 				mismatchedRestaurants: restaurants
 			};
 		}
@@ -911,8 +911,7 @@
 											<div class="bg-warning/10 border-warning/20 mt-4 rounded-lg border p-3">
 												<p class="text-warning text-sm">
 													<strong>Important Notice:</strong> You're ordering from {uniqueRestaurants.size}
-													different restaurants. Delivery fees will be collected on delivery for each
-													restaurant.
+													different venues. Delivery fees will be collected on delivery for each venue.
 												</p>
 											</div>
 										{/if}

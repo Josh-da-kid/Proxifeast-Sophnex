@@ -142,7 +142,7 @@
 		if (images.length === 0) {
 			images.push({
 				src: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80',
-				alt: restaurant?.name || 'Restaurant'
+				alt: restaurant?.name || 'Venue'
 			});
 		}
 		return images;
@@ -152,7 +152,7 @@
 </script>
 
 <svelte:head>
-	<title>{restaurant?.name || 'Restaurant'} - Proxifeast</title>
+	<title>{restaurant?.name || 'Venue'} - Proxifeast</title>
 </svelte:head>
 
 <!-- Add to Cart Toast -->
@@ -270,18 +270,42 @@
 						</div>
 						<div class="min-w-0">
 							<h1 class="font-playfair text-2xl font-bold text-slate-900 md:text-3xl">
-								{restaurant?.name || 'Restaurant'}
+								{restaurant?.name || 'Venue'}
 							</h1>
 							{#if restaurant?.motto}
 								<p class="mt-1 text-sm text-slate-500">{restaurant.motto}</p>
 							{/if}
-							{#if restaurant?.category}
-								<span
-									class="mt-2 inline-block rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700"
-								>
-									{restaurant.category}
-								</span>
-							{/if}
+							<div class="mt-2 flex flex-wrap gap-2">
+								<!-- Store Type Badge -->
+								{#if restaurant?.type}
+									{@const typeColors = {
+										restaurant: 'bg-orange-100 text-orange-700',
+										bar: 'bg-purple-100 text-purple-700',
+										cafe: 'bg-amber-100 text-amber-700',
+										hotel: 'bg-blue-100 text-blue-700'
+									}}
+									{@const typeLabels = {
+										restaurant: 'Restaurant',
+										bar: 'Bar',
+										cafe: 'Café',
+										hotel: 'Hotel'
+									}}
+									<span
+										class="rounded-full px-3 py-1 text-xs font-medium {typeColors[
+											restaurant.type
+										] || 'bg-gray-100 text-gray-700'}"
+									>
+										{typeLabels[restaurant.type] || restaurant.type}
+									</span>
+								{/if}
+								{#if restaurant?.category}
+									<span
+										class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700"
+									>
+										{restaurant.category}
+									</span>
+								{/if}
+							</div>
 						</div>
 					</div>
 
@@ -302,26 +326,99 @@
 								{isOpen ? 'Open Now' : 'Closed'}
 							</span>
 						</div>
-						<a
-							href="#menu"
-							class="flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 transition-all hover:bg-amber-600 hover:shadow-xl"
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								class="h-4 w-4"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								stroke-width="2"
+
+						<!-- Dynamic CTAs based on store features -->
+						{#if restaurant?.features?.hasMenu}
+							<a
+								href="#menu"
+								class="flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 transition-all hover:bg-amber-600 hover:shadow-xl"
 							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-								/>
-							</svg>
-							Browse Menu
-						</a>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-4 w-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+									/>
+								</svg>
+								{restaurant?.type === 'hotel' ? 'Order to Room' : 'Browse Menu'}
+							</a>
+						{/if}
+
+						{#if restaurant?.features?.hasReservation}
+							<a
+								href="/reservation?store={restaurant?.id}"
+								class="flex items-center justify-center gap-2 rounded-xl bg-blue-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition-all hover:bg-blue-600 hover:shadow-xl"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-4 w-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+									/>
+								</svg>
+								{restaurant?.type === 'hotel' ? 'Book Room' : 'Reserve Table'}
+							</a>
+						{/if}
+
+						{#if restaurant?.features?.hasRoomService && restaurant?.type === 'hotel'}
+							<a
+								href="#menu"
+								class="flex items-center justify-center gap-2 rounded-xl bg-purple-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-500/30 transition-all hover:bg-purple-600 hover:shadow-xl"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-4 w-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+									/>
+								</svg>
+								Room Service
+							</a>
+						{/if}
+
+						{#if restaurant?.features?.hasBar && !restaurant?.features?.hasMenu}
+							<a
+								href="#menu"
+								class="flex items-center justify-center gap-2 rounded-xl bg-purple-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-500/30 transition-all hover:bg-purple-600 hover:shadow-xl"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-4 w-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+									/>
+								</svg>
+								View Drinks
+							</a>
+						{/if}
 					</div>
 				</div>
 

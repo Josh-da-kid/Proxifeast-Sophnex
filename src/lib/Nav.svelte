@@ -207,7 +207,7 @@
 						<path d="M7 2v20" />
 						<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
 					</svg>
-					Restaurants
+					Venues
 				</span>
 			</a>
 		{/if}
@@ -365,6 +365,7 @@
 							<li><a href="/admin/billing" class="text-slate-700">Billing</a></li>
 							<li><a href="/admin/user-analysis" class="text-slate-700">Customers</a></li>
 							<li><a href="/admin/restaurant-settings" class="text-slate-700">Settings</a></li>
+							<li><a href="/admin/qr-scanner" class="text-slate-700">QR Scanner</a></li>
 						{/if}
 						{#if $isSuper}
 							<li><a href="/admin/set-inquiries" class="text-slate-700">Set Inquiries</a></li>
@@ -557,7 +558,7 @@
 									<path d="M7 2v20" />
 									<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
 								</svg>
-								Restaurants
+								Venues
 							</a>
 						</li>
 					{/if}
@@ -999,6 +1000,28 @@
 										<circle cx="12" cy="12" r="3" />
 									</svg>
 									Settings
+								</a>
+							</li>
+							<li>
+								<a
+									href="/admin/qr-scanner"
+									class="font-medium text-slate-700"
+									onclick={() => (isMenuOpen = false)}
+								>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="20"
+										height="20"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+									>
+										<path
+											d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+										/>
+									</svg>
+									QR Scanner
 								</a>
 							</li>
 							{#if $isSuper}

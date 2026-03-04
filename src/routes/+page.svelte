@@ -821,7 +821,7 @@
 			return restaurant.name;
 		}
 		// Final fallback
-		return 'Unknown Restaurant';
+		return 'Unknown Venue';
 	}
 </script>
 
@@ -1078,7 +1078,9 @@
 						</div>
 						<div>
 							<h3 class="text-sm font-bold">Install Proxifeast App</h3>
-							<p class="text-primary-content/80 text-xs">Order faster with our app</p>
+							<p class="text-primary-content/80 text-xs">
+								Experience hospitality at your fingertips
+							</p>
 						</div>
 					</div>
 					<button
@@ -1381,29 +1383,29 @@
 					id: 1,
 					image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1920&q=80',
 					imageMobile: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80',
-					title: 'Delicious Food Delivered Fast',
+					title: 'Scan. Order. Reserve. Experience.',
 					description:
-						'Order from your favorite restaurants and enjoy restaurant-quality meals delivered to your doorstep.',
+						'Your complete hospitality solution — restaurants, bars, cafés, and hotels, all just a scan away.',
 					primaryBtn: { text: 'Order Now', href: '#menu' },
-					secondaryBtn: { text: 'Browse Restaurants', href: '/restaurants' }
+					secondaryBtn: { text: 'Browse Venues', href: '/stores' }
 				},
 				{
 					id: 2,
 					image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=80',
 					imageMobile: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80',
-					title: 'Discover Local Favorites',
+					title: 'Hospitality — Just a Scan Away',
 					description:
-						'Explore the best restaurants in your area and discover new culinary experiences.',
-					primaryBtn: { text: 'Explore Now', href: '/restaurants' },
+						'Discover the best venues in your area. From fine dining to cozy cafes, luxury hotels to vibrant bars.',
+					primaryBtn: { text: 'Explore Now', href: '/stores' },
 					secondaryBtn: { text: 'Learn More', href: '/about' }
 				},
 				{
 					id: 3,
 					image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1920&q=80',
 					imageMobile: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80',
-					title: 'Start Your Restaurant Business',
+					title: 'Grow Your Hospitality Business',
 					description:
-						'Join thousands of restaurants using Proxifeast to grow their delivery business.',
+						'Join thousands of venues using Proxifeast to streamline operations and delight guests.',
 					primaryBtn: {
 						text: $isLoggedIn ? 'View Plans' : 'Get Started Free',
 						href: $isLoggedIn ? '/subscriptions' : '/signup'
@@ -1680,11 +1682,11 @@
 				{#if viewMode === 'menu' && selectedRestaurant}
 					{selectedRestaurant.name}
 				{:else}
-					Featured Restaurants on Proxifeast
+					Featured Venues on Proxifeast
 				{/if}
 			</h2>
 			{#if viewMode !== 'menu' || !selectedRestaurant}
-				<p class="text-base-content/60 mt-3 text-lg">Discover your next favorite meal</p>
+				<p class="text-base-content/60 mt-3 text-lg">Discover your next favorite experience</p>
 			{/if}
 		</div>
 
@@ -1740,7 +1742,7 @@
 								onchange={handleMenuRestaurantChange}
 								class="appearance-none rounded-xl border-0 bg-white px-6 py-3 pr-10 text-base font-semibold shadow-lg shadow-slate-900/10 focus:ring-2 focus:ring-amber-500 focus:outline-none"
 							>
-								<option value="">Select Restaurant</option>
+								<option value="">Select Venue</option>
 								{#each allRestaurants as restaurant}
 									<option value={restaurant.id}>{restaurant.name}</option>
 								{/each}
@@ -1816,7 +1818,7 @@
 								type="text"
 								bind:value={searchInput}
 								oninput={() => (viewMode = 'list')}
-								placeholder="Search restaurants by name or location..."
+								placeholder="Search venues by name or location..."
 								class="flex-1 bg-transparent text-slate-700 placeholder-slate-400 focus:outline-none"
 							/>
 							{#if searchInput}
@@ -1859,7 +1861,7 @@
 				</div>
 			{:else if searchInput && filteredRestaurants.length === 0}
 				<p class="mt-10 text-center text-lg font-medium text-gray-500">
-					❌ No restaurants found matching "<span class="text-yellow-600">{searchInput}</span>"
+					❌ No venues found matching "<span class="text-yellow-600">{searchInput}</span>"
 				</p>
 			{:else}
 				{#if searchInput && filteredRestaurants.length >= 1}
@@ -1871,7 +1873,7 @@
 						<span
 							class="mb-2 inline-block rounded-full bg-slate-100 px-4 py-1 text-sm font-semibold text-slate-600"
 						>
-							Choose a Restaurant
+							Choose a Venue
 						</span>
 					</div>
 				{/if}
@@ -2116,13 +2118,13 @@
 					<path stroke-linecap="round" stroke-linejoin="round" d="M3 3h18v18H3V3z" />
 					<path stroke-linecap="round" stroke-linejoin="round" d="M12 8v8M8 12h8" />
 				</svg>
-				<p class="mt-4 text-lg text-slate-600">Please select a restaurant to view its menu</p>
+				<p class="mt-4 text-lg text-slate-600">Please select a venue to view its menu</p>
 				{#if isSuper}
 					<button
 						onclick={() => (viewMode = 'list')}
 						class="mt-4 rounded-xl bg-amber-500 px-6 py-2.5 font-semibold text-white"
 					>
-						Browse Restaurants
+						Browse Venues
 					</button>
 				{/if}
 			</div>
@@ -2454,7 +2456,7 @@
 															allRestaurants.find(
 																(r: any) => r.id === item.expand.dish.restaurantId
 															)?.name ||
-															'Restaurant'}
+															'Venue'}
 													</span>
 												</div>
 												<button

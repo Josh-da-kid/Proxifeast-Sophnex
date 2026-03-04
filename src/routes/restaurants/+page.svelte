@@ -196,13 +196,16 @@
 					class="font-playfair mb-4 text-4xl font-bold md:text-5xl"
 					in:fly={{ y: 30, duration: 600 }}
 				>
-					Discover Fine Dining
+					Hospitality — Just a Scan Away
 				</h1>
 				<p class="text-lg font-medium text-slate-300" in:fade={{ duration: 600, delay: 200 }}>
-					Explore curated restaurants with unique culinary experiences
+					Scan. Order. Reserve. Experience.
+				</p>
+				<p class="mt-2 text-base text-slate-400" in:fade={{ duration: 600, delay: 250 }}>
+					Discover restaurants, bars, cafés, and hotels
 				</p>
 				<div class="mt-4 text-sm text-slate-400" in:fade={{ duration: 600, delay: 300 }}>
-					{restaurants.length} restaurants available
+					{restaurants.length} venues available
 				</div>
 			</div>
 		</div>
@@ -261,13 +264,13 @@
 				{#if filteredRestaurants.length > 0}
 					<p class="text-slate-600">
 						Found <span class="font-semibold text-slate-800">{filteredRestaurants.length}</span>
-						restaurant{filteredRestaurants.length !== 1 ? 's' : ''} matching "<span
-							class="font-medium">{searchInput}</span
+						venue{filteredRestaurants.length !== 1 ? 's' : ''} matching "<span class="font-medium"
+							>{searchInput}</span
 						>"
 					</p>
 				{:else}
 					<p class="text-slate-500">
-						No restaurants found for "<span class="font-medium">{searchInput}</span>"
+						No venues found for "<span class="font-medium">{searchInput}</span>"
 					</p>
 				{/if}
 			</div>
@@ -317,7 +320,7 @@
 					<path d="M7 2v20" />
 					<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
 				</svg>
-				<h3 class="mt-4 text-lg font-medium text-slate-700">No Restaurants Available</h3>
+				<h3 class="mt-4 text-lg font-medium text-slate-700">No Venues Available</h3>
 				<p class="text-slate-500">Please check back later</p>
 			</div>
 		{:else}
