@@ -3,17 +3,17 @@
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url, request }) => {
-	// Get current restaurant and determine if it's super
-	const restaurantId = locals.restaurant?.id;
-	const isCurrentRestaurantSuper = restaurantId
-		? locals.restaurant?.isSuper === true || locals.restaurant?.isSuper === 'true'
-		: false;
+	// Get current restaurant from layout - this is already correctly selected
+	const restaurantFromLayout = locals.restaurant;
+
+	// Helper function to check if restaurant is super
+	const isSuperRestaurant = (r: any) => r?.isSuper === true || r?.isSuper === 'true';
 
 	console.log(
-		'Billing - Current restaurant:',
-		locals.restaurant?.name,
+		'Billing - Current restaurant from layout:',
+		restaurantFromLayout?.name,
 		'isSuper:',
-		isCurrentRestaurantSuper
+		restaurantFromLayout ? isSuperRestaurant(restaurantFromLayout) : false
 	);
 
 	const defaults = {
@@ -41,60 +41,70 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 	};
 
 	try {
-		// Get host from request
-		const host = request.headers.get('host') || '';
-		const domainOnly = host.split(':')[0].replace('www.', '').toLowerCase();
+		// Use the restaurant from layout - it's already correctly selected
+		// This prevents defaulting to super restaurant
+		let restaurant = restaurantFromLayout;
 
-		// Fetch all restaurants
-		const allRestaurants: any[] = await locals.pb.collection('restaurants').getFullList();
-
-		if (!allRestaurants || allRestaurants.length === 0) {
-			return defaults;
-		}
-
-		// Find super restaurant
-		const superRestaurant = allRestaurants.find(
-			(r: any) => r.isSuper === true || r.isSuper === 'true'
-		);
-
-		// Find restaurant by domain - try exact match first
-		let restaurant = allRestaurants.find((r: any) => {
-			const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
-			return rDomain === domainOnly;
-		});
-
-		// If not found, try partial match
+		// Only do additional lookup if layout doesn't have a restaurant
 		if (!restaurant) {
+			// Get host from request
+			const host = request.headers.get('host') || '';
+			const domainOnly = host.split(':')[0].replace('www.', '').toLowerCase();
+
+			// Fetch all restaurants
+			const allRestaurants: any[] = await locals.pb.collection('restaurants').getFullList();
+
+			if (!allRestaurants || allRestaurants.length === 0) {
+				return defaults;
+			}
+
+			// Find restaurant by domain
 			restaurant = allRestaurants.find((r: any) => {
 				const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
-				return domainOnly.includes(rDomain) || rDomain.includes(domainOnly);
+				return rDomain === domainOnly;
 			});
-		}
 
-		// If still not found, try super restaurant
-		if (!restaurant && superRestaurant) {
-			// Check if domain matches super restaurant
-			const superDomain = (superRestaurant.domain || '').replace('www.', '').toLowerCase().trim();
-			if (domainOnly.includes(superDomain) || superDomain.includes(domainOnly)) {
-				restaurant = superRestaurant;
+			if (!restaurant) {
+				restaurant = allRestaurants.find((r: any) => {
+					const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
+					return domainOnly.includes(rDomain) || rDomain.includes(domainOnly);
+				});
+			}
+
+			// For billing, if still no restaurant, find first non-super restaurant from user's accessible list
+			if (!restaurant) {
+				const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
+				const userRestaurantIds = locals.user?.restaurantIds || [];
+				const allAccessibleIds = [...new Set([...adminRestaurantIds, ...userRestaurantIds])];
+
+				const allRestaurantsForCheck = await locals.pb.collection('restaurants').getFullList();
+				const userAccessible = allRestaurantsForCheck.filter((r: any) =>
+					allAccessibleIds.includes(r.id)
+				);
+
+				// Prioritize non-super
+				const nonSuper = userAccessible.filter((r: any) => !isSuperRestaurant(r));
+				restaurant = nonSuper.length > 0 ? nonSuper[0] : userAccessible[0];
 			}
 		}
 
-		// Final check - if we still don't have a restaurant, use super restaurant
-		if (!restaurant && superRestaurant) {
-			restaurant = superRestaurant;
+		if (!restaurant) {
+			return defaults;
 		}
 
-		// Determine if this is a super restaurant - check directly from restaurant data
-		// Handle both boolean true and string "true" values
-		const isSuperRestaurant = restaurant?.isSuper === true || restaurant?.isSuper === 'true';
+		// Fetch all restaurants for dropdown (for super users only)
+		const allRestaurants: any[] = await locals.pb.collection('restaurants').getFullList();
+
+		// Find super restaurant
+		const superRestaurant = allRestaurants.find((r: any) => isSuperRestaurant(r));
+
+		// Determine if this is a super restaurant
+		const isSuperRestaurantValue = isSuperRestaurant(restaurant);
 
 		console.log('=== BILLING PAGE DEBUG ===');
-		console.log('Host:', host);
-		console.log('Domain:', domainOnly);
 		console.log('Restaurant found:', restaurant?.name, restaurant?.id);
 		console.log('restaurant.isSuper:', restaurant?.isSuper);
-		console.log('isSuperRestaurant:', isSuperRestaurant);
+		console.log('isSuperRestaurant:', isSuperRestaurantValue);
 		console.log('=========================');
 
 		// Get super restaurant for settings (for paystack key)
@@ -105,13 +115,13 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 
 		let subscription: any = null;
 		// Only show as active if the CURRENT restaurant is super
-		let subscriptionStatus = isSuperRestaurant ? 'active' : 'not_subscribed';
+		let subscriptionStatus = isSuperRestaurantValue ? 'active' : 'not_subscribed';
 		let subscriptions: any[] = [];
 		let restaurantsList: any[] = [];
 		let previousSubscriptions: any[] = [];
 
 		// Only show all subscriptions if the CURRENT restaurant is super
-		if (isSuperRestaurant) {
+		if (isSuperRestaurantValue) {
 			subscriptions = await locals.pb.collection('subscriptions').getFullList({
 				sort: '-created'
 			});
@@ -195,12 +205,12 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			subscriptionStatus,
 			subscription,
 			previousSubscriptions,
-			isSuper: isSuperRestaurant,
+			isSuper: isSuperRestaurantValue,
 			isAdminForRestaurant: true,
 			paystackKey,
 			supportEmail,
 			expired: url.searchParams.get('expired') === '1',
-			restaurant: isSuperRestaurant ? null : restaurant,
+			restaurant: isSuperRestaurantValue ? null : restaurant,
 			subscriptions,
 			restaurants: restaurantsList,
 			hasUsedFreeTrial,

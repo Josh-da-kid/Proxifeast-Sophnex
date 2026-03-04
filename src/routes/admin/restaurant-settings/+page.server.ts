@@ -15,37 +15,77 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
 	const userRestaurantIds = locals.user?.restaurantIds || [];
-
-	// Get all accessible restaurant IDs
 	const allAccessibleIds = [...new Set([...adminRestaurantIds, ...userRestaurantIds])];
 
-	// Try URL param first, then fallback to first accessible restaurant
-	let restaurantId = url.searchParams.get('restaurantId') || allAccessibleIds[0];
+	const isSuperRestaurant = (r: any) => r?.isSuper === true || r?.isSuper === 'true';
 
-	console.log('Restaurant ID to load:', restaurantId);
-	console.log('All accessible IDs:', allAccessibleIds);
+	// Try URL param first
+	let restaurantId = url.searchParams.get('restaurantId');
+	let restaurant: any = null;
 
-	if (!restaurantId) {
-		console.log('No restaurant ID found. User data:', { adminRestaurantIds, userRestaurantIds });
-		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
+	// Fetch user's accessible restaurants
+	let userAccessibleRestaurants: any[] = [];
+	if (allAccessibleIds.length > 0) {
+		userAccessibleRestaurants = await locals.pb.collection('restaurants').getFullList({
+			filter: allAccessibleIds.map((id) => `id = "${id}"`).join(' || ')
+		});
 	}
 
-	// Verify user has access to the requested restaurant
-	if (restaurantId && !allAccessibleIds.includes(restaurantId)) {
-		console.log('User does not have access to restaurant:', restaurantId);
-		// Instead of returning error, try to use the first accessible restaurant
-		restaurantId = allAccessibleIds[0];
-		if (!restaurantId) {
-			return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
+	// If we have a restaurantId from URL, verify it's accessible
+	if (restaurantId) {
+		restaurant = userAccessibleRestaurants.find((r: any) => r.id === restaurantId);
+		if (!restaurant) {
+			restaurantId = null;
 		}
+	}
+
+	// Use domain matching on user's accessible restaurants
+	const domainOnly = (url.hostname || '').replace('www.', '').toLowerCase().trim();
+
+	if (!restaurantId && userAccessibleRestaurants.length > 0) {
+		// Try exact domain match first
+		restaurant = userAccessibleRestaurants.find((r: any) => {
+			const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
+			return rDomain === domainOnly;
+		});
+
+		// Try partial match
+		if (!restaurant) {
+			restaurant = userAccessibleRestaurants.find((r: any) => {
+				const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
+				return domainOnly.includes(rDomain) || rDomain.includes(domainOnly);
+			});
+		}
+
+		if (restaurant) {
+			restaurantId = restaurant.id;
+			console.log('Matched restaurant by domain:', restaurant.name, domainOnly);
+		}
+	}
+
+	// If still no restaurant, prioritize non-super from user's accessible list
+	if (!restaurantId && userAccessibleRestaurants.length > 0) {
+		const nonSuper = userAccessibleRestaurants.filter((r: any) => !isSuperRestaurant(r));
+		if (nonSuper.length > 0) {
+			restaurant = nonSuper[0];
+			restaurantId = restaurant.id;
+		} else {
+			restaurant = userAccessibleRestaurants[0];
+			restaurantId = restaurant.id;
+		}
+		console.log('Selected restaurant (fallback):', restaurant?.name);
+	}
+
+	// Final validation
+	if (!restaurantId || !allAccessibleIds.includes(restaurantId)) {
+		console.log('No valid restaurant found.');
+		return { restaurant: null, orderServices: null, teamMembers: [], restaurants: [] };
 	}
 
 	try {
 		console.log('Loading restaurant:', restaurantId);
-		const restaurant = await locals.pb.collection('restaurants').getOne(restaurantId);
-		console.log('Restaurant loaded successfully:', restaurant?.name);
-
-		console.log('Restaurant fields:', Object.keys(restaurant));
+		restaurant = await locals.pb.collection('restaurants').getOne(restaurantId);
+		console.log('Restaurant loaded:', restaurant?.name, 'isSuper:', restaurant?.isSuper);
 
 		const orderServices = restaurant.orderServices || {
 			tableService: true,
@@ -53,40 +93,18 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			homeDelivery: true
 		};
 
-		// Check if the CURRENT restaurant being viewed is a super restaurant - this is the KEY check
-		// Handle both boolean true and string "true" values
-		const isCurrentRestaurantSuper = restaurant?.isSuper === true || restaurant?.isSuper === 'true';
-		console.log(
-			'Current restaurant:',
-			restaurant?.name,
-			'isSuper raw:',
-			restaurant?.isSuper,
-			'isSuper check:',
-			isCurrentRestaurantSuper
-		);
-
-		// Use the current restaurant's isSuper status directly
+		// KEY CHECK: Determine if current restaurant is super
+		const isCurrentRestaurantSuper = isSuperRestaurant(restaurant);
 		const shouldShowSuperData = isCurrentRestaurantSuper;
-		console.log('Should show super data:', shouldShowSuperData);
+		console.log('shouldShowSuperData:', shouldShowSuperData);
 
-		// OPTIMIZATION: Fetch all needed data in parallel to reduce requests
-		let allRestaurantsData: any[] = [];
-		let allUsers: any[] = [];
+		// Fetch all needed data
+		const [allRestaurantsData, allUsers] = await Promise.all([
+			locals.pb.collection('restaurants').getFullList({ sort: 'name' }),
+			locals.pb.collection('users').getFullList({ sort: 'name' })
+		]);
+
 		let setupInquiries: any[] = [];
-
-		try {
-			// Fetch restaurants and users in parallel
-			const [restaurantsResult, usersResult] = await Promise.all([
-				locals.pb.collection('restaurants').getFullList({ sort: 'name' }),
-				locals.pb.collection('users').getFullList({ sort: 'name' })
-			]);
-			allRestaurantsData = restaurantsResult;
-			allUsers = usersResult;
-		} catch (e) {
-			console.log('Error fetching initial data:', e);
-		}
-
-		// Fetch setup inquiries in parallel (only if super)
 		if (shouldShowSuperData) {
 			try {
 				setupInquiries = await locals.pb.collection('setupInquiries').getFullList({
@@ -97,15 +115,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			}
 		}
 
-		// Process team members based on super status
+		// Process team members based on whether CURRENT restaurant is super
 		let teamMembers;
 		if (shouldShowSuperData) {
-			// Filter to show only super restaurants - handle both boolean and string
 			const superRestaurants = allRestaurantsData.filter(
 				(r: any) => r.isSuper === true || r.isSuper === 'true'
 			);
 
-			// Map super restaurants with their admin info
 			teamMembers = superRestaurants.map((r: any) => {
 				const admins = allUsers.filter((u: any) => (u.adminRestaurantIds || []).includes(r.id));
 				return {
@@ -127,7 +143,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				return adminIds.includes(restaurantId);
 			});
 
-			// Add restaurant name to each member
 			teamMembers = teamMembers.map((member: any) => ({
 				...member,
 				adminRestaurants: [restaurant?.name]
@@ -139,7 +154,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		// Fetch all accessible restaurants for the dropdown
 		let restaurants: any[] = [];
 		if (shouldShowSuperData) {
-			// Put current restaurant first
 			const currentRest = allRestaurantsData.find((r: any) => r.id === restaurantId);
 			const otherRestaurants = allRestaurantsData.filter((r: any) => r.id !== restaurantId);
 			restaurants = currentRest ? [currentRest, ...otherRestaurants] : allRestaurantsData;
