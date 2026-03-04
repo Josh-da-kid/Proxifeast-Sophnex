@@ -4,7 +4,7 @@ import type { PageServerLoad, Actions } from './$types';
 export const load: PageServerLoad = async ({ locals }) => {
 	console.log('=== SET-INQUIRIES PAGE DEBUG ===');
 	console.log('locals.restaurant:', locals.restaurant);
-	console.log('locals.restaurant.isSuper:', locals.restaurant?.isSuper);
+	console.log('locals.user adminRestaurantIds:', locals.user?.adminRestaurantIds);
 	console.log('=================================');
 
 	const userRole = locals.user?.role || 'manager';
@@ -14,30 +14,34 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw redirect(303, '/admin/admin-menu?unauthorized=1');
 	}
 
-	// Check if the current restaurant is a super restaurant by fetching it fresh from the database
-	const currentRestaurantId = locals.restaurant?.id;
+	// Get user's accessible restaurant IDs
+	const adminRestaurantIds = locals.user?.adminRestaurantIds || [];
+	const userRestaurantIds = locals.user?.restaurantIds || [];
+	const allUserRestaurantIds = [...new Set([...adminRestaurantIds, ...userRestaurantIds])];
 
-	if (!currentRestaurantId) {
-		console.log('No restaurant ID found, redirecting');
+	if (allUserRestaurantIds.length === 0) {
 		throw redirect(303, '/admin/admin-menu?unauthorized=1');
 	}
 
-	// Fetch the restaurant directly from the database to get the correct isSuper value
-	let isCurrentRestaurantSuper = false;
-	try {
-		const restaurant = await locals.pb.collection('restaurants').getOne(currentRestaurantId);
-		console.log('Fetched restaurant:', restaurant.name, 'isSuper:', restaurant.isSuper);
+	// Fetch all restaurants to check which ones are super
+	const allRestaurants = await locals.pb.collection('restaurants').getFullList();
 
-		// Check isSuper field - handle both boolean true and string "true"
-		isCurrentRestaurantSuper = restaurant.isSuper === true || restaurant.isSuper === 'true';
-		console.log('isCurrentRestaurantSuper:', isCurrentRestaurantSuper);
-	} catch (e) {
-		console.error('Error fetching restaurant:', e);
-		throw redirect(303, '/admin/admin-menu?unauthorized=1');
-	}
+	// Find user's accessible restaurants
+	const userRestaurants = allRestaurants.filter((r: any) => allUserRestaurantIds.includes(r.id));
 
-	if (!isCurrentRestaurantSuper) {
-		console.log('Not a super restaurant, redirecting');
+	// Find if user has access to any super restaurant
+	const superRestaurant = userRestaurants.find(
+		(r: any) => r.isSuper === true || r.isSuper === 'true'
+	);
+
+	console.log(
+		'User restaurants:',
+		userRestaurants.map((r: any) => r.name)
+	);
+	console.log('Super restaurant found:', superRestaurant?.name);
+
+	if (!superRestaurant) {
+		console.log('No super restaurant access, redirecting');
 		throw redirect(303, '/admin/admin-menu?unauthorized=1');
 	}
 
