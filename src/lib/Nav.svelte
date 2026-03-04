@@ -366,6 +366,9 @@
 							<li><a href="/admin/user-analysis" class="text-slate-700">Customers</a></li>
 							<li><a href="/admin/restaurant-settings" class="text-slate-700">Settings</a></li>
 						{/if}
+						{#if $isSuper}
+							<li><a href="/admin/set-inquiries" class="text-slate-700">Set Inquiries</a></li>
+						{/if}
 						{#if $isManagerOrOwner || $isKitchen}
 							<li><a href="/admin/today-menu" class="text-slate-700">Today's Menu</a></li>
 						{/if}
@@ -998,6 +1001,28 @@
 									Settings
 								</a>
 							</li>
+							{#if $isSuper}
+								<li>
+									<a
+										href="/admin/set-inquiries"
+										class="font-medium text-slate-700"
+										onclick={() => (isMenuOpen = false)}
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											width="20"
+											height="20"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+										>
+											<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+										</svg>
+										Set Inquiries
+									</a>
+								</li>
+							{/if}
 							{#if $isManagerOrOwner || $isKitchen}
 								<li>
 									<a
