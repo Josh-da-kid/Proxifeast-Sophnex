@@ -54,8 +54,16 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		};
 
 		// Check if the CURRENT restaurant being viewed is a super restaurant - this is the KEY check
-		const isCurrentRestaurantSuper = restaurant?.isSuper === true;
-		console.log('Current restaurant:', restaurant?.name, 'isSuper:', isCurrentRestaurantSuper);
+		// Handle both boolean true and string "true" values
+		const isCurrentRestaurantSuper = restaurant?.isSuper === true || restaurant?.isSuper === 'true';
+		console.log(
+			'Current restaurant:',
+			restaurant?.name,
+			'isSuper raw:',
+			restaurant?.isSuper,
+			'isSuper check:',
+			isCurrentRestaurantSuper
+		);
 
 		// Use the current restaurant's isSuper status directly
 		const shouldShowSuperData = isCurrentRestaurantSuper;
@@ -92,8 +100,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		// Process team members based on super status
 		let teamMembers;
 		if (shouldShowSuperData) {
-			// Filter to show only super restaurants
-			const superRestaurants = allRestaurantsData.filter((r: any) => r.isSuper === true);
+			// Filter to show only super restaurants - handle both boolean and string
+			const superRestaurants = allRestaurantsData.filter(
+				(r: any) => r.isSuper === true || r.isSuper === 'true'
+			);
 
 			// Map super restaurants with their admin info
 			teamMembers = superRestaurants.map((r: any) => {
@@ -465,7 +475,7 @@ export const actions: Actions = {
 
 		const isSuperUser = allUserRestaurantIds.some((id: string) => {
 			const rest = allRestaurantsForSuperCheck.find((r: any) => r.id === id);
-			return rest?.isSuper === true;
+			return rest?.isSuper === true || rest?.isSuper === 'true';
 		});
 
 		console.log('isSuperUser for create:', {

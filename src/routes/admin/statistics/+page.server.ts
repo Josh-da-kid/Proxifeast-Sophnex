@@ -117,7 +117,7 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			.collection('restaurants')
 			.getFirstListItem(`domain = "${domain}"`);
 
-		const isSuper = restaurant.isSuper === true;
+		const isSuper = restaurant.isSuper === true || restaurant.isSuper === 'true';
 		const restaurantId = restaurant.id;
 		const restaurantName = restaurant.name;
 

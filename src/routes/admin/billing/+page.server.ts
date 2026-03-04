@@ -5,7 +5,9 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals, url, request }) => {
 	// Get current restaurant and determine if it's super
 	const restaurantId = locals.restaurant?.id;
-	const isCurrentRestaurantSuper = restaurantId ? locals.restaurant?.isSuper === true : false;
+	const isCurrentRestaurantSuper = restaurantId
+		? locals.restaurant?.isSuper === true || locals.restaurant?.isSuper === 'true'
+		: false;
 
 	console.log(
 		'Billing - Current restaurant:',
@@ -51,7 +53,9 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		}
 
 		// Find super restaurant
-		const superRestaurant = allRestaurants.find((r: any) => r.isSuper === true);
+		const superRestaurant = allRestaurants.find(
+			(r: any) => r.isSuper === true || r.isSuper === 'true'
+		);
 
 		// Find restaurant by domain - try exact match first
 		let restaurant = allRestaurants.find((r: any) => {
@@ -82,7 +86,8 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		}
 
 		// Determine if this is a super restaurant - check directly from restaurant data
-		const isSuperRestaurant = restaurant?.isSuper === true;
+		// Handle both boolean true and string "true" values
+		const isSuperRestaurant = restaurant?.isSuper === true || restaurant?.isSuper === 'true';
 
 		console.log('=== BILLING PAGE DEBUG ===');
 		console.log('Host:', host);

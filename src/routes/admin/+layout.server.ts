@@ -48,7 +48,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		for (const id of allUserRestaurantIds) {
 			const rest = allRestaurantsForCheck.find((r: any) => r.id === id);
 			console.log(`Checking if restaurant ${id} is super:`, rest?.name, 'isSuper:', rest?.isSuper);
-			if (rest?.isSuper === true) {
+			if (rest?.isSuper === true || rest?.isSuper === 'true') {
 				userHasSuperAccess = true;
 				console.log('Found super restaurant:', rest.name);
 				break;
@@ -56,7 +56,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		}
 
 		// Also check if the user record itself has isSuper field (legacy)
-		const userHasOwnSuperFlag = locals.user?.isSuper === true;
+		const userHasOwnSuperFlag = locals.user?.isSuper === true || locals.user?.isSuper === 'true';
 		console.log('User has own isSuper flag:', userHasOwnSuperFlag);
 
 		console.log('User has super access (from restaurant check):', userHasSuperAccess);
@@ -133,7 +133,9 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 
 		// Final fallback to super restaurant
 		if (!restaurant) {
-			restaurant = allRestaurantsForCheck.find((r: any) => r.isSuper === true);
+			restaurant = allRestaurantsForCheck.find(
+				(r: any) => r.isSuper === true || r.isSuper === 'true'
+			);
 		}
 
 		if (!restaurant) {
@@ -153,7 +155,11 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 
 		// Use already calculated values from above
 		// User is super if:1) they have access to a super restaurant, OR 2) the current restaurant is super, OR 3) user record has isSuper flag
-		const finalIsSuper = userHasSuperAccess || userHasOwnSuperFlag || restaurant?.isSuper === true;
+		const finalIsSuper =
+			userHasSuperAccess ||
+			userHasOwnSuperFlag ||
+			restaurant?.isSuper === true ||
+			restaurant?.isSuper === 'true';
 
 		locals.isSuper = finalIsSuper;
 
