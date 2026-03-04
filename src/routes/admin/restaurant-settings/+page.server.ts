@@ -183,15 +183,16 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				}
 			}),
 			isSuper: shouldShowSuperData,
+			isAdminForRestaurant: true,
 			setupInquiries
 		};
 	} catch (error: any) {
 		console.error('Error loading settings:', error);
-		// Return more info for debugging
 		const errorMessage = error?.message || error?.data?.message || 'Unknown error';
 		console.error('Detailed error:', errorMessage);
 		return {
 			restaurant: null,
+			isAdminForRestaurant: true,
 			orderServices: null,
 			teamMembers: [],
 			restaurants: [],

@@ -88,11 +88,40 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		// Use already fetched allRestaurantsForCheck to find the restaurant
 		let restaurant: any = null;
 
-		// Try exact match first
-		restaurant = allRestaurantsForCheck.find((r: any) => {
-			const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
-			return rDomain === domainOnly;
-		});
+		// First, check if user has access to any restaurant - use that as priority
+		if (allUserRestaurantIds.length > 0) {
+			// Try to find user's accessible restaurants that match the domain
+			const userAccessibleRestaurants = allRestaurantsForCheck.filter((r: any) =>
+				allUserRestaurantIds.includes(r.id)
+			);
+
+			// Try exact match with user's accessible restaurants
+			restaurant = userAccessibleRestaurants.find((r: any) => {
+				const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
+				return rDomain === domainOnly;
+			});
+
+			// Try partial match
+			if (!restaurant) {
+				restaurant = userAccessibleRestaurants.find((r: any) => {
+					const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
+					return domainOnly.includes(rDomain) || rDomain.includes(domainOnly);
+				});
+			}
+
+			// Fallback to first accessible restaurant if no domain match
+			if (!restaurant) {
+				restaurant = userAccessibleRestaurants[0];
+			}
+		}
+
+		// If still no restaurant, try to find by domain in all restaurants
+		if (!restaurant) {
+			restaurant = allRestaurantsForCheck.find((r: any) => {
+				const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
+				return rDomain === domainOnly;
+			});
+		}
 
 		// Try partial match
 		if (!restaurant) {
@@ -102,7 +131,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			});
 		}
 
-		// Fallback to super restaurant
+		// Final fallback to super restaurant
 		if (!restaurant) {
 			restaurant = allRestaurantsForCheck.find((r: any) => r.isSuper === true);
 		}
@@ -144,6 +173,13 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		} else {
 			isAdminForRestaurant = locals.user?.isAdmin === true;
 		}
+
+		console.log('isAdminForRestaurant:', {
+			restaurantId: restaurant.id,
+			restaurantName: restaurant.name,
+			allAccessibleIds,
+			isAdminForRestaurant
+		});
 
 		if (!isAdminForRestaurant && !isAdminLoginPage) {
 			locals.pb.authStore.clear();
