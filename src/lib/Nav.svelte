@@ -413,6 +413,7 @@
 		{:else}
 			<a href="/about" class="nav-link">About</a>
 			<a href="/contact" class="nav-link">Contact</a>
+			<a href="/install-guide" class="nav-link">Install App</a>
 			<a href="/login" class="btn-ghost-custom">Login</a>
 			<a href="/signup" class="btn-primary-custom !px-4 !py-2 !text-sm">Sign Up</a>
 		{/if}
