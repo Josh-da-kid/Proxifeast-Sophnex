@@ -2,7 +2,7 @@ import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const formData = await request.formData();
-	const qrToken = formData.get('qrToken') as string;
+	let qrToken = formData.get('qrToken') as string;
 	const action = formData.get('action') as string;
 
 	if (!qrToken) {
@@ -10,6 +10,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			status: 400,
 			headers: { 'Content-Type': 'application/json' }
 		});
+	}
+
+	// Try to parse as our JSON format
+	try {
+		const parsed = JSON.parse(qrToken);
+		if (parsed.t) {
+			// Our format: {"t":"token","g":"guest","d":"date","h":"time"}
+			qrToken = parsed.t;
+		}
+	} catch {
+		// Not JSON, use as-is (might be raw token)
 	}
 
 	try {

@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import jsQR from 'jsqr';
 
 	let videoElement: HTMLVideoElement;
 	let canvasElement: HTMLCanvasElement;
+	let fileInput: HTMLInputElement;
 	let scanning = $state(false);
+	let scanningMode: 'camera' | 'image' = $state('camera');
 	let scanResult = $state<any>(null);
 	let scanError = $state('');
 	let isProcessing = $state(false);
+	let uploadedImage: string | null = $state(null);
 
 	onMount(() => {
 		return () => {
@@ -77,13 +81,64 @@
 		}
 	}
 
-	async function validateQR(qrToken: string) {
+	async function handleImageUpload(event: Event) {
+		const file = (event.target as HTMLInputElement).files?.[0];
+		if (!file) return;
+
+		isProcessing = true;
+		scanError = '';
+
+		const reader = new FileReader();
+		reader.onload = async (e) => {
+			uploadedImage = e.target?.result as string;
+
+			// Create image and scan
+			const img = new Image();
+			img.onload = async () => {
+				const canvas = document.createElement('canvas');
+				canvas.width = img.width;
+				canvas.height = img.height;
+				const ctx = canvas.getContext('2d');
+				if (ctx) {
+					ctx.drawImage(img, 0, 0);
+					const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+					// Use jsQR to decode
+					const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+					if (code) {
+						console.log('QR Code from image:', code.data);
+						await validateQR(code.data);
+					} else {
+						scanError = 'No QR code found in the image. Please try another image.';
+					}
+				}
+				isProcessing = false;
+			};
+			img.src = uploadedImage;
+		};
+		reader.readAsDataURL(file);
+	}
+
+	async function validateQR(qrValue: string) {
 		if (isProcessing) return;
 
 		isProcessing = true;
 		stopScanning();
 
 		try {
+			// Try to parse as our QR data format
+			let qrToken = qrValue;
+			try {
+				const parsed = JSON.parse(qrValue);
+				// If it's our format, get the token
+				if (parsed.t) {
+					qrToken = parsed.t;
+				}
+			} catch {
+				// Not JSON, use as-is (might be raw token)
+			}
+
 			const formData = new FormData();
 			formData.append('qrToken', qrToken);
 			formData.append('action', 'lookup');
@@ -143,7 +198,21 @@
 	function resetScan() {
 		scanResult = null;
 		scanError = '';
-		startScanning();
+		uploadedImage = null;
+		if (scanningMode === 'camera') {
+			startScanning();
+		}
+	}
+
+	function switchMode(mode: 'camera' | 'image') {
+		stopScanning();
+		scanningMode = mode;
+		scanResult = null;
+		scanError = '';
+		uploadedImage = null;
+		if (mode === 'camera') {
+			startScanning();
+		}
 	}
 
 	function getStatusColor(status: string): string {
@@ -187,58 +256,128 @@
 			<p class="text-gray-600">Scan QR codes to verify reservations and grant access</p>
 		</div>
 
+		<!-- Mode Selection -->
+		<div class="mb-4 flex gap-2">
+			<button
+				onclick={() => switchMode('camera')}
+				class="flex-1 rounded-lg px-4 py-2 font-medium transition {scanningMode === 'camera'
+					? 'bg-orange-500 text-white'
+					: 'bg-white text-gray-700 hover:bg-gray-50'}"
+			>
+				📷 Camera Scan
+			</button>
+			<button
+				onclick={() => switchMode('image')}
+				class="flex-1 rounded-lg px-4 py-2 font-medium transition {scanningMode === 'image'
+					? 'bg-orange-500 text-white'
+					: 'bg-white text-gray-700 hover:bg-gray-50'}"
+			>
+				🖼️ Upload Image
+			</button>
+		</div>
+
 		<!-- Scanner Card -->
 		<div class="overflow-hidden rounded-lg bg-white shadow">
-			<!-- Video/Canvas Container -->
-			<div class="relative aspect-square bg-gray-900">
-				<video bind:this={videoElement} class="h-full w-full object-cover" playsinline muted
-				></video>
-				<canvas bind:this={canvasElement} class="hidden"></canvas>
+			{#if scanningMode === 'camera'}
+				<!-- Video/Canvas Container -->
+				<div class="relative aspect-square bg-gray-900">
+					<video bind:this={videoElement} class="h-full w-full object-cover" playsinline muted
+					></video>
+					<canvas bind:this={canvasElement} class="hidden"></canvas>
 
-				{#if !scanning && !scanResult}
-					<div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900">
-						<svg
-							class="h-20 w-20 text-gray-400"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
+					{#if !scanning && !scanResult}
+						<div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900">
+							<svg
+								class="h-20 w-20 text-gray-400"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+								/>
+							</svg>
+							<p class="mt-4 text-gray-400">Camera not active</p>
+						</div>
+					{/if}
+
+					{#if scanning}
+						<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+							<div class="h-64 w-64 rounded-lg border-4 border-orange-500 opacity-75"></div>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Controls -->
+				<div class="p-4">
+					{#if !scanning && !scanResult}
+						<button
+							onclick={startScanning}
+							class="w-full rounded-lg bg-orange-500 px-4 py-3 font-semibold text-white hover:bg-orange-600"
 						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+							Start Scanning
+						</button>
+					{:else if scanning}
+						<button
+							onclick={stopScanning}
+							class="w-full rounded-lg bg-gray-500 px-4 py-3 font-semibold text-white hover:bg-gray-600"
+						>
+							Stop Scanning
+						</button>
+					{/if}
+				</div>
+			{:else}
+				<!-- Image Upload Mode -->
+				<div class="p-4">
+					{#if !uploadedImage && !scanResult}
+						<div
+							class="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 py-12"
+						>
+							<svg
+								class="h-16 w-16 text-gray-400"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+								/>
+							</svg>
+							<p class="mt-4 text-gray-500">Upload a QR code image</p>
+							<button
+								onclick={() => fileInput.click()}
+								class="mt-4 rounded-lg bg-orange-500 px-6 py-2 font-semibold text-white hover:bg-orange-600"
+							>
+								Select Image
+							</button>
+							<input
+								bind:this={fileInput}
+								type="file"
+								accept="image/*"
+								onchange={handleImageUpload}
+								class="hidden"
 							/>
-						</svg>
-						<p class="mt-4 text-gray-400">Camera not active</p>
-					</div>
-				{/if}
-
-				{#if scanning}
-					<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
-						<div class="h-64 w-64 rounded-lg border-4 border-orange-500 opacity-75"></div>
-					</div>
-				{/if}
-			</div>
-
-			<!-- Controls -->
-			<div class="p-4">
-				{#if !scanning && !scanResult}
-					<button
-						onclick={startScanning}
-						class="w-full rounded-lg bg-orange-500 px-4 py-3 font-semibold text-white hover:bg-orange-600"
-					>
-						Start Scanning
-					</button>
-				{:else if scanning}
-					<button
-						onclick={stopScanning}
-						class="w-full rounded-lg bg-gray-500 px-4 py-3 font-semibold text-white hover:bg-gray-600"
-					>
-						Stop Scanning
-					</button>
-				{/if}
-			</div>
+						</div>
+					{:else if uploadedImage && !scanResult}
+						<div class="flex flex-col items-center">
+							<img
+								src={uploadedImage}
+								alt="Uploaded QR"
+								class="max-h-64 rounded-lg object-contain"
+							/>
+							{#if isProcessing}
+								<p class="mt-4 text-gray-500">Scanning...</p>
+							{/if}
+						</div>
+					{/if}
+				</div>
+			{/if}
 		</div>
 
 		<!-- Error Message -->

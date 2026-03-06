@@ -21,6 +21,17 @@
 	let error = $state('');
 	let reservationData = $state<any>(null);
 
+	async function downloadQRCode() {
+		if (!reservationData?.qrCodeUrl) return;
+
+		const link = document.createElement('a');
+		link.href = reservationData.qrCodeUrl;
+		link.download = `reservation-${reservationData.id || 'qrcode'}.png`;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	}
+
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		isSubmitting = true;
@@ -139,6 +150,25 @@
 							/>
 						</div>
 						<p class="mt-3 text-sm text-slate-500">Show this QR code at check-in</p>
+						<button
+							type="button"
+							onclick={downloadQRCode}
+							class="mt-3 flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-4 w-4"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+								<polyline points="7 10 12 15 17 10" />
+								<line x1="12" y1="15" x2="12" y2="3" />
+							</svg>
+							Save QR Code
+						</button>
 					</div>
 				{/if}
 
