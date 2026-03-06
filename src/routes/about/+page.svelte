@@ -133,7 +133,7 @@
 						<h2 class="font-playfair text-3xl font-semibold">Powerful Features</h2>
 						<div class="h-px w-12 bg-amber-500"></div>
 					</div>
-					<p class="text-slate-300">Everything you need to modernize your hospitality venue</p>
+					<p class="text-slate-300">Everything you need to modernize your hospitality store</p>
 				</div>
 
 				<Carousel>
@@ -194,7 +194,7 @@
 						</div>
 						<h3 class="font-playfair mb-2 text-xl font-semibold">Custom Digital Menu</h3>
 						<p class="text-sm leading-relaxed text-slate-300">
-							Get your own branded website with your venue name, logo, colors, and custom domain.
+							Get your own branded website with your store name, logo, colors, and custom domain.
 						</p>
 					</div>
 
@@ -994,7 +994,7 @@
 			>
 				<h2 class="font-playfair mb-3 text-2xl font-bold">Partner With Us</h2>
 				<p class="mb-6 text-slate-300">
-					Bring your venue online with Proxifeast. Scan, order, reserve, experience!
+					Bring your store online with Proxifeast. Scan, order, reserve, experience!
 				</p>
 				<a
 					href="/contact"

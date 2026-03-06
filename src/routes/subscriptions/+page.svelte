@@ -99,7 +99,7 @@
 		{
 			question: 'What happens when my trial ends?',
 			answer:
-				'When your trial ends, your venue operations will be temporarily locked. You can still view past orders and analytics, but you need to subscribe to continue processing new orders.'
+				'When your trial ends, your store operations will be temporarily locked. You can still view past orders and analytics, but you need to subscribe to continue processing new orders.'
 		},
 		{
 			question: 'Do you offer refunds?',
@@ -148,7 +148,7 @@
 	<title>Subscription Plans - Proxifeast</title>
 	<meta
 		name="description"
-		content="Choose the perfect Proxifeast plan for your venue. Start with a free trial or upgrade for advanced features."
+		content="Choose the perfect Proxifeast plan for your store. Start with a free trial or upgrade for advanced features."
 	/>
 </svelte:head>
 
@@ -174,7 +174,7 @@
 					Simple, Transparent Pricing
 				</h1>
 				<p class="text-lg text-slate-300 md:text-xl" in:fade={{ duration: 600, delay: 200 }}>
-					Choose the perfect plan for your venue. No hidden fees, no surprises.
+					Choose the perfect plan for your store. No hidden fees, no surprises.
 				</p>
 			</div>
 		</div>

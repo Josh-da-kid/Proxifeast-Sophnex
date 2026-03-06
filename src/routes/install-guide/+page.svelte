@@ -76,7 +76,7 @@
 					</svg>
 				</div>
 				<h3 class="mb-2 font-bold">Lightning Fast</h3>
-				<p class="text-base-content/70 text-sm">Instant access to your favorite venues</p>
+				<p class="text-base-content/70 text-sm">Instant access to your favorite stores</p>
 			</div>
 
 			<div class="bg-base-100 rounded-2xl p-6 text-center shadow-lg">

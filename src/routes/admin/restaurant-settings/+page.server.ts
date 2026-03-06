@@ -503,6 +503,7 @@ export const actions: Actions = {
 		}
 
 		const name = formData.get('name') as string;
+		const type = formData.get('type') as string;
 		const domain = formData.get('domain') as string;
 		const slug = formData.get('slug') as string;
 		const description = formData.get('description') as string;
@@ -519,14 +520,17 @@ export const actions: Actions = {
 		const deliveryFeePerKm = formData.get('deliveryFeePerKm') as string;
 		const maxDeliveryRadius = formData.get('maxDeliveryRadius') as string;
 		const isSuperValue = formData.get('isSuper') as string;
+		const hasReservationValue = formData.get('hasReservation') as string;
+		const hasRoomServiceValue = formData.get('hasRoomService') as string;
 
 		if (!name || !domain) {
-			return fail(400, { error: 'Restaurant name and domain are required' });
+			return fail(400, { error: 'Store name and domain are required' });
 		}
 
 		try {
-			console.log('Creating restaurant with data:', {
+			console.log('Creating store with data:', {
 				name,
+				type,
 				domain,
 				category,
 				state,
@@ -541,7 +545,7 @@ export const actions: Actions = {
 					.collection('restaurants')
 					.getFirstListItem(`domain = "${domain}"`);
 				if (existing) {
-					return fail(400, { error: 'A restaurant with this domain already exists' });
+					return fail(400, { error: 'A store with this domain already exists' });
 				}
 			} catch (e) {
 				// Domain doesn't exist, continue
@@ -550,6 +554,7 @@ export const actions: Actions = {
 			// Create restaurant with all fields
 			const newRestaurant = await locals.pb.collection('restaurants').create({
 				name: name,
+				type: type || 'restaurant',
 				domain: domain,
 				slug: slug || name.toLowerCase().replace(/\s+/g, '-'),
 				description: description || '',
@@ -567,6 +572,13 @@ export const actions: Actions = {
 				deliveryFeePerKm: deliveryFeePerKm ? parseFloat(deliveryFeePerKm) : 0,
 				maxDeliveryRadius: maxDeliveryRadius ? parseInt(maxDeliveryRadius) : 10,
 				isSuper: isSuperValue === 'on' || isSuperValue === 'true',
+				features: {
+					hasMenu: true,
+					hasReservation: hasReservationValue === 'true',
+					hasRoomService: hasRoomServiceValue === 'true',
+					hasBar: type === 'bar',
+					hasCafeService: type === 'cafe'
+				},
 				orderServices: {
 					tableService: true,
 					pickup: true,

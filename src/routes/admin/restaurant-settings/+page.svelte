@@ -25,6 +25,7 @@
 	let creatingRestaurant = $state(false);
 	let newRestaurantForm = $state({
 		name: '',
+		type: 'restaurant',
 		domain: '',
 		slug: '',
 		description: '',
@@ -40,7 +41,9 @@
 		serviceFee: '0',
 		deliveryFeePerKm: '0',
 		maxDeliveryRadius: '10',
-		isSuper: false
+		isSuper: false,
+		hasReservation: false,
+		hasRoomService: false
 	});
 
 	async function createRestaurant(event: SubmitEvent) {
@@ -50,7 +53,7 @@
 		const formData = new FormData();
 		Object.entries(newRestaurantForm).forEach(([key, value]) => {
 			// Handle checkbox - send 'true' if checked, empty string if not
-			if (key === 'isSuper') {
+			if (key === 'isSuper' || key === 'hasReservation' || key === 'hasRoomService') {
 				formData.append(key, value ? 'true' : '');
 			} else {
 				formData.append(key, String(value ?? ''));
@@ -69,6 +72,7 @@
 				showNewRestaurantModal = false;
 				newRestaurantForm = {
 					name: '',
+					type: 'restaurant',
 					domain: '',
 					slug: '',
 					description: '',
@@ -84,21 +88,23 @@
 					serviceFee: '0',
 					deliveryFeePerKm: '0',
 					maxDeliveryRadius: '10',
-					isSuper: false
+					isSuper: false,
+					hasReservation: false,
+					hasRoomService: false
 				};
 				successAlert = true;
-				successMessage = 'Restaurant created successfully!';
+				successMessage = 'Store created successfully!';
 				setTimeout(() => (successAlert = false), 3000);
 				await invalidateAll();
 			} else {
 				errorAlert = true;
-				errorMessage = result.data?.error || 'Failed to create restaurant';
+				errorMessage = result.data?.error || 'Failed to create store';
 				setTimeout(() => (errorAlert = false), 3000);
 			}
 		} catch (err) {
-			console.error('Error creating restaurant:', err);
+			console.error('Error creating store:', err);
 			errorAlert = true;
-			errorMessage = 'Failed to create restaurant';
+			errorMessage = 'Failed to create store';
 			setTimeout(() => (errorAlert = false), 3000);
 		} finally {
 			creatingRestaurant = false;
@@ -581,7 +587,7 @@
 							onclick={() => (showNewRestaurantModal = true)}
 							class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
 						>
-							+ Add Restaurant
+							+ Add Store
 						</button>
 						{#if restaurants.length > 1}
 							<select
@@ -1419,8 +1425,8 @@
 			<div class="sticky top-0 border-b border-slate-200 bg-white px-6 py-4">
 				<div class="flex items-center justify-between">
 					<div>
-						<h2 class="text-xl font-bold text-slate-900">Add New Restaurant</h2>
-						<p class="mt-1 text-sm text-slate-500">Fill in the restaurant details below</p>
+						<h2 class="text-xl font-bold text-slate-900">Add New Store</h2>
+						<p class="mt-1 text-sm text-slate-500">Fill in the store details below</p>
 					</div>
 					<button
 						onclick={() => (showNewRestaurantModal = false)}
@@ -1449,7 +1455,7 @@
 					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 						<div class="md:col-span-2">
 							<label for="new-name" class="block text-sm font-medium text-slate-700"
-								>Restaurant Name <span class="text-red-500">*</span></label
+								>Store Name <span class="text-red-500">*</span></label
 							>
 							<input
 								type="text"
@@ -1459,6 +1465,23 @@
 								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
 								placeholder="e.g., The Italian Bistro"
 							/>
+						</div>
+
+						<div>
+							<label for="new-type" class="block text-sm font-medium text-slate-700"
+								>Store Type <span class="text-red-500">*</span></label
+							>
+							<select
+								id="new-type"
+								bind:value={newRestaurantForm.type}
+								required
+								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+							>
+								<option value="restaurant">Restaurant</option>
+								<option value="hotel">Hotel</option>
+								<option value="bar">Bar</option>
+								<option value="cafe">Café</option>
+							</select>
 						</div>
 
 						<div>
@@ -1677,6 +1700,37 @@
 					</div>
 				</div>
 
+				<!-- Services Section -->
+				<div class="mb-6 border-t border-slate-200 pt-6">
+					<h3 class="mb-4 text-sm font-semibold tracking-wider text-slate-500 uppercase">
+						Services
+					</h3>
+					<div class="space-y-3">
+						<div class="flex items-center gap-3">
+							<input
+								type="checkbox"
+								id="new-hasReservation"
+								bind:checked={newRestaurantForm.hasReservation}
+								class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+							/>
+							<label for="new-hasReservation" class="text-sm text-slate-700"
+								>Accept Table Reservations</label
+							>
+						</div>
+						<div class="flex items-center gap-3">
+							<input
+								type="checkbox"
+								id="new-hasRoomService"
+								bind:checked={newRestaurantForm.hasRoomService}
+								class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+							/>
+							<label for="new-hasRoomService" class="text-sm text-slate-700"
+								>Room Service (for Hotels)</label
+							>
+						</div>
+					</div>
+				</div>
+
 				<!-- Settings Section -->
 				<div class="mb-6 border-t border-slate-200 pt-6">
 					<h3 class="mb-4 text-sm font-semibold tracking-wider text-slate-500 uppercase">
@@ -1690,7 +1744,7 @@
 							class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
 						/>
 						<label for="new-isSuper" class="text-sm text-slate-700"
-							>This is a Super Restaurant (can manage other restaurants)</label
+							>This is a Super Store (can manage other stores)</label
 						>
 					</div>
 				</div>
@@ -1709,7 +1763,7 @@
 						disabled={creatingRestaurant}
 						class="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
 					>
-						{creatingRestaurant ? 'Creating...' : 'Create Restaurant'}
+						{creatingRestaurant ? 'Creating...' : 'Create Store'}
 					</button>
 				</div>
 			</form>

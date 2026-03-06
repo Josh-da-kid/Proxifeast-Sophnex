@@ -208,7 +208,7 @@
 </script>
 
 <svelte:head>
-	<title>Proxifeast - Your Feast Is Just A Scan Away</title>
+	<title>Proxifeast - Hospitality - Just A Scan Away</title>
 	<meta
 		name="description"
 		content="{restaurantName} is a restaurant online food ordering system. It is an online menu where users scan a QR code from the restaurant tables and order easily."

@@ -30,6 +30,13 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 	}
 
+	// Validate room number for room service
+	if (data.type === 'roomService') {
+		if (!data.roomNumber || data.roomNumber.trim() === '') {
+			throw error(400, 'Room number is required for room service');
+		}
+	}
+
 	try {
 		// Get restaurant info for each dish and group by restaurant
 		const dishRestaurantMap = new Map<string, any[]>();
@@ -105,6 +112,7 @@ export const POST: RequestHandler = async ({ request }) => {
 					: mainReference,
 				mainReference: mainReference,
 				tableNumber: data.tableNumber || '',
+				roomNumber: data.roomNumber || '',
 				homeAddress: data.homeAddress || '',
 				pickupTime: data.pickupTime || '',
 				restaurantId: restaurant.id,

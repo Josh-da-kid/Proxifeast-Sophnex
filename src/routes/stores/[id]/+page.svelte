@@ -142,7 +142,7 @@
 		if (images.length === 0) {
 			images.push({
 				src: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80',
-				alt: restaurant?.name || 'Venue'
+				alt: restaurant?.name || 'Store'
 			});
 		}
 		return images;
@@ -152,7 +152,7 @@
 </script>
 
 <svelte:head>
-	<title>{restaurant?.name || 'Venue'} - Proxifeast</title>
+	<title>{restaurant?.name || 'Store'} - Proxifeast</title>
 </svelte:head>
 
 <!-- Add to Cart Toast -->
@@ -270,7 +270,7 @@
 						</div>
 						<div class="min-w-0">
 							<h1 class="font-playfair text-2xl font-bold text-slate-900 md:text-3xl">
-								{restaurant?.name || 'Venue'}
+								{restaurant?.name || 'Store'}
 							</h1>
 							{#if restaurant?.motto}
 								<p class="mt-1 text-sm text-slate-500">{restaurant.motto}</p>

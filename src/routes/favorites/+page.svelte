@@ -326,7 +326,7 @@
 				{#if isSuper}
 					<div class="mt-8 text-center">
 						<a
-							href="/restaurants"
+							href="/stores"
 							class="inline-flex items-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-6 py-3 text-sm font-medium text-slate-900 transition-all hover:bg-slate-900 hover:text-white"
 						>
 							<svg
@@ -341,7 +341,7 @@
 								<line x1="12" y1="8" x2="12" y2="16" />
 								<line x1="8" y1="12" x2="16" y2="12" />
 							</svg>
-							Add New Restaurant
+							Add New Store
 						</a>
 					</div>
 				{/if}
@@ -489,13 +489,13 @@
 				<h2 class="font-playfair mb-2 text-xl font-semibold text-slate-900">No Saved Items</h2>
 				<p class="mb-6 text-sm text-slate-500">
 					{isSuper
-						? 'Start saving restaurants and dishes you love'
+						? 'Start saving stores and dishes you love'
 						: 'Save dishes you love for quick access'}
 				</p>
 				<div class="flex flex-col items-center gap-3">
 					{#if isSuper}
 						<a
-							href="/restaurants"
+							href="/stores"
 							class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-slate-800"
 						>
 							<svg
@@ -509,7 +509,7 @@
 								<circle cx="11" cy="11" r="8" />
 								<path d="m21 21-4.3-4.3" />
 							</svg>
-							Discover Restaurants
+							Discover Stores
 						</a>
 					{/if}
 					<a

@@ -15,7 +15,7 @@
 
 		isSearching = true;
 		// Navigate to restaurants page with search query
-		window.location.href = `/restaurants?q=${encodeURIComponent(searchQuery)}`;
+		window.location.href = `/stores?q=${encodeURIComponent(searchQuery)}`;
 	}
 
 	const features = [
@@ -92,7 +92,7 @@
 			<!-- Subheadline -->
 			<p class="animate-fade-in-up stagger-2 mb-8 text-lg text-slate-600 md:text-xl">
 				{isSuper
-					? 'Discover the best restaurants in your area and order your favorite dishes with just a few taps.'
+					? 'Discover the best stores in your area and order your favorite dishes with just a few taps.'
 					: restaurantData?.description ||
 						'Experience the convenience of online ordering. Browse our menu, order, and enjoy!'}
 			</p>
@@ -104,7 +104,7 @@
 						<input
 							type="text"
 							bind:value={searchQuery}
-							placeholder="Search for restaurants or dishes..."
+							placeholder="Search for stores or dishes..."
 							class="input-custom w-full !rounded-full !py-4 pr-14 text-base"
 						/>
 						<button
@@ -136,10 +136,10 @@
 			<!-- CTA Buttons -->
 			<div class="animate-fade-in-up stagger-4 flex flex-col gap-4 sm:flex-row sm:justify-center">
 				<a
-					href={isSuper ? '/restaurants' : '/?restaurant=' + (restaurantData?.id || '')}
+					href={isSuper ? '/stores' : '/?restaurant=' + (restaurantData?.id || '')}
 					class="btn-primary-custom !px-8 !py-4 text-lg"
 				>
-					{isSuper ? 'Browse Restaurants' : 'View Menu'}
+					{isSuper ? 'Browse Stores' : 'View Menu'}
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						width="20"

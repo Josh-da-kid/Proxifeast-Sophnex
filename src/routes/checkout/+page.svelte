@@ -133,7 +133,7 @@
 		if (closedRestaurants.length > 0) {
 			return {
 				valid: false,
-				message: `The following venues are currently closed: ${closedRestaurants.map((r: any) => r.name).join(', ')}. Please remove these items from your cart to proceed.`,
+				message: `The following stores are currently closed: ${closedRestaurants.map((r: any) => r.name).join(', ')}. Please remove these items from your cart to proceed.`,
 				mismatchedRestaurants: closedRestaurants as any[]
 			};
 		}
@@ -171,7 +171,7 @@
 				.join(' vs ');
 			return {
 				valid: false,
-				message: `Your cart has venues from different states: ${stateMessages}. Remove all but one state to proceed.`,
+				message: `Your cart has stores from different states: ${stateMessages}. Remove all but one state to proceed.`,
 				mismatchedRestaurants: restaurants
 			};
 		}
@@ -182,7 +182,7 @@
 				.join(' vs ');
 			return {
 				valid: false,
-				message: `Your cart has venues from different LGAs: ${lgaMessages}. Remove all but one LGA to proceed.`,
+				message: `Your cart has stores from different LGAs: ${lgaMessages}. Remove all but one LGA to proceed.`,
 				mismatchedRestaurants: restaurants
 			};
 		}
@@ -364,6 +364,7 @@
 	let phone = $state('');
 	let prefix = $state('+234');
 	let tableNumber = $state('');
+	let roomNumber = $state('');
 	let homeAddress = $state('');
 	let locationConfirmed = $state(false);
 	let showSuccessToast = $state(false);
@@ -390,8 +391,14 @@
 		cartRestaurantInfo?.orderServices ?? {
 			tableService: true,
 			pickup: true,
-			homeDelivery: true
+			homeDelivery: true,
+			roomService: false
 		}
+	);
+
+	const hasRoomService = $derived(
+		cartRestaurantInfo?.type === 'hotel' &&
+			(cartRestaurantInfo?.features?.hasRoomService || restaurantOrderServices.tableService)
 	);
 
 	function isValidPhone(prefix: string, phone: string): boolean {
@@ -499,6 +506,7 @@
 						quantity: $cart.length,
 						formattedPhone,
 						tableNumber,
+						roomNumber,
 						homeAddress,
 						pickupTime,
 						payOnDelivery: deliveryOption === 'home',
@@ -911,7 +919,7 @@
 											<div class="bg-warning/10 border-warning/20 mt-4 rounded-lg border p-3">
 												<p class="text-warning text-sm">
 													<strong>Important Notice:</strong> You're ordering from {uniqueRestaurants.size}
-													different venues. Delivery fees will be collected on delivery for each venue.
+													different stores. Delivery fees will be collected on delivery for each store.
 												</p>
 											</div>
 										{/if}
@@ -922,50 +930,111 @@
 										<p class="flex items-center gap-2 text-sm font-semibold">
 											{@html iconPackage} Select Delivery Method
 										</p>
-										{#if restaurantOrderServices.tableService}
-											<label
-												class="block cursor-pointer"
-												class:opacity-50={isMultiRestaurantOrder || !cartLocationInfo.valid}
-											>
-												<input
-													type="radio"
-													bind:group={deliveryOption}
-													value="tableService"
-													class="peer sr-only"
-													required
-													disabled={isMultiRestaurantOrder || !cartLocationInfo.valid}
-												/>
-												<div
-													class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
+
+										{#if cartRestaurantInfo?.type === 'hotel'}
+											<!-- Room Service for Hotels -->
+											{#if restaurantOrderServices.tableService || restaurantOrderServices.roomService}
+												<label
+													class="block cursor-pointer"
 													class:opacity-50={isMultiRestaurantOrder || !cartLocationInfo.valid}
 												>
+													<input
+														type="radio"
+														bind:group={deliveryOption}
+														value="roomService"
+														class="peer sr-only"
+														required
+														disabled={isMultiRestaurantOrder || !cartLocationInfo.valid}
+													/>
 													<div
-														class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
+														class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
+														class:opacity-50={isMultiRestaurantOrder || !cartLocationInfo.valid}
 													>
-														{@html iconUtensilsCrossed}
-													</div>
-													<div class="flex-1">
-														<div class="mb-1 flex items-center justify-between">
-															<p class="font-semibold">Table Service</p>
-															<div
-																class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
+														<div
+															class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
+														>
+															<svg
+																xmlns="http://www.w3.org/2000/svg"
+																class="h-6 w-6"
+																fill="none"
+																viewBox="0 0 24 24"
+																stroke="currentColor"
+																stroke-width="2"
 															>
-																<div class="h-2 w-2 rounded-full bg-white"></div>
-															</div>
+																<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+																<polyline points="9 22 9 12 15 12 15 22" />
+															</svg>
 														</div>
-														<p class="text-base-content/70 text-sm">
-															We'll serve you at your table in the restaurant
-															{#if isMultiRestaurantOrder}
-																<span class="text-error"
-																	>(Not available for multi-restaurant orders)</span
+														<div class="flex-1">
+															<div class="mb-1 flex items-center justify-between">
+																<p class="font-semibold">Room Service</p>
+																<div
+																	class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
 																>
-															{:else if !cartLocationInfo.valid}
-																<span class="text-error">(Not available for your location)</span>
-															{/if}
-														</p>
+																	<div class="h-2 w-2 rounded-full bg-white"></div>
+																</div>
+															</div>
+															<p class="text-base-content/70 text-sm">
+																We'll deliver to your hotel room
+																{#if isMultiRestaurantOrder}
+																	<span class="text-error"
+																		>(Not available for multi-restaurant orders)</span
+																	>
+																{:else if !cartLocationInfo.valid}
+																	<span class="text-error">(Not available for your location)</span>
+																{/if}
+															</p>
+														</div>
 													</div>
-												</div>
-											</label>
+												</label>
+											{/if}
+										{:else}
+											<!-- Table Service for Non-Hotels -->
+											{#if restaurantOrderServices.tableService}
+												<label
+													class="block cursor-pointer"
+													class:opacity-50={isMultiRestaurantOrder || !cartLocationInfo.valid}
+												>
+													<input
+														type="radio"
+														bind:group={deliveryOption}
+														value="tableService"
+														class="peer sr-only"
+														required
+														disabled={isMultiRestaurantOrder || !cartLocationInfo.valid}
+													/>
+													<div
+														class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
+														class:opacity-50={isMultiRestaurantOrder || !cartLocationInfo.valid}
+													>
+														<div
+															class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
+														>
+															{@html iconUtensilsCrossed}
+														</div>
+														<div class="flex-1">
+															<div class="mb-1 flex items-center justify-between">
+																<p class="font-semibold">Table Service</p>
+																<div
+																	class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
+																>
+																	<div class="h-2 w-2 rounded-full bg-white"></div>
+																</div>
+															</div>
+															<p class="text-base-content/70 text-sm">
+																We'll serve you at your table in the restaurant
+																{#if isMultiRestaurantOrder}
+																	<span class="text-error"
+																		>(Not available for multi-restaurant orders)</span
+																	>
+																{:else if !cartLocationInfo.valid}
+																	<span class="text-error">(Not available for your location)</span>
+																{/if}
+															</p>
+														</div>
+													</div>
+												</label>
+											{/if}
 										{/if}
 
 										{#if restaurantOrderServices.pickup}
@@ -1034,6 +1103,49 @@
 											</label>
 										{/if}
 
+										{#if hasRoomService}
+											<label class="block cursor-pointer">
+												<input
+													type="radio"
+													bind:group={deliveryOption}
+													value="roomService"
+													class="peer sr-only"
+												/>
+												<div
+													class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
+												>
+													<div
+														class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
+													>
+														<svg
+															xmlns="http://www.w3.org/2000/svg"
+															class="h-6 w-6"
+															fill="none"
+															viewBox="0 0 24 24"
+															stroke="currentColor"
+															stroke-width="2"
+														>
+															<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+															<polyline points="9 22 9 12 15 12 15 22" />
+														</svg>
+													</div>
+													<div class="flex-1">
+														<div class="mb-1 flex items-center justify-between">
+															<p class="font-semibold">Room Service</p>
+															<div
+																class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
+															>
+																<div class="h-2 w-2 rounded-full bg-white"></div>
+															</div>
+														</div>
+														<p class="text-base-content/70 text-sm">
+															Order for delivery to your hotel room
+														</p>
+													</div>
+												</div>
+											</label>
+										{/if}
+
 										{#if showPickupWarning}
 											{@const uniqueRestaurantCount = new Set(
 												$cart.map(
@@ -1079,6 +1191,34 @@
 														</div>
 														<p class="text-base-content/60 flex items-center gap-1 text-xs">
 															{@html iconInfo} Enter the table number where you're currently seated
+														</p>
+													</div>
+												{:else if deliveryOption === 'roomService'}
+													<div class="space-y-2">
+														<label class="block flex items-center gap-2 text-sm font-medium"
+															><svg
+																xmlns="http://www.w3.org/2000/svg"
+																class="h-4 w-4"
+																fill="none"
+																viewBox="0 0 24 24"
+																stroke="currentColor"
+																stroke-width="2"
+																><path
+																	d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+																/><polyline points="9 22 9 12 15 12 15 22" /></svg
+															> Room Number</label
+														>
+														<div class="relative">
+															<input
+																type="text"
+																bind:value={roomNumber}
+																placeholder="e.g., 501"
+																class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-full rounded-xl border-2 px-4 py-3 transition-all outline-none focus:ring-4"
+																required
+															/>
+														</div>
+														<p class="text-base-content/60 flex items-center gap-1 text-xs">
+															{@html iconInfo} Enter your room number for delivery
 														</p>
 													</div>
 												{:else if deliveryOption === 'restaurantPickup'}

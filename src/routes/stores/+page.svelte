@@ -13,11 +13,43 @@
 	let favorites: string[] = $state([]);
 	let user = $derived($page.data.user);
 	let togglingFavorite = $state<string | null>(null);
+	let activeFilter = $state('all');
 
 	// Current time for reactive updates (updates every second)
 	let currentTime = $state(new Date());
 	let timeInterval: ReturnType<typeof setInterval>;
 	let restaurantSubscription: any;
+
+	const storeTypes = [
+		{ id: 'all', name: 'All', icon: '🏪' },
+		{ id: 'hotel', name: 'Hotels', icon: '🏨' },
+		{ id: 'restaurant', name: 'Restaurants', icon: '🍽️' },
+		{ id: 'bar', name: 'Bars', icon: '🍸' },
+		{ id: 'cafe', name: 'Cafés', icon: '☕' }
+	];
+
+	function filterByType(type: string) {
+		activeFilter = type;
+		if (restaurants.length === 0) {
+			filteredRestaurants = [];
+			return;
+		}
+		console.log('Filtering by type:', type, 'Total restaurants:', restaurants.length);
+
+		if (type === 'all') {
+			filteredRestaurants = restaurants;
+		} else {
+			filteredRestaurants = restaurants.filter((r: any) => {
+				const rType = r.type?.toLowerCase();
+				const filterType = type.toLowerCase();
+				console.log('Restaurant:', r.name, 'type:', rType, 'filter:', filterType);
+				return rType === filterType;
+			});
+		}
+		console.log('Filtered count:', filteredRestaurants.length);
+	}
+
+	const featuredStores = $derived(restaurants.slice(0, 6));
 
 	onMount(async () => {
 		// Update current time every second for precise status checks
@@ -56,7 +88,7 @@
 
 			const data = await restaurantsRes.json();
 			restaurants = data.items.filter((r: any) => r.name !== 'ProxifeastLocal');
-			filteredRestaurants = restaurants;
+			filterByType(activeFilter);
 
 			if (favoritesRes && favoritesRes.ok) {
 				const favData = await favoritesRes.json();
@@ -122,13 +154,18 @@
 		hasSearched = true;
 
 		if (!searchInput.trim()) {
-			filteredRestaurants = restaurants;
+			filterByType(activeFilter);
 			hasSearched = false;
 			return;
 		}
 
 		const query = searchInput.toLowerCase();
-		filteredRestaurants = restaurants.filter(
+		let baseRestaurants =
+			activeFilter === 'all'
+				? restaurants
+				: restaurants.filter((r: any) => r.type === activeFilter);
+
+		filteredRestaurants = baseRestaurants.filter(
 			(r) =>
 				r.name.toLowerCase().includes(query) ||
 				r.restaurantAddress?.toLowerCase().includes(query) ||
@@ -138,12 +175,12 @@
 
 	function clearSearch() {
 		searchInput = '';
-		filteredRestaurants = restaurants;
+		filterByType(activeFilter);
 		hasSearched = false;
 	}
 
 	function selectRestaurant(r: any) {
-		window.location.href = `/restaurants/${r.id}`;
+		window.location.href = `/stores/${r.id}`;
 	}
 
 	function isRestaurantOpen(restaurant: any): boolean {
@@ -202,10 +239,10 @@
 					Scan. Order. Reserve. Experience.
 				</p>
 				<p class="mt-2 text-base text-slate-400" in:fade={{ duration: 600, delay: 250 }}>
-					Discover restaurants, bars, cafés, and hotels
+					Discover stores, bars, cafés, and hotels
 				</p>
 				<div class="mt-4 text-sm text-slate-400" in:fade={{ duration: 600, delay: 300 }}>
-					{restaurants.length} venues available
+					{restaurants.length} stores available
 				</div>
 			</div>
 		</div>
@@ -257,6 +294,113 @@
 		</div>
 	</section>
 
+	<!-- Store Type Filter -->
+	<section class="container mx-auto px-4 py-6">
+		<div class="flex flex-wrap justify-center gap-2">
+			{#each storeTypes as type}
+				<button
+					onclick={() => filterByType(type.id)}
+					class="rounded-full px-5 py-2 text-sm font-medium transition-all {activeFilter === type.id
+						? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30'
+						: 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}"
+				>
+					<span class="mr-1">{type.icon}</span>{type.name}
+				</button>
+			{/each}
+		</div>
+	</section>
+
+	<!-- Featured Stores (shown when not searching) -->
+	{#if !hasSearched && featuredStores.length > 0}
+		<section class="bg-gradient-to-b from-slate-50 to-white py-12">
+			<div class="container mx-auto px-4">
+				<h2
+					class="mb-8 text-center text-2xl font-bold text-slate-800"
+					in:fly={{ y: 20, duration: 400 }}
+				>
+					Featured Stores
+				</h2>
+				<Carousel>
+					{#each featuredStores as store}
+						<button
+							onclick={() => selectRestaurant(store)}
+							class="w-72 shrink-0 snap-start rounded-2xl bg-white p-4 text-left shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl"
+						>
+							<div class="mb-3 aspect-video w-full overflow-hidden rounded-xl bg-slate-100">
+								{#if store.logoUrl}
+									<img src={store.logoUrl} alt={store.name} class="h-full w-full object-cover" />
+								{:else}
+									<div class="flex h-full items-center justify-center text-4xl">
+										{store.type === 'hotel'
+											? '🏨'
+											: store.type === 'bar'
+												? '🍸'
+												: store.type === 'cafe'
+													? '☕'
+													: '🍽️'}
+									</div>
+								{/if}
+							</div>
+							<h3 class="font-semibold text-slate-800">{store.name}</h3>
+							<p class="text-sm text-slate-500">
+								{store.address || store.restaurantAddress || store.lga || ''}
+							</p>
+							<div class="mt-3 flex cursor-pointer items-center gap-2">
+								<span class="text-sm font-medium text-amber-600">View Menu →</span>
+								{#if store.type === 'hotel'}
+									<span
+										class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700"
+										>Hotel</span
+									>
+								{:else if store.type === 'bar'}
+									<span
+										class="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700"
+										>Bar</span
+									>
+								{:else if store.type === 'cafe'}
+									<span
+										class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700"
+										>Café</span
+									>
+								{:else}
+									<span
+										class="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700"
+										>Restaurant</span
+									>
+								{/if}
+							</div>
+						</button>
+					{/each}
+				</Carousel>
+			</div>
+		</section>
+	{/if}
+
+	<!-- Get Your Store Online CTA -->
+	<section class="bg-slate-900 py-12 text-white">
+		<div class="container mx-auto px-4 text-center">
+			<h2 class="mb-4 text-2xl font-bold">Get Your Store Online!</h2>
+			<p class="mx-auto mb-6 max-w-xl text-slate-300">
+				Create a digital menu and start managing your business today. Join hundreds of stores using
+				Proxifeast.
+			</p>
+			<div class="flex flex-wrap justify-center gap-4">
+				<a
+					href="/signup"
+					class="rounded-full bg-amber-500 px-8 py-3 font-semibold text-white transition-all hover:bg-amber-600 hover:shadow-lg hover:shadow-amber-500/30"
+				>
+					Get Started
+				</a>
+				<a
+					href="/pricing"
+					class="rounded-full border border-slate-600 px-8 py-3 font-semibold text-white transition-all hover:bg-slate-800"
+				>
+					View Pricing
+				</a>
+			</div>
+		</div>
+	</section>
+
 	<!-- Results Info -->
 	<section class="container mx-auto px-4 py-12">
 		{#if hasSearched}
@@ -264,13 +408,13 @@
 				{#if filteredRestaurants.length > 0}
 					<p class="text-slate-600">
 						Found <span class="font-semibold text-slate-800">{filteredRestaurants.length}</span>
-						venue{filteredRestaurants.length !== 1 ? 's' : ''} matching "<span class="font-medium"
+						store{filteredRestaurants.length !== 1 ? 's' : ''} matching "<span class="font-medium"
 							>{searchInput}</span
 						>"
 					</p>
 				{:else}
 					<p class="text-slate-500">
-						No venues found for "<span class="font-medium">{searchInput}</span>"
+						No stores found for "<span class="font-medium">{searchInput}</span>"
 					</p>
 				{/if}
 			</div>
@@ -320,7 +464,7 @@
 					<path d="M7 2v20" />
 					<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
 				</svg>
-				<h3 class="mt-4 text-lg font-medium text-slate-700">No Venues Available</h3>
+				<h3 class="mt-4 text-lg font-medium text-slate-700">No Stores Available</h3>
 				<p class="text-slate-500">Please check back later</p>
 			</div>
 		{:else}

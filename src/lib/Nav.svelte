@@ -192,7 +192,7 @@
 	<!-- Desktop Navigation -->
 	<div class="hidden items-center gap-1 md:flex lg:gap-2">
 		{#if $isSuper}
-			<a href="/restaurants" class="nav-link-ordr">
+			<a href="/stores" class="nav-link-ordr">
 				<span class="flex items-center gap-2">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
@@ -207,7 +207,7 @@
 						<path d="M7 2v20" />
 						<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
 					</svg>
-					Venues
+					Stores
 				</span>
 			</a>
 		{/if}
@@ -541,7 +541,7 @@
 					{#if $isSuper}
 						<li>
 							<a
-								href="/restaurants"
+								href="/stores"
 								class="font-medium text-slate-700"
 								onclick={() => (isMenuOpen = false)}
 							>
@@ -558,7 +558,7 @@
 									<path d="M7 2v20" />
 									<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
 								</svg>
-								Venues
+								Stores
 							</a>
 						</li>
 					{/if}

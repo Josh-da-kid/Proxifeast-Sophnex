@@ -15,7 +15,7 @@
 			id: 'basic',
 			name: 'Basic Setup',
 			price: 149000,
-			description: 'Perfect for small venues wanting to go digital',
+			description: 'Perfect for small stores wanting to go digital',
 			features: [
 				'Full website with your branding',
 				'QR codes for each table',
@@ -29,7 +29,7 @@
 		{
 			id: 'standard',
 			name: 'Standard Setup',
-			description: 'Ideal for growing venues with multiple staff',
+			description: 'Ideal for growing stores with multiple staff',
 			price: 349000,
 			features: [
 				'Everything in Basic',
@@ -44,7 +44,7 @@
 		{
 			id: 'pro',
 			name: 'Pro Setup',
-			description: 'Complete solution for busy venues',
+			description: 'Complete solution for busy stores',
 			price: 499000,
 			features: [
 				'Everything in Standard',
@@ -60,7 +60,7 @@
 	];
 
 	let formData = $state({
-		venueName: '',
+		storeName: '',
 		contactName: '',
 		phone: '',
 		email: '',
@@ -76,7 +76,7 @@
 
 		try {
 			await pb.collection('setupInquiries').create({
-				venueName: formData.venueName,
+				storeName: formData.storeName,
 				contactName: formData.contactName,
 				phone: formData.phone,
 				email: formData.email,
@@ -88,7 +88,7 @@
 
 			submitSuccess = true;
 			formData = {
-				venueName: '',
+				storeName: '',
 				contactName: '',
 				phone: '',
 				email: '',
@@ -286,16 +286,16 @@
 
 							<div class="grid gap-6 md:grid-cols-2">
 								<div>
-									<label for="venueName" class="block text-sm font-medium text-slate-700">
-										Venue Name *
+									<label for="storeName" class="block text-sm font-medium text-slate-700">
+										Store Name *
 									</label>
 									<input
 										type="text"
-										id="venueName"
-										bind:value={formData.venueName}
+										id="storeName"
+										bind:value={formData.storeName}
 										required
 										class="mt-1 block w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none"
-										placeholder="Your venue name"
+										placeholder="Your store name"
 									/>
 								</div>
 								<div>
@@ -401,8 +401,8 @@
 	<!-- CTA Section -->
 	<section class="bg-slate-900 py-16 text-center text-white">
 		<div class="container mx-auto px-4">
-			<h2 class="font-playfair text-3xl font-bold">Ready to Transform Your Venue?</h2>
-			<p class="mt-4 text-lg text-slate-300">Join hundreds of venues already using Proxifeast</p>
+			<h2 class="font-playfair text-3xl font-bold">Ready to Transform Your Store?</h2>
+			<p class="mt-4 text-lg text-slate-300">Join hundreds of stores already using Proxifeast</p>
 			<div class="mt-8 flex flex-wrap justify-center gap-4">
 				<a
 					href="/subscriptions"

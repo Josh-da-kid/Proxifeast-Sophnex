@@ -86,10 +86,10 @@
 			"icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
 		},
 		{
-			"name": "Browse Restaurants",
-			"short_name": "Restaurants",
-			"description": "Browse available restaurants",
-			"url": "/restaurants",
+			"name": "Browse Stores",
+			"short_name": "Stores",
+			"description": "Browse available stores",
+			"url": "/stores",
 			"icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
 		},
 		{

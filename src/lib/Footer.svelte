@@ -126,10 +126,10 @@
 					</li>
 					<li>
 						<a
-							href="/business/restaurants"
+							href="/business/stores"
 							class="text-sm text-slate-400 transition-colors hover:text-orange-400"
 						>
-							For Restaurants & Bars
+							For Stores & Bars
 						</a>
 					</li>
 					<li>

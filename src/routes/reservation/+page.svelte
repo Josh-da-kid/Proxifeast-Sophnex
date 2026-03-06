@@ -129,6 +129,19 @@
 					Your reservation has been confirmed. A QR pass has been generated for check-in.
 				</p>
 
+				{#if reservationData?.qrCodeUrl}
+					<div class="mb-6 flex flex-col items-center">
+						<div class="rounded- shadow2xl bg-white-lg p-4">
+							<img
+								src={reservationData.qrCodeUrl}
+								alt="Reservation QR Code"
+								class="h-48 w-48 object-contain"
+							/>
+						</div>
+						<p class="mt-3 text-sm text-slate-500">Show this QR code at check-in</p>
+					</div>
+				{/if}
+
 				{#if reservationData}
 					<div class="mb-6 rounded-lg bg-slate-50 p-4 text-left">
 						<p class="mb-2 text-sm text-slate-500">Reservation Details:</p>
@@ -268,7 +281,7 @@
 								type="text"
 								bind:value={occasion}
 								class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition-all focus:border-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-500/20 focus:outline-none"
-								placeholder="Birthday, Anniversary..."
+								placeholder="e.g. Anniversary..."
 							/>
 						</div>
 					</div>
