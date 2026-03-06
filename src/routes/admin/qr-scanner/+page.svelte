@@ -11,6 +11,7 @@
 	let scanError = $state('');
 	let isProcessing = $state(false);
 	let uploadedImage: string | null = $state(null);
+	let imageLoaded: boolean = $state(false);
 
 	onMount(() => {
 		return () => {
@@ -43,6 +44,63 @@
 			tracks.forEach((track) => track.stop());
 		}
 		scanning = false;
+	}
+
+	async function scanUploadedImage() {
+		if (!uploadedImage || isProcessing) return;
+
+		isProcessing = true;
+		scanError = '';
+
+		// Create image and scan
+		const img = new Image();
+		img.onload = async () => {
+			const canvas = document.createElement('canvas');
+			canvas.width = img.width;
+			canvas.height = img.height;
+			const ctx = canvas.getContext('2d');
+			if (ctx) {
+				ctx.drawImage(img, 0, 0);
+				const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+				// Use jsQR to decode
+				const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+				if (code) {
+					console.log('QR Code from image:', code.data);
+					await validateQR(code.data);
+				} else {
+					scanError = 'No QR code found in the image. Please try another image.';
+					isProcessing = false;
+				}
+			}
+		};
+		img.src = uploadedImage;
+	}
+
+	async function handleImageUpload(event: Event) {
+		const file = (event.target as HTMLInputElement).files?.[0];
+		if (!file) return;
+
+		isProcessing = true;
+		scanError = '';
+		uploadedImage = null;
+		imageLoaded = false;
+
+		const reader = new FileReader();
+		reader.onload = async (e) => {
+			uploadedImage = e.target?.result as string;
+			imageLoaded = true;
+			isProcessing = false;
+		};
+		reader.readAsDataURL(file);
+	}
+
+	function clearImage() {
+		uploadedImage = null;
+		imageLoaded = false;
+		scanError = '';
+		if (fileInput) fileInput.value = '';
 	}
 
 	async function scanFrame() {
@@ -79,45 +137,6 @@
 		if (scanning) {
 			requestAnimationFrame(scanFrame);
 		}
-	}
-
-	async function handleImageUpload(event: Event) {
-		const file = (event.target as HTMLInputElement).files?.[0];
-		if (!file) return;
-
-		isProcessing = true;
-		scanError = '';
-
-		const reader = new FileReader();
-		reader.onload = async (e) => {
-			uploadedImage = e.target?.result as string;
-
-			// Create image and scan
-			const img = new Image();
-			img.onload = async () => {
-				const canvas = document.createElement('canvas');
-				canvas.width = img.width;
-				canvas.height = img.height;
-				const ctx = canvas.getContext('2d');
-				if (ctx) {
-					ctx.drawImage(img, 0, 0);
-					const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-					// Use jsQR to decode
-					const code = jsQR(imageData.data, imageData.width, imageData.height);
-
-					if (code) {
-						console.log('QR Code from image:', code.data);
-						await validateQR(code.data);
-					} else {
-						scanError = 'No QR code found in the image. Please try another image.';
-					}
-				}
-				isProcessing = false;
-			};
-			img.src = uploadedImage;
-		};
-		reader.readAsDataURL(file);
 	}
 
 	async function validateQR(qrValue: string) {
@@ -280,7 +299,7 @@
 		<div class="overflow-hidden rounded-lg bg-white shadow">
 			{#if scanningMode === 'camera'}
 				<!-- Video/Canvas Container -->
-				<div class="relative aspect-square bg-gray-900">
+				<div class="relative aspect-square overflow-hidden bg-gray-900">
 					<video bind:this={videoElement} class="h-full w-full object-cover" playsinline muted
 					></video>
 					<canvas bind:this={canvasElement} class="hidden"></canvas>
@@ -305,8 +324,45 @@
 					{/if}
 
 					{#if scanning}
-						<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
-							<div class="h-64 w-64 rounded-lg border-4 border-orange-500 opacity-75"></div>
+						<!-- Stylish Scanning Overlay -->
+						<div class="absolute inset-0 flex items-center justify-center">
+							<!-- Corner markers -->
+							<div class="relative h-64 w-64">
+								<!-- Top-left corner -->
+								<div
+									class="absolute -top-1 -left-1 h-8 w-8 rounded-tl-lg border-t-4 border-l-4 border-orange-500"
+								></div>
+								<!-- Top-right corner -->
+								<div
+									class="absolute -top-1 -right-1 h-8 w-8 rounded-tr-lg border-t-4 border-r-4 border-orange-500"
+								></div>
+								<!-- Bottom-left corner -->
+								<div
+									class="absolute -bottom-1 -left-1 h-8 w-8 rounded-bl-lg border-b-4 border-l-4 border-orange-500"
+								></div>
+								<!-- Bottom-right corner -->
+								<div
+									class="absolute -right-1 -bottom-1 h-8 w-8 rounded-br-lg border-r-4 border-b-4 border-orange-500"
+								></div>
+
+								<!-- Scanning line -->
+								<div
+									class="absolute right-0 left-0 h-0.5 animate-[scan_2s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-orange-500 to-transparent shadow-[0_0_10px_#f97316]"
+								></div>
+
+								<!-- Pulse effect -->
+								<div
+									class="absolute inset-0 animate-ping rounded-lg border-2 border-orange-500/30"
+								></div>
+							</div>
+						</div>
+
+						<!-- Status indicator -->
+						<div class="absolute bottom-4 left-1/2 -translate-x-1/2">
+							<div class="flex items-center gap-2 rounded-full bg-black/70 px-4 py-2">
+								<span class="h-2 w-2 animate-pulse rounded-full bg-orange-500"></span>
+								<span class="text-sm font-medium text-white">Scanning...</span>
+							</div>
 						</div>
 					{/if}
 				</div>
@@ -366,14 +422,81 @@
 						</div>
 					{:else if uploadedImage && !scanResult}
 						<div class="flex flex-col items-center">
-							<img
-								src={uploadedImage}
-								alt="Uploaded QR"
-								class="max-h-64 rounded-lg object-contain"
-							/>
-							{#if isProcessing}
-								<p class="mt-4 text-gray-500">Scanning...</p>
-							{/if}
+							<div class="relative">
+								{#if isProcessing}
+									<!-- Scanning Animation -->
+									<div class="absolute inset-0 z-10 flex items-center justify-center bg-black/50">
+										<div class="flex flex-col items-center gap-3">
+											<div class="relative h-20 w-20">
+												<div
+													class="absolute inset-0 animate-ping rounded-full border-4 border-orange-500 opacity-75"
+												></div>
+												<div
+													class="absolute inset-0 animate-pulse rounded-full border-4 border-orange-400"
+												></div>
+												<div class="absolute inset-0 flex items-center justify-center">
+													<svg
+														class="h-10 w-10 animate-bounce text-white"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+														/>
+													</svg>
+												</div>
+											</div>
+											<p class="animate-pulse font-semibold text-white">Scanning QR Code...</p>
+										</div>
+									</div>
+								{/if}
+								<img
+									src={uploadedImage}
+									alt="Uploaded QR"
+									class="max-h-64 rounded-lg object-contain {isProcessing ? 'opacity-50' : ''}"
+								/>
+								<!-- Scanning line animation -->
+								{#if isProcessing}
+									<div
+										class="absolute top-2 right-2 left-2 h-1 animate-[scan_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-orange-500 to-transparent opacity-80"
+									></div>
+								{/if}
+							</div>
+
+							<div class="mt-4 flex gap-3">
+								<button
+									onclick={scanUploadedImage}
+									disabled={isProcessing}
+									class="flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-2.5 font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
+								>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										class="h-5 w-5"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										stroke-width="2"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"
+										/>
+									</svg>
+									Scan QR Code
+								</button>
+								<button
+									onclick={clearImage}
+									disabled={isProcessing}
+									class="rounded-lg border border-gray-300 px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+								>
+									Change Image
+								</button>
+							</div>
 						</div>
 					{/if}
 				</div>
@@ -472,3 +595,15 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	@keyframes scan {
+		0%,
+		100% {
+			top: 0;
+		}
+		50% {
+			top: calc(100% - 4px);
+		}
+	}
+</style>
