@@ -1,25 +1,37 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import nodemailer from 'nodemailer';
-import PocketBase from 'pocketbase';
+import { canAdminAccessRestaurant } from '$lib/server/restaurantAccess';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
-		const body = await request.json();
-		const { email, name, reference, status, deliveryType, address, tableNumber } = body;
-
-		console.log('[Email API] Received request for:', email, 'status:', status);
-
-		if (!email || !status) {
-			return new Response('Email and status are required', { status: 400 });
+		if (!locals.user) {
+			return new Response('Unauthorized', { status: 401 });
 		}
 
-		const host = request.headers.get('host') || '';
-		const domain = host.split(':')[0];
-		const pb = new PocketBase('https://playgzero.pb.itcass.net');
-		pb.autoCancellation(false);
+		const body = await request.json();
+		const { orderId, status } = body;
 
-		// Get restaurant by domain
-		const restaurant = await pb.collection('restaurants').getFirstListItem(`domain="${domain}"`);
+		if (!orderId || !status) {
+			return new Response('Order ID and status are required', { status: 400 });
+		}
+
+		const order = await locals.pb.collection('orders').getOne(orderId);
+
+		if (!(await canAdminAccessRestaurant(locals.pb, locals.user, order.restaurantId))) {
+			return new Response('Forbidden', { status: 403 });
+		}
+
+		const restaurant = await locals.pb.collection('restaurants').getOne(order.restaurantId);
+		const email = order.email;
+		const name = order.name;
+		const reference = order.reference;
+		const deliveryType = order.deliveryType;
+		const address = order.homeAddress;
+		const tableNumber = order.tableNumber;
+
+		if (!email) {
+			return new Response('Order does not have a customer email address', { status: 400 });
+		}
 
 		// Check BREVO credentials
 		const brevoLogin = import.meta.env.VITE_BREVO_LOGIN;

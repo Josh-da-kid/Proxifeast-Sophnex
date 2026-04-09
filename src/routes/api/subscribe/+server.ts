@@ -1,11 +1,20 @@
 // src/routes/api/subscribe/+server.ts
 
 import { json, type RequestHandler } from '@sveltejs/kit';
+import { canAdminAccessRestaurant } from '$lib/server/restaurantAccess';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
+		if (!locals.user) {
+			return json({ error: 'Unauthorized' }, { status: 401 });
+		}
+
 		const data = await request.json();
 		const { restaurantId, restaurantName, plan, amount, email, recurring, callbackUrl } = data;
+
+		if (!(await canAdminAccessRestaurant(locals.pb, locals.user, restaurantId))) {
+			return json({ error: 'Forbidden' }, { status: 403 });
+		}
 
 		// Get Paystack secret key from super restaurant
 		const superRestaurants = await locals.pb.collection('restaurants').getFullList({
@@ -136,8 +145,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 export const PUT: RequestHandler = async ({ request, locals }) => {
 	try {
+		if (!locals.user) {
+			return json({ error: 'Unauthorized' }, { status: 401 });
+		}
+
 		const data = await request.json();
 		const { reference, restaurantId, plan } = data;
+
+		if (!(await canAdminAccessRestaurant(locals.pb, locals.user, restaurantId))) {
+			return json({ error: 'Forbidden' }, { status: 403 });
+		}
 
 		// Get Paystack secret key from super restaurant
 		const superRestaurants = await locals.pb.collection('restaurants').getFullList({

@@ -1,16 +1,29 @@
 // src/routes/api/subscriptions/+server.ts
 
 import { json, type RequestHandler } from '@sveltejs/kit';
+import { canAdminAccessRestaurant, isSuperadmin } from '$lib/server/restaurantAccess';
 
 export const GET: RequestHandler = async ({ locals, url }) => {
 	try {
+		if (!locals.user) {
+			return json({ error: 'Unauthorized' }, { status: 401 });
+		}
+
 		const restaurantId = url.searchParams.get('restaurantId');
 
 		if (restaurantId) {
+			if (!(await canAdminAccessRestaurant(locals.pb, locals.user, restaurantId))) {
+				return json({ error: 'Forbidden' }, { status: 403 });
+			}
+
 			const subscription = await locals.pb
 				.collection('subscriptions')
 				.getFirstListItem(`restaurantId = "${restaurantId}"`);
 			return json({ subscription });
+		}
+
+		if (!(await isSuperadmin(locals.pb, locals.user))) {
+			return json({ error: 'Forbidden' }, { status: 403 });
 		}
 
 		const subscriptions = await locals.pb.collection('subscriptions').getFullList({
@@ -24,8 +37,33 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
+		if (!locals.user) {
+			return json({ error: 'Unauthorized' }, { status: 401 });
+		}
+
 		const data = await request.json();
 		const { action, ...subscriptionData } = data;
+
+		const getSubscriptionRestaurantId = async () => {
+			if (subscriptionData.restaurantId) return subscriptionData.restaurantId;
+			if (!subscriptionData.id) return null;
+			const existing = await locals.pb.collection('subscriptions').getOne(subscriptionData.id);
+			return existing.restaurantId;
+		};
+
+		const targetRestaurantId = await getSubscriptionRestaurantId();
+		const superadmin = await isSuperadmin(locals.pb, locals.user);
+
+		if (action !== 'recurring_charge' && !targetRestaurantId) {
+			return json({ error: 'restaurantId is required' }, { status: 400 });
+		}
+
+		if (action !== 'recurring_charge' && targetRestaurantId) {
+			const hasAccess = await canAdminAccessRestaurant(locals.pb, locals.user, targetRestaurantId);
+			if (!hasAccess) {
+				return json({ error: 'Forbidden' }, { status: 403 });
+			}
+		}
 
 		if (action === 'create' || action === 'update') {
 			const subscriptionInfo: any = {
@@ -154,6 +192,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		// Recurring charge - charge saved card
 		if (action === 'recurring_charge') {
+			if (!superadmin) {
+				return json({ error: 'Forbidden' }, { status: 403 });
+			}
+
 			// Get Paystack secret key from super restaurant
 			const superRestaurants = await locals.pb.collection('restaurants').getFullList({
 				filter: 'isSuper = true'
@@ -232,6 +274,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		// Enable auto-renew with card
 		if (action === 'enable_autorenew') {
+			if (
+				!targetRestaurantId ||
+				!(await canAdminAccessRestaurant(locals.pb, locals.user, targetRestaurantId))
+			) {
+				return json({ error: 'Forbidden' }, { status: 403 });
+			}
+
 			// Get Paystack secret key from super restaurant
 			const superRestaurants = await locals.pb.collection('restaurants').getFullList({
 				filter: 'isSuper = true'

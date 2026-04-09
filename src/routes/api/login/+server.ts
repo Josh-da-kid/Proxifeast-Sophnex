@@ -1,6 +1,7 @@
 // src/routes/api/login/+server.ts
 
 import { json, type RequestHandler } from '@sveltejs/kit';
+import { getUserRestaurantIds, resolveRestaurantByDomain } from '$lib/server/restaurantAccess';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const data = await request.json();
@@ -31,38 +32,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			);
 		}
 
-		// 🌍 Resolve restaurant from domain
-		const host = request.headers.get('host') || '';
-		const domain = host.split(':')[0].replace('www.', '').toLowerCase();
-
-		// Try to find restaurant by domain
-		let restaurant = null;
-		try {
-			restaurant = await locals.pb
-				.collection('restaurants')
-				.getFirstListItem(`domain = "${domain}"`);
-		} catch (e) {
-			// Try partial match
-			try {
-				const restaurants = await locals.pb.collection('restaurants').getFullList();
-				restaurant = restaurants.find((r: any) => {
-					const rDomain = (r.domain || '').replace('www.', '').toLowerCase();
-					return domain.includes(rDomain) || rDomain.includes(domain);
-				});
-			} catch (e2) {
-				// No restaurant found
+		const restaurant = await resolveRestaurantByDomain(
+			locals.pb,
+			request.headers.get('host') || '',
+			{
+				allowSuperFallback: true
 			}
-		}
-
-		// If still no restaurant, try to find a super restaurant
-		if (!restaurant) {
-			try {
-				const restaurants = await locals.pb.collection('restaurants').getFullList();
-				restaurant = restaurants.find((r: any) => r.isSuper === true);
-			} catch (e) {
-				// No super restaurant either
-			}
-		}
+		);
 
 		// If still no restaurant, return error
 		if (!restaurant) {
@@ -78,12 +54,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		// 🚫 User does not belong to this restaurant
 		// Support both old (restaurantId) and new (restaurantIds) schema
-		let restaurantIds = record.restaurantIds || [];
-
-		// Backward compatibility: if user has old restaurantId but no restaurantIds
-		if (restaurantIds.length === 0 && record.restaurantId) {
-			restaurantIds = [record.restaurantId];
-		}
+		const restaurantIds = getUserRestaurantIds(record);
 
 		console.log(
 			'Login check - User:',

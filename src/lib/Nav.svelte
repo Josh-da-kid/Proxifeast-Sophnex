@@ -76,8 +76,9 @@
 
 					const subscription = await registration.pushManager.subscribe({
 						userVisibleOnly: true,
-						applicationServerKey: urlBase64ToUint8Array(vapidKey || '')
+						applicationServerKey: urlBase64ToUint8Array(vapidKey || '') as BufferSource
 					});
+					const subscriptionJson = subscription.toJSON();
 
 					await fetch('/api/subscribe-push', {
 						method: 'POST',
@@ -85,8 +86,8 @@
 						body: JSON.stringify({
 							userId: get(user)?.id,
 							endpoint: subscription.endpoint,
-							p256dh: subscription.keys?.p256dh,
-							auth: subscription.keys?.auth
+							p256dh: subscriptionJson.keys?.p256dh,
+							auth: subscriptionJson.keys?.auth
 						})
 					});
 
@@ -292,7 +293,7 @@
 			{/if}
 		</a>
 		{#if $user}
-			<a href="/favorites" class="nav-link relative">
+			<a href="/favorites" aria-label="Favorites" class="nav-link relative">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="18"
@@ -307,7 +308,7 @@
 					/>
 				</svg>
 			</a>
-			<a href="/pending" class="nav-link relative">
+			<a href="/pending" aria-label="Pending orders" class="nav-link relative">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="18"
@@ -351,7 +352,6 @@
 						</svg>
 					</button>
 					<ul
-						tabindex="0"
 						class="dropdown-content menu rounded-box mt-2 w-48 border border-slate-100 bg-white p-2 shadow-lg"
 					>
 						<li><a href="/admin" class="text-slate-700">Dashboard</a></li>
@@ -390,7 +390,6 @@
 					</div>
 				</button>
 				<ul
-					tabindex="0"
 					class="dropdown-content menu rounded-box mt-2 w-52 border border-slate-100 bg-white p-2 shadow-lg"
 				>
 					<li class="menu-title px-3 py-2">
@@ -426,7 +425,7 @@
 	<!-- Mobile Menu Button -->
 	<div class="flex items-center gap-2 md:hidden">
 		{#if $user}
-			<a href="/checkout" class="btn btn-ghost btn-circle relative">
+			<a href="/checkout" aria-label="Checkout" class="btn btn-ghost btn-circle relative">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="20"
@@ -450,7 +449,7 @@
 				{/if}
 			</a>
 		{/if}
-		<button onclick={() => (isMenuOpen = true)} class="btn btn-ghost btn-circle">
+		<button aria-label="Open menu" onclick={() => (isMenuOpen = true)} class="btn btn-ghost btn-circle">
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
 				width="24"
@@ -485,7 +484,7 @@
 			<!-- Header -->
 			<div class="flex items-center justify-between border-b border-slate-100 p-4">
 				<span class="font-heading text-lg font-bold text-slate-900">Menu</span>
-				<button onclick={() => (isMenuOpen = false)} class="btn btn-ghost btn-sm btn-circle">
+				<button aria-label="Close menu" onclick={() => (isMenuOpen = false)} class="btn btn-ghost btn-sm btn-circle">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						width="20"
@@ -1124,7 +1123,7 @@
 			</form>
 			<form action="/logout" method="POST">
 				{#if isLoggingOut}
-					<button class="btn btn-error" disabled>
+					<button class="btn btn-error" disabled aria-label="Logging out">
 						<span class="loading loading-spinner loading-sm"></span>
 					</button>
 				{:else}

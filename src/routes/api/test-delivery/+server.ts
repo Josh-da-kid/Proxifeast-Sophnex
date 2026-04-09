@@ -1,10 +1,15 @@
 import { json } from '@sveltejs/kit';
 import PocketBase from 'pocketbase';
+import { isSuperadmin } from '$lib/server/restaurantAccess';
 
 const pb = new PocketBase('https://playgzero.pb.itcass.net/');
 
-export async function GET() {
+export async function GET({ locals }: { locals: App.Locals }) {
 	try {
+		if (!(await isSuperadmin(locals.pb, locals.user))) {
+			return json({ success: false, error: 'Forbidden' }, { status: 403 });
+		}
+
 		// Test ORS API key
 		const ORS_API_KEY = import.meta.env.VITE_ORS_API_KEY;
 

@@ -2,9 +2,9 @@
 	import { onMount } from 'svelte';
 	import jsQR from 'jsqr';
 
-	let videoElement: HTMLVideoElement;
-	let canvasElement: HTMLCanvasElement;
-	let fileInput: HTMLInputElement;
+	let videoElement = $state<HTMLVideoElement | undefined>(undefined);
+	let canvasElement = $state<HTMLCanvasElement | undefined>(undefined);
+	let fileInput = $state<HTMLInputElement | undefined>(undefined);
 	let scanning = $state(false);
 	let scanningMode: 'camera' | 'image' = $state('camera');
 	let scanResult = $state<any>(null);
@@ -12,14 +12,35 @@
 	let isProcessing = $state(false);
 	let uploadedImage: string | null = $state(null);
 	let imageLoaded: boolean = $state(false);
+	const SCAN_TIMEOUT_MS = 10000;
+	let cameraScanTimeout: ReturnType<typeof setTimeout> | null = null;
+	let uploadScanTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	function clearCameraScanTimeout() {
+		if (cameraScanTimeout) {
+			clearTimeout(cameraScanTimeout);
+			cameraScanTimeout = null;
+		}
+	}
+
+	function clearUploadScanTimeout() {
+		if (uploadScanTimeout) {
+			clearTimeout(uploadScanTimeout);
+			uploadScanTimeout = null;
+		}
+	}
 
 	onMount(() => {
 		return () => {
+			clearCameraScanTimeout();
+			clearUploadScanTimeout();
 			stopScanning();
 		};
 	});
 
 	async function startScanning() {
+		if (!videoElement) return;
+
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({
 				video: { facingMode: 'environment' }
@@ -29,6 +50,13 @@
 			scanning = true;
 			scanResult = null;
 			scanError = '';
+			clearCameraScanTimeout();
+			cameraScanTimeout = setTimeout(() => {
+				if (scanning && !scanResult) {
+					stopScanning();
+					scanError = 'No readable QR code was detected within 10 seconds. Try again or upload the QR image.';
+				}
+			}, SCAN_TIMEOUT_MS);
 
 			// Start scanning loop
 			scanFrame();
@@ -39,6 +67,7 @@
 	}
 
 	function stopScanning() {
+		clearCameraScanTimeout();
 		if (videoElement?.srcObject) {
 			const tracks = (videoElement.srcObject as MediaStream).getTracks();
 			tracks.forEach((track) => track.stop());
@@ -51,6 +80,13 @@
 
 		isProcessing = true;
 		scanError = '';
+		clearUploadScanTimeout();
+		uploadScanTimeout = setTimeout(() => {
+			if (isProcessing && !scanResult) {
+				isProcessing = false;
+				scanError = 'Unable to read reservation details from the uploaded QR code within 10 seconds. Try a clearer image.';
+			}
+		}, SCAN_TIMEOUT_MS);
 
 		// Create image and scan
 		const img = new Image();
@@ -68,12 +104,24 @@
 
 				if (code) {
 					console.log('QR Code from image:', code.data);
+					isProcessing = false;
 					await validateQR(code.data);
 				} else {
+					clearUploadScanTimeout();
 					scanError = 'No QR code found in the image. Please try another image.';
 					isProcessing = false;
 				}
+			} else {
+				clearUploadScanTimeout();
+				scanError = 'Unable to process the uploaded image.';
+				isProcessing = false;
 			}
+		};
+
+		img.onerror = () => {
+			clearUploadScanTimeout();
+			scanError = 'Failed to load the uploaded image.';
+			isProcessing = false;
 		};
 		img.src = uploadedImage;
 	}
@@ -105,6 +153,10 @@
 
 	async function scanFrame() {
 		if (!scanning || !videoElement || isProcessing) return;
+		if (!canvasElement) {
+			requestAnimationFrame(scanFrame);
+			return;
+		}
 
 		canvasElement.width = videoElement.videoWidth;
 		canvasElement.height = videoElement.videoHeight;
@@ -131,6 +183,14 @@
 					console.log('Barcode detection failed:', e);
 				}
 			}
+
+			const imageData = ctx.getImageData(0, 0, canvasElement.width, canvasElement.height);
+			const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+			if (code) {
+				await validateQR(code.data);
+				return;
+			}
 		}
 
 		// Continue scanning
@@ -144,6 +204,7 @@
 
 		isProcessing = true;
 		stopScanning();
+		clearCameraScanTimeout();
 
 		try {
 			// Try to parse as our QR data format
@@ -161,11 +222,15 @@
 			const formData = new FormData();
 			formData.append('qrToken', qrToken);
 			formData.append('action', 'lookup');
+			const controller = new AbortController();
+			const lookupTimeout = setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS);
 
 			const response = await fetch('/api/validate-qr', {
 				method: 'POST',
-				body: formData
+				body: formData,
+				signal: controller.signal
 			});
+			clearTimeout(lookupTimeout);
 
 			const result = await response.json();
 
@@ -177,9 +242,12 @@
 				scanResult = null;
 			}
 		} catch (err) {
-			scanError = 'Failed to validate QR code';
+			scanError = err instanceof DOMException && err.name === 'AbortError'
+				? 'Unable to read reservation details within 10 seconds. Please try again.'
+				: 'Failed to validate QR code';
 			scanResult = null;
 		} finally {
+			clearUploadScanTimeout();
 			isProcessing = false;
 		}
 	}
@@ -188,6 +256,7 @@
 		if (!scanResult || isProcessing) return;
 
 		isProcessing = true;
+		clearCameraScanTimeout();
 
 		try {
 			const formData = new FormData();
@@ -215,20 +284,26 @@
 	}
 
 	function resetScan() {
+		clearCameraScanTimeout();
+		clearUploadScanTimeout();
 		scanResult = null;
 		scanError = '';
 		uploadedImage = null;
+		imageLoaded = false;
 		if (scanningMode === 'camera') {
 			startScanning();
 		}
 	}
 
 	function switchMode(mode: 'camera' | 'image') {
+		clearCameraScanTimeout();
+		clearUploadScanTimeout();
 		stopScanning();
 		scanningMode = mode;
 		scanResult = null;
 		scanError = '';
 		uploadedImage = null;
+		imageLoaded = false;
 		if (mode === 'camera') {
 			startScanning();
 		}
@@ -272,7 +347,7 @@
 		<!-- Header -->
 		<div class="mb-6">
 			<h1 class="text-2xl font-bold text-gray-900">QR Scanner</h1>
-			<p class="text-gray-600">Scan QR codes to verify reservations and grant access</p>
+			<p class="text-gray-600">Scan a reservation pass to view guest details and check them in</p>
 		</div>
 
 		<!-- Mode Selection -->
@@ -407,7 +482,7 @@
 							</svg>
 							<p class="mt-4 text-gray-500">Upload a QR code image</p>
 							<button
-								onclick={() => fileInput.click()}
+								onclick={() => fileInput?.click()}
 								class="mt-4 rounded-lg bg-orange-500 px-6 py-2 font-semibold text-white hover:bg-orange-600"
 							>
 								Select Image
@@ -518,10 +593,11 @@
 			<div class="mt-6 overflow-hidden rounded-lg bg-white shadow">
 				<div class="border-b border-gray-200 bg-green-50 px-4 py-3">
 					<h2 class="text-lg font-semibold text-green-900">Reservation Found</h2>
+					<p class="mt-1 text-sm text-green-700">Reservation ID: {scanResult.id}</p>
 				</div>
 
 				<div class="space-y-4 p-4">
-					<div class="grid grid-cols-2 gap-4">
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 						<div>
 							<p class="text-xs text-gray-500">Guest Name</p>
 							<p class="font-semibold text-gray-900">{scanResult.guestName}</p>
@@ -539,6 +615,14 @@
 						<div>
 							<p class="text-xs text-gray-500">Time</p>
 							<p class="font-semibold text-gray-900">{scanResult.checkInTime}</p>
+						</div>
+						<div>
+							<p class="text-xs text-gray-500">Email</p>
+							<p class="font-semibold break-all text-gray-900">{scanResult.guestEmail || '-'}</p>
+						</div>
+						<div>
+							<p class="text-xs text-gray-500">Phone</p>
+							<p class="font-semibold text-gray-900">{scanResult.guestPhone || '-'}</p>
 						</div>
 						<div>
 							<p class="text-xs text-gray-500">Store</p>
@@ -564,6 +648,14 @@
 								{scanResult.status}
 							</span>
 						</div>
+					</div>
+
+					<div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+						<h3 class="text-sm font-semibold text-gray-900">Guest Summary</h3>
+						<p class="mt-2 text-sm text-gray-600">
+							{scanResult.guestName} is booked for {scanResult.partySize || 2} guest(s) at {scanResult.storeName} on
+							{new Date(scanResult.reservationDate).toLocaleDateString()} by {scanResult.checkInTime}.
+						</p>
 					</div>
 
 					<!-- Action Buttons -->

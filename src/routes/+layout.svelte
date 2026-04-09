@@ -39,11 +39,26 @@
 		}
 	}
 
-	function getNumericPrice(price: string): number {
-		return parseInt(price.replace(/[₦,]/g, ''), 10);
+	function getNumericPrice(price: unknown): number {
+		if (typeof price === 'number') return Number.isFinite(price) ? price : 0;
+		if (typeof price === 'string') {
+			const cleaned = price.replace(/[₦,]/g, '').trim();
+			const parsed = Number.parseInt(cleaned, 10);
+			return Number.isFinite(parsed) ? parsed : 0;
+		}
+		return 0;
 	}
 
-	let total = $cart.reduce((sum, item) => sum + getNumericPrice(item.price) * item.quantity, 0);
+	let total = $derived(
+		$cart.reduce(
+			(sum, item) =>
+				sum +
+				getNumericPrice(
+					item.amount ?? item.price ?? item.expand?.dish?.promoAmount ?? item.expand?.dish?.defaultAmount
+				) * (item.quantity ?? 1),
+			0
+		)
+	);
 
 	let isAdmin = false;
 
@@ -327,6 +342,7 @@
 				href="https://wa.me/2347068346403?text=Hello%20Proxifeast,%20I%20need%20assistance%20with%20my%20order."
 				target="_blank"
 				rel="noopener noreferrer"
+				aria-label="Contact us on WhatsApp"
 				class="flex h-12 w-12 items-center justify-center rounded-full bg-green-500 text-white shadow-lg shadow-green-500/30 transition-all hover:scale-110 hover:bg-green-600"
 			>
 				<svg

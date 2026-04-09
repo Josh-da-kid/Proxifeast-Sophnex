@@ -222,9 +222,9 @@
 
 	// Image cropper state
 	let showImageCropper = $state(false);
-	let cropperType = $state<'image' | 'logo' | 'banner'>('image');
+	let cropperType = $state<'image' | 'logo' | 'banner' | 'gallery'>('image');
 
-	function openImageCropper(type: 'image' | 'logo' | 'banner') {
+	function openImageCropper(type: 'image' | 'logo' | 'banner' | 'gallery') {
 		cropperType = type;
 		showImageCropper = true;
 	}
@@ -439,7 +439,7 @@
 
 		if (result.type === 'success') {
 			successAlert = true;
-			successMessage = result.data?.message || 'Restaurant info saved successfully!';
+			successMessage = result.data?.message || 'Store info saved successfully!';
 			setTimeout(() => {
 				successAlert = false;
 			}, 3000);
@@ -462,7 +462,7 @@
 			};
 		} else {
 			errorAlert = true;
-			errorMessage = result.data?.error || 'Failed to save restaurant info';
+			errorMessage = result.data?.error || 'Failed to save store info';
 			setTimeout(() => {
 				errorAlert = false;
 			}, 3000);
@@ -531,7 +531,7 @@
 	async function removeTeamMember(userId: string) {
 		if (
 			!confirm(
-				'Are you sure you want to remove this team member? They will no longer have access to this restaurant.'
+				'Are you sure you want to remove this team member? They will no longer have access to this store.'
 			)
 		) {
 			return;
@@ -565,7 +565,7 @@
 </script>
 
 <svelte:head>
-	<title>Restaurant Settings - {restaurant?.name || 'Proxifeast'} Admin</title>
+	<title>Store Settings - {restaurant?.name || 'Proxifeast'} Admin</title>
 </svelte:head>
 
 <Notification show={successAlert} type="success" title="Success!" message={successMessage} />
@@ -577,8 +577,8 @@
 		<div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
 			<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 				<div>
-					<h1 class="text-2xl font-bold text-slate-900">Restaurant Settings</h1>
-					<p class="mt-1 text-sm text-slate-600">Manage your restaurant's configuration and team</p>
+					<h1 class="text-2xl font-bold text-slate-900">Store Settings</h1>
+					<p class="mt-1 text-sm text-slate-600">Manage your store's configuration and team</p>
 				</div>
 				<div class="flex items-center gap-3">
 					{#if isSuper}
@@ -609,7 +609,7 @@
 	<main class="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
 		{#if !restaurant}
 			<div class="rounded-lg bg-white p-6 text-center shadow">
-				<p class="text-slate-600">Unable to load restaurant settings.</p>
+				<p class="text-slate-600">Unable to load store settings.</p>
 			</div>
 		{:else}
 			<!-- Order Services Section -->
@@ -617,7 +617,7 @@
 				<div class="border-b border-slate-200 px-6 py-4">
 					<h2 class="text-lg font-semibold text-slate-900">Order Services</h2>
 					<p class="mt-1 text-sm text-slate-600">
-						Configure which order services your restaurant offers to customers
+						Configure which order services your store offers to customers
 					</p>
 				</div>
 
@@ -651,7 +651,7 @@
 							<div>
 								<h3 class="font-medium text-slate-900">Pickup</h3>
 								<p class="text-sm text-slate-600">
-									Customers can order for pickup at the restaurant
+									Customers can order for pickup at the store
 								</p>
 							</div>
 							<label class="relative inline-flex cursor-pointer items-center">
@@ -706,12 +706,12 @@
 			<div class="rounded-lg bg-white shadow">
 				<div class="border-b border-slate-200 px-6 py-4">
 					<h2 class="text-lg font-semibold text-slate-900">
-						{isSuper ? 'Super Restaurants Management' : 'Team Management'}
+						{isSuper ? 'Super Stores Management' : 'Team Management'}
 					</h2>
 					<p class="mt-1 text-sm text-slate-600">
 						{isSuper
-							? 'Manage all super restaurants and their administrators'
-							: 'Manage team members who are admins for this restaurant'}
+							? 'Manage all super stores and their administrators'
+							: 'Manage team members who are admins for this store'}
 					</p>
 				</div>
 
@@ -727,7 +727,7 @@
 											<th
 												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
 											>
-												Restaurant
+												Store
 											</th>
 											<th
 												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
@@ -911,14 +911,14 @@
 				<div class="rounded-lg bg-white shadow">
 					<div class="border-b border-slate-200 px-6 py-4">
 						<h2 class="text-lg font-semibold text-slate-900">Setup Inquiries</h2>
-						<p class="mt-1 text-sm text-slate-600">Hardware setup requests from restaurants</p>
+						<p class="mt-1 text-sm text-slate-600">Hardware setup requests from stores</p>
 					</div>
 					<div class="p-6">
 						<div class="overflow-x-auto">
 							<table class="w-full">
 								<thead>
 									<tr class="border-b border-slate-200">
-										<th class="pb-3 text-left text-sm font-medium text-slate-600">Restaurant</th>
+										<th class="pb-3 text-left text-sm font-medium text-slate-600">Store</th>
 										<th class="pb-3 text-left text-sm font-medium text-slate-600">Contact</th>
 										<th class="pb-3 text-left text-sm font-medium text-slate-600">Package</th>
 										<th class="pb-3 text-left text-sm font-medium text-slate-600">Status</th>
@@ -980,11 +980,11 @@
 				</div>
 			{/if}
 
-			<!-- Restaurant Info Section -->
+			<!-- Store Info Section -->
 			<div class="rounded-lg bg-white shadow">
 				<div class="border-b border-slate-200 px-6 py-4">
-					<h2 class="text-lg font-semibold text-slate-900">Restaurant Information</h2>
-					<p class="mt-1 text-sm text-slate-600">Edit your restaurant details</p>
+					<h2 class="text-lg font-semibold text-slate-900">Store Information</h2>
+					<p class="mt-1 text-sm text-slate-600">Edit your store details</p>
 				</div>
 
 				<form
@@ -997,7 +997,7 @@
 					<div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
 						<div>
 							<label for="name" class="block text-sm font-medium text-slate-700"
-								>Restaurant Name</label
+								>Store Name</label
 							>
 							<input
 								type="text"
@@ -1014,7 +1014,7 @@
 								name="domain"
 								id="domain"
 								bind:value={restDomain}
-								placeholder="e.g., myrestaurant.com"
+								placeholder="e.g., mystore.com"
 								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none"
 							/>
 						</div>
@@ -1050,7 +1050,7 @@
 								id="description"
 								bind:value={restDescription}
 								rows="3"
-								placeholder="Tell customers about your restaurant..."
+								placeholder="Tell customers about your store..."
 								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none"
 							></textarea>
 						</div>
@@ -1098,7 +1098,7 @@
 								name="address"
 								id="address"
 								bind:value={restAddress}
-								placeholder="Restaurant address"
+								placeholder="Store address"
 								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none"
 							/>
 						</div>
@@ -1127,12 +1127,12 @@
 							/>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-slate-700">Image</label>
+						<p class="block text-sm font-medium text-slate-700">Image</p>
 							{#if restImageUrl}
 								<div class="relative mt-1 mb-2">
 									<img
 										src={restImageUrl}
-										alt="Restaurant"
+									alt="Store"
 										class="h-32 w-full rounded-lg object-cover"
 									/>
 									<div class="absolute right-2 bottom-2 flex gap-1">
@@ -1155,6 +1155,7 @@
 							{:else}
 								<button
 									type="button"
+									id="restaurant-image-trigger"
 									onclick={() => openImageCropper('image')}
 									class="mt-1 flex w-full items-center justify-center rounded-lg border-2 border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500 hover:border-amber-500 hover:text-amber-500"
 								>
@@ -1176,7 +1177,7 @@
 							<input type="hidden" name="imageUrl" value={restImageUrl} />
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-slate-700">Logo</label>
+						<p class="block text-sm font-medium text-slate-700">Logo</p>
 							{#if restLogoUrl}
 								<div class="relative mt-1 mb-2 flex justify-center">
 									<img
@@ -1204,6 +1205,7 @@
 							{:else}
 								<button
 									type="button"
+									id="restaurant-logo-trigger"
 									onclick={() => openImageCropper('logo')}
 									class="mt-1 flex w-full items-center justify-center rounded-lg border-2 border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500 hover:border-amber-500 hover:text-amber-500"
 								>
@@ -1225,7 +1227,7 @@
 							<input type="hidden" name="logoUrl" value={restLogoUrl} />
 						</div>
 						<div class="sm:col-span-2">
-							<label class="block text-sm font-medium text-slate-700">Banner</label>
+							<p class="block text-sm font-medium text-slate-700">Banner</p>
 							{#if restBannerUrl}
 								<div class="relative mt-1 mb-2">
 									<img
@@ -1253,6 +1255,7 @@
 							{:else}
 								<button
 									type="button"
+									id="restaurant-banner-trigger"
 									onclick={() => openImageCropper('banner')}
 									class="mt-1 flex w-full items-center justify-center rounded-lg border-2 border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500 hover:border-amber-500 hover:text-amber-500"
 								>
@@ -1296,7 +1299,7 @@
 					<div>
 						<h2 class="text-xl font-semibold text-slate-900">Gallery Images</h2>
 						<p class="mt-1 text-sm text-slate-600">
-							Add photos to showcase your restaurant ambiance
+							Add photos to showcase your store ambiance
 						</p>
 					</div>
 					{#if galleryChanged}
@@ -1325,6 +1328,7 @@
 							<button
 								type="button"
 								onclick={() => removeGalleryImage(index)}
+								aria-label={`Remove gallery image ${index + 1}`}
 								class="absolute top-1 right-1 rounded-full bg-red-500 p-1 opacity-0 transition-opacity group-hover:opacity-100"
 							>
 								<svg
@@ -1384,6 +1388,7 @@
 					</h3>
 					<button
 						onclick={() => (showImageCropper = false)}
+						aria-label="Close image cropper"
 						class="rounded-lg p-2 hover:bg-slate-100"
 					>
 						<svg
@@ -1430,6 +1435,7 @@
 					</div>
 					<button
 						onclick={() => (showNewRestaurantModal = false)}
+						aria-label="Close new store modal"
 						class="rounded-lg p-2 hover:bg-slate-100"
 					>
 						<svg
@@ -1497,7 +1503,7 @@
 								placeholder="e.g., italianbistro.com"
 							/>
 							<p class="mt-1 text-xs text-slate-500">
-								The domain name for the restaurant's website
+								The domain name for the store's website
 							</p>
 						</div>
 
@@ -1545,7 +1551,7 @@
 								bind:value={newRestaurantForm.description}
 								rows="3"
 								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-								placeholder="Describe your restaurant..."
+								placeholder="Describe your store..."
 							></textarea>
 						</div>
 					</div>
@@ -1612,7 +1618,7 @@
 								bind:value={newRestaurantForm.address}
 								rows="2"
 								class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-								placeholder="Full restaurant address"
+								placeholder="Full store address"
 							></textarea>
 						</div>
 					</div>

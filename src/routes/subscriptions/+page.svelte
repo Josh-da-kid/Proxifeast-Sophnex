@@ -181,7 +181,7 @@
 	</section>
 
 	<!-- Pricing Cards -->
-	<section class="container mx-auto px-4 py-12">
+	<section class="page-shell px-4 py-12">
 		<!-- Trial Countdown Banner -->
 		{#if isInTrial() && trialDaysLeft() > 0}
 			<div
@@ -195,7 +195,7 @@
 			</div>
 		{/if}
 
-		<div class="mx-auto max-w-6xl">
+		<div class="mx-auto max-w-7xl">
 			<!-- Mobile: Scrollable horizontally -->
 			<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 				{#each plans as plan, index}

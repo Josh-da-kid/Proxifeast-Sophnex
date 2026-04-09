@@ -40,6 +40,7 @@
 	let loading = $state(true);
 	let searchInput = $state('');
 	let selectedCategoryInput = $state('All');
+	const canSearch = $derived(Boolean(searchInput.trim()));
 	const restaurantName = get(page).data.restaurant?.name;
 
 	// Group orders by mainReference for multi-restaurant orders
@@ -148,24 +149,27 @@
 		<!-- Search and Filter -->
 		{#if $isLoggedIn && !loading && orders.length > 0}
 			<div class="mb-8">
-				<form onsubmit={handleSearchSubmit} class="flex flex-col gap-4 md:flex-row md:items-center">
-					<input
-						type="text"
-						bind:value={searchInput}
-						placeholder="Search by reference, name, or phone..."
-						class="input input-bordered flex-1 border-slate-300"
-					/>
-					<select
-						bind:value={selectedCategoryInput}
-						class="select select-bordered border-slate-300"
-					>
+				<form onsubmit={handleSearchSubmit} class="flex flex-col gap-4 rounded-2xl bg-white/70 p-4 shadow-lg shadow-slate-900/5 md:flex-row md:items-center">
+					<div class="flex flex-1 items-center gap-3 rounded-xl bg-white px-4 py-2 shadow-md shadow-slate-900/5">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+						<input
+							type="text"
+							bind:value={searchInput}
+							placeholder="Search by reference, name, or phone..."
+							class="w-full bg-transparent py-2 text-slate-700 placeholder-slate-400 focus:outline-none"
+						/>
+					</div>
+					<select bind:value={selectedCategoryInput} class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-md shadow-slate-900/5 focus:ring-2 focus:ring-slate-500 focus:outline-none">
 						<option value="All">All Status</option>
 						<option value="Delivered">Delivered</option>
 						<option value="Cancelled">Cancelled</option>
 					</select>
-					{#if searchInput || selectedCategoryInput !== 'All'}
-						<button type="button" onclick={clearSearch} class="btn btn-ghost"> Clear </button>
-					{/if}
+					<div class="flex gap-2 md:ml-auto">
+						<button type="submit" disabled={!canSearch} class="rounded-xl bg-slate-800 px-5 py-3 text-sm font-medium text-white transition enabled:hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300">Search</button>
+						{#if searchInput || selectedCategoryInput !== 'All'}
+							<button type="button" onclick={clearSearch} class="rounded-xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-200">Clear</button>
+						{/if}
+					</div>
 				</form>
 			</div>
 		{/if}
@@ -202,79 +206,44 @@
 					{#each filteredOrders as order, i}
 						<article
 							id="order-{order.id}"
-							class="w-96 shrink-0 snap-start rounded-xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-lg"
+							class="w-[min(26rem,88vw)] shrink-0 snap-start rounded-2xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-900/5 transition-all hover:-translate-y-1 hover:shadow-xl"
 							in:fly={{ y: 20, duration: 300, delay: i * 50 }}
 						>
-							<!-- Header -->
-							<div class="mb-4 flex items-start justify-between">
+							<div class="mb-5 flex items-start justify-between gap-4">
 								<div>
-									<p class="text-sm text-slate-500">Order Reference</p>
-									<h3 class="font-playfair text-lg font-semibold text-slate-900">
-										{order.reference}
-									</h3>
-									{#if isMultiRestaurantOrder(order)}
-										<div class="mt-1 flex flex-wrap gap-1">
-											<span
-												class="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
-											>
-												Multi-restaurant Order
-											</span>
-											{#if order.totalRestaurants > 1}
-												<span class="rounded bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
-													{order.totalRestaurants} restaurants
-												</span>
-											{/if}
-										</div>
-									{/if}
+									<p class="text-[11px] font-semibold tracking-[0.22em] text-slate-400 uppercase">Completed Order</p>
+									<h3 class="mt-1 font-playfair text-xl font-semibold text-slate-900">{order.reference}</h3>
+									<p class="mt-1 text-sm text-slate-500">For {order.name || 'Guest'}</p>
 								</div>
-								<div class="flex flex-col items-end gap-1">
-									<span
-										class="rounded-full border px-3 py-1 text-xs font-medium {getStatusColor(
-											order.status
-										)}"
-									>
-										{order.status}
-									</span>
+								<div class="flex flex-col items-end gap-2">
+									<span class="rounded-full border px-3 py-1 text-xs font-semibold {getStatusColor(order.status)}">{order.status}</span>
 									{#if order.restaurantName || order.expand?.restaurant?.name}
-										<span
-											class="rounded-full bg-slate-800 px-2.5 py-0.5 text-[10px] font-medium text-white"
-										>
-											{order.restaurantName || order.expand?.restaurant?.name}
-										</span>
+										<span class="rounded-full bg-slate-900 px-3 py-1 text-[11px] font-medium text-white">{order.restaurantName || order.expand?.restaurant?.name}</span>
 									{/if}
 								</div>
 							</div>
 
-							<!-- Details -->
-							<div class="mb-4 space-y-2 text-sm">
-								<div class="flex justify-between">
-									<span class="text-slate-500">Restaurant</span>
-									<span class="font-semibold text-slate-800"
-										>{order.restaurantName || 'Restaurant'}</span
-									>
+							<div class="mb-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 p-4 text-white">
+								<div class="flex items-end justify-between gap-3">
+									<div>
+										<p class="text-xs uppercase tracking-[0.2em] text-white/70">Final Amount</p>
+										<p class="mt-1 text-3xl font-bold">₦{(order.orderTotal ?? order.totalAmount ?? 0).toLocaleString()}</p>
+									</div>
+									<div class="text-right text-sm text-white/80">
+										<p>{order.quantity} item{order.quantity !== 1 ? 's' : ''}</p>
+										<p>{#if order.deliveryType === 'tableService'}Table Service{:else if order.deliveryType === 'home'}Home Delivery{:else if order.deliveryType === 'restaurantPickup'}Pickup{:else}{order.deliveryType}{/if}</p>
+									</div>
 								</div>
-								<div class="flex justify-between">
-									<span class="text-slate-500">Customer</span>
-									<span class="font-medium text-slate-900">{order.name || 'Guest'}</span>
+							</div>
+
+							<div class="mb-4 grid grid-cols-2 gap-3 text-sm">
+								<div class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+									<p class="text-xs uppercase tracking-wide text-slate-400">Store</p>
+									<p class="mt-1 font-semibold text-slate-800">{order.restaurantName || order.expand?.restaurant?.name || 'Restaurant'}</p>
 								</div>
-								<div class="flex justify-between">
-									<span class="text-slate-500">Total</span>
-									<span class="font-semibold text-slate-700"
-										>₦{(order.orderTotal ?? order.totalAmount ?? 0).toLocaleString()}</span
-									>
-								</div>
-								<div class="flex justify-between">
-									<span class="text-slate-500">Items</span>
-									<span class="font-medium text-slate-900">{order.quantity}</span>
-								</div>
-								<div class="flex justify-between">
-									<span class="text-slate-500">Type</span>
-									<span class="text-slate-900">
-										{#if order.deliveryType === 'tableService'}Table Service
-										{:else if order.deliveryType === 'home'}Home Delivery
-										{:else if order.deliveryType === 'restaurantPickup'}Pickup
-										{:else}{order.deliveryType}{/if}
-									</span>
+								<div class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+									<p class="text-xs uppercase tracking-wide text-slate-400">Closed</p>
+									<p class="mt-1 font-semibold text-slate-800">{new Date(order.updated).toLocaleDateString()}</p>
 								</div>
 							</div>
 
@@ -307,35 +276,25 @@
 								</p>
 							{/if}
 
-							<!-- Dishes -->
-							<div class="mb-4 border-t border-slate-100 pt-4">
-								<button
-									class="flex w-full items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-									onclick={(e) => {
-										const details = e.currentTarget.nextElementSibling;
-										if (details) details.classList.toggle('hidden');
-									}}
-								>
-									<span>View Dishes</span>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										class="h-4 w-4"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<path d="m6 9 6 6 6-6" />
-									</svg>
-								</button>
-								<div class="mt-2 hidden space-y-2">
+							<details class="mb-4 rounded-2xl border border-slate-200 bg-white open:bg-slate-50">
+								<summary class="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-slate-800">
+									<div class="flex items-center justify-between gap-3">
+										<span>Order Items ({order.dishes?.length || 0})</span>
+										<span class="text-xs font-medium text-slate-400">Tap to expand</span>
+									</div>
+								</summary>
+								<div class="space-y-2 px-4 pb-4">
 									{#each order.dishes as item}
-										<div class="flex justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-											<span class="text-slate-800">{item.name}</span>
-											<span class="text-slate-500">×{item.quantity}</span>
+										<div class="flex items-center justify-between rounded-xl bg-white px-3 py-3 text-sm shadow-sm shadow-slate-900/5">
+											<div>
+												<p class="font-medium text-slate-800">{item.name}</p>
+												<p class="text-xs text-slate-400">Quantity</p>
+											</div>
+											<span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">×{item.quantity}</span>
 										</div>
 									{/each}
 								</div>
+							</details>
 
 								<!-- Multi-restaurant orders paid together -->
 								{#if isMultiRestaurantOrder(order) && orderGroups[order.mainReference || order.reference]?.length > 1}
@@ -348,66 +307,38 @@
 										0
 									)}
 									{#if relatedOrders.length > 0}
-										<div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
-											<p class="mb-2 text-xs font-medium text-amber-800">
-												<svg
-													xmlns="http://www.w3.org/2000/svg"
-													class="mr-1 inline h-3 w-3"
-													viewBox="0 0 20 20"
-													fill="currentColor"
-												>
-													<path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
-													<path
-														fill-rule="evenodd"
-														d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"
-														clip-rule="evenodd"
-													/>
-												</svg>
-												Paid together with {relatedOrders.length} other order(s):
-											</p>
-											<div class="space-y-2">
-												{#each relatedOrders as relatedOrder}
-													<div
-														class="flex items-center justify-between rounded bg-white/70 px-2 py-1.5 text-xs"
-													>
-														<div class="flex items-center gap-2">
-															<span class="min-w-[60px] font-medium text-gray-900"
-																>{relatedOrder.reference}</span
-															>
-															<span
-																class="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-700"
-															>
-																{relatedOrder.restaurantName || 'Restaurant'}
-															</span>
-															<span
-																class="rounded-full border px-1.5 py-0.5 text-[10px] {getStatusColor(
-																	relatedOrder.status
-																)}"
-															>
-																{relatedOrder.status}
-															</span>
-														</div>
-														<span class="font-semibold text-slate-700">
-															₦{(
-																relatedOrder.orderTotal ??
-																relatedOrder.totalAmount ??
-																0
-															).toLocaleString()}
-														</span>
-													</div>
-												{/each}
+										<div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+											<div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+												<div>
+													<p class="text-xs font-semibold tracking-[0.18em] text-amber-700 uppercase">Combined Payment</p>
+													<p class="mt-1 text-sm font-medium text-amber-900">Paid together with {relatedOrders.length} other order{relatedOrders.length !== 1 ? 's' : ''}</p>
+												</div>
+												<div class="rounded-xl bg-amber-100 px-3 py-2 text-left sm:text-right">
+													<p class="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Total Paid</p>
+													<p class="mt-1 text-base font-bold text-amber-950">₦{grandTotal.toLocaleString()}</p>
+												</div>
 											</div>
-											<div
-												class="mt-2 flex items-center justify-between rounded bg-amber-100 px-2 py-1.5 text-xs"
-											>
-												<span class="font-semibold text-amber-900">Total Paid:</span>
-												<span class="font-bold text-amber-900">₦{grandTotal.toLocaleString()}</span>
+											<div class="space-y-2">
+													{#each relatedOrders as relatedOrder}
+														<div
+															class="rounded-2xl bg-white px-3 py-3 shadow-sm shadow-amber-900/5"
+														>
+															<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+																<div class="min-w-0">
+																	<p class="truncate font-semibold text-slate-900">{relatedOrder.reference}</p>
+																	<p class="mt-1 text-xs text-slate-500">{relatedOrder.restaurantName || 'Restaurant'}</p>
+																</div>
+																<div class="text-left sm:text-right">
+																	<span class="rounded-full border px-2 py-0.5 text-[10px] font-medium {getStatusColor(relatedOrder.status)}">{relatedOrder.status}</span>
+																	<p class="mt-2 font-semibold text-slate-800">₦{(relatedOrder.orderTotal ?? relatedOrder.totalAmount ?? 0).toLocaleString()}</p>
+																</div>
+															</div>
+														</div>
+													{/each}
 											</div>
 										</div>
 									{/if}
 								{/if}
-							</div>
-
 							<!-- Footer -->
 							<div class="border-t border-slate-100 pt-3 text-xs text-slate-400">
 								Completed: {new Date(order.updated).toLocaleDateString()} at {new Date(

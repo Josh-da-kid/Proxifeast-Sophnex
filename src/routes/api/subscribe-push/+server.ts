@@ -1,14 +1,16 @@
 import { json } from '@sveltejs/kit';
-import PocketBase from 'pocketbase';
+import type { RequestHandler } from './$types';
 
-const pb = new PocketBase('https://playgzero.pb.itcass.net/');
-
-export async function POST({ request }: { request: Request }) {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
+		if (!locals.user) {
+			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
+		}
+
 		const data = await request.json();
 
 		// Support both nested and flat formats
-		const userId = data.userId;
+		const userId = locals.user.id;
 		const subscription = data.subscription || {
 			endpoint: data.endpoint,
 			keys: {
@@ -22,13 +24,13 @@ export async function POST({ request }: { request: Request }) {
 		}
 
 		// Check if subscription already exists
-		const existing = await pb.collection('push_subscriptions').getFullList({
+		const existing = await locals.pb.collection('push_subscriptions').getFullList({
 			filter: `user="${userId}" && endpoint="${subscription.endpoint}"`
 		});
 
 		if (existing.length > 0) {
 			// Update existing subscription
-			await pb.collection('push_subscriptions').update(existing[0].id, {
+			await locals.pb.collection('push_subscriptions').update(existing[0].id, {
 				endpoint: subscription.endpoint,
 				p256dh: subscription.keys?.p256dh || data.p256dh,
 				auth: subscription.keys?.auth || data.auth,
@@ -36,7 +38,7 @@ export async function POST({ request }: { request: Request }) {
 			});
 		} else {
 			// Create new subscription
-			await pb.collection('push_subscriptions').create({
+			await locals.pb.collection('push_subscriptions').create({
 				user: userId,
 				endpoint: subscription.endpoint,
 				p256dh: subscription.keys?.p256dh || data.p256dh,
@@ -50,4 +52,4 @@ export async function POST({ request }: { request: Request }) {
 		console.error('Push subscription error:', error);
 		return json({ success: false, error: error.message }, { status: 500 });
 	}
-}
+};

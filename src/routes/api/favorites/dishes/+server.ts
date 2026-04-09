@@ -1,5 +1,6 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { isSuperRestaurant } from '$lib/utils/restaurantAccess';
+import { resolveRestaurantByDomain } from '$lib/server/restaurantAccess';
 
 // GET /api/favorites/dishes - Get dish favorites for the current restaurant context
 export const GET: RequestHandler = async ({ locals, request }) => {
@@ -11,15 +12,13 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 	const host = request.headers.get('host') || '';
 	const domain = host.split(':')[0];
 
-	let currentRestaurant = null;
-	try {
-		const restaurants = await locals.pb.collection('restaurants').getFullList({
-			filter: `domain="${domain}"`
-		});
-		currentRestaurant = restaurants?.[0] || null;
-	} catch (e) {
-		console.error('Could not find restaurant for domain:', domain);
-	}
+	const currentRestaurant = await resolveRestaurantByDomain(
+		locals.pb,
+		request.headers.get('host') || '',
+		{
+			allowSuperFallback: true
+		}
+	);
 
 	// Only super restaurants can have dish favorites
 	if (!currentRestaurant || !isSuperRestaurant(currentRestaurant)) {
@@ -49,15 +48,13 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	const host = request.headers.get('host') || '';
 	const domain = host.split(':')[0];
 
-	let currentRestaurant = null;
-	try {
-		const restaurants = await locals.pb.collection('restaurants').getFullList({
-			filter: `domain="${domain}"`
-		});
-		currentRestaurant = restaurants?.[0] || null;
-	} catch (e) {
-		console.error('Could not find restaurant for domain:', domain);
-	}
+	const currentRestaurant = await resolveRestaurantByDomain(
+		locals.pb,
+		request.headers.get('host') || '',
+		{
+			allowSuperFallback: true
+		}
+	);
 
 	// Only super restaurants can favorite dishes
 	if (!currentRestaurant || !isSuperRestaurant(currentRestaurant)) {
@@ -70,6 +67,10 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	// Get current dish favorites
 	const userId = locals.user.id;
 	let dishFavorites = locals.user.dishFavorites || {};
+	const dish = await locals.pb.collection('dishes').getOne(dishId);
+	if (dish.restaurantId !== currentRestaurant.id) {
+		return json({ error: 'Dish does not belong to this restaurant' }, { status: 403 });
+	}
 
 	// Get favorites for current restaurant
 	const restaurantId = currentRestaurant.id;

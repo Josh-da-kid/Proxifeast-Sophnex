@@ -98,7 +98,7 @@
 
 	onMount(() => {
 		const checkScreen = () => {
-			isLargeScreen = window.innerwidth >= 768;
+			isLargeScreen = window.innerWidth >= 768;
 		};
 		checkScreen();
 		window.addEventListener('resize', checkScreen);
@@ -268,7 +268,7 @@
 		position: absolute;
 		top: 50%;
 		transform: translateY(-50%);
-		z-index: 20;
+		z-index: 5;
 		display: flex;
 		width: 48px;
 		height: 48px;

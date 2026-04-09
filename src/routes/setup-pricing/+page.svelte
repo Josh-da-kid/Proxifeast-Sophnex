@@ -147,8 +147,8 @@
 	</section>
 
 	<!-- Package Cards -->
-	<section class="container mx-auto px-4 py-12">
-		<div class="mx-auto max-w-6xl">
+	<section class="page-shell px-4 py-12">
+		<div class="mx-auto max-w-7xl">
 			<!-- Package Tabs -->
 			<div class="mb-8 flex flex-wrap justify-center gap-4">
 				{#each packages as pkg}

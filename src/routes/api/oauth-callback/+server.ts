@@ -1,6 +1,7 @@
 // src/routes/api/oauth-callback/+server.ts
 
 import { redirect, type RequestHandler } from '@sveltejs/kit';
+import { getUserRestaurantIds, resolveRestaurantByDomain } from '$lib/server/restaurantAccess';
 
 export const GET: RequestHandler = async ({ url, request, locals }) => {
 	const code = url.searchParams.get('code');
@@ -13,12 +14,14 @@ export const GET: RequestHandler = async ({ url, request, locals }) => {
 
 	try {
 		const host = request.headers.get('host') || '';
-		const domain = host.split(':')[0];
 		const origin = `${url.protocol}//${host}`;
 
-		const restaurant = await locals.pb
-			.collection('restaurants')
-			.getFirstListItem(`domain = "${domain}"`);
+		const restaurant = await resolveRestaurantByDomain(locals.pb, host, {
+			allowSuperFallback: true
+		});
+		if (!restaurant) {
+			return redirect(303, '/login?error=restaurant_not_found');
+		}
 
 		const redirectUrl = `${origin}/api/oauth-callback`;
 
@@ -28,10 +31,7 @@ export const GET: RequestHandler = async ({ url, request, locals }) => {
 
 		const user = authData.record;
 
-		let restaurantIds = user.restaurantIds || [];
-		if (restaurantIds.length === 0 && user.restaurantId) {
-			restaurantIds = [user.restaurantId];
-		}
+		const restaurantIds = getUserRestaurantIds(user);
 
 		if (!restaurantIds.includes(restaurant.id)) {
 			restaurantIds.push(restaurant.id);

@@ -39,8 +39,8 @@
 	</section>
 
 	<!-- Content -->
-	<main class="container mx-auto px-4 py-12">
-		<div class="mx-auto max-w-5xl">
+	<main class="page-shell px-4 py-12">
+		<div class="mx-auto max-w-6xl 2xl:max-w-7xl">
 			<!-- Contact Info Cards -->
 			<div class="mb-12 grid gap-6 md:grid-cols-2">
 				{#each [{ icon: 'phone', title: 'Phone', content: '+234 123 456 7890', desc: 'Mon-Sat: 9AM - 9PM' }, { icon: 'mail', title: 'Email', content: 'info@proxifeast.com', desc: 'We reply within 24 hours' }] as info, i}

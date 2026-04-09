@@ -103,7 +103,7 @@
 								? 'Upload Gallery Image'
 								: 'Upload Banner Image'}
 					</h3>
-					<button onclick={() => (isModalOpen = false)} class="rounded-lg p-2 hover:bg-slate-100">
+					<button aria-label="Close image cropper test modal" onclick={() => (isModalOpen = false)} class="rounded-lg p-2 hover:bg-slate-100">
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
 							class="h-5 w-5"

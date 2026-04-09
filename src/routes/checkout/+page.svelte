@@ -227,6 +227,11 @@
 	}
 
 	export async function removeFromCart(id: string) {
+		if (id.startsWith('temp-')) {
+			cart.update((items) => items.filter((item: any) => item.id !== id));
+			return;
+		}
+
 		itemsBeingUpdated.set(id, true);
 		try {
 			await pb.collection('cart').delete(id);
@@ -241,7 +246,11 @@
 
 	export async function clearCart() {
 		const userId = get(user)?.id;
-		if (!userId) return;
+		if (!userId) {
+			cart.set([]);
+			clearModal?.close();
+			return;
+		}
 
 		isClearingCart = true;
 		try {
@@ -274,6 +283,18 @@
 			return;
 		}
 
+		if (itemId.startsWith('temp-')) {
+			cart.update((items) => {
+				return items.map((item: any) => {
+					if (item.id === itemId) {
+						return { ...item, quantity: newQty, amount: unitPrice * newQty };
+					}
+					return item;
+				});
+			});
+			return;
+		}
+
 		itemsBeingUpdated.set(itemId, true);
 		try {
 			await pb.collection('cart').update(itemId, { quantity: newQty, amount: unitPrice * newQty });
@@ -293,20 +314,23 @@
 		}
 	}
 
-	onMount(async () => {
+	onMount(() => {
+		let disposed = false;
+
 		// Get user from page data
 		const pageUser = $page.data.user;
 		const userId = pageUser?.id;
 
-		try {
-			await fetchCart(undefined, userId);
-		} catch (err) {
-			console.error('Failed to fetch cart:', err);
-		} finally {
-			loading = false;
-		}
-
-		setupSubscriptions();
+		void fetchCart(undefined, userId)
+			.catch((err) => {
+				console.error('Failed to fetch cart:', err);
+			})
+			.finally(() => {
+				if (!disposed) {
+					loading = false;
+					setupSubscriptions();
+				}
+			});
 
 		// Update current time every second for precise status checks
 		timeInterval = setInterval(() => {
@@ -345,6 +369,7 @@
 		}, 5000);
 
 		return () => {
+			disposed = true;
 			clearTimeout(timeout);
 			if (timeInterval) clearInterval(timeInterval);
 			if (restaurantSubscription) {
@@ -363,6 +388,8 @@
 	let deliveryOption = $state('');
 	let phone = $state('');
 	let prefix = $state('+234');
+	let customerName = $state('');
+	let customerEmail = $state('');
 	let tableNumber = $state('');
 	let roomNumber = $state('');
 	let homeAddress = $state('');
@@ -376,7 +403,37 @@
 	let meridian = $state('PM');
 	let pickupTime = $derived(`${hour}:${minutes} ${meridian}`);
 	const formattedPhone = $derived(`${prefix}${phone}`);
-	const grandTotal = $derived($total);
+
+	function getCartItemUnitPrice(item: any): number {
+		return Number(item.expand?.dish?.promoAmount ?? item.expand?.dish?.defaultAmount ?? item.amount ?? 0);
+	}
+
+	function getCartItemLineTotal(item: any): number {
+		if (typeof item.amount === 'number' && String(item.id).startsWith('temp-')) {
+			return item.amount;
+		}
+
+		return getCartItemUnitPrice(item) * Number(item.quantity ?? 1);
+	}
+
+	const itemCount = $derived($cart.reduce((sum, item) => sum + Number(item.quantity ?? 1), 0));
+	const subtotalAmount = $derived(
+		$cart.reduce((sum, item) => {
+			if (item.expand?.dish?.availability === 'Unavailable') {
+				return sum;
+			}
+
+			return sum + getCartItemLineTotal(item);
+		}, 0)
+	);
+	const grandTotal = $derived(subtotalAmount);
+
+	$effect(() => {
+		if (userData) {
+			customerName = userData.name || customerName;
+			customerEmail = userData.email || customerEmail;
+		}
+	});
 
 	const cartRestaurantInfo = $derived.by(() => {
 		const restaurantIds = [
@@ -394,11 +451,6 @@
 			homeDelivery: true,
 			roomService: false
 		}
-	);
-
-	const hasRoomService = $derived(
-		cartRestaurantInfo?.type === 'hotel' &&
-			(cartRestaurantInfo?.features?.hasRoomService || restaurantOrderServices.tableService)
 	);
 
 	function isValidPhone(prefix: string, phone: string): boolean {
@@ -428,7 +480,7 @@
 				return;
 			}
 
-			const paystackKeyValue = restaurantData?.paystackKey;
+			const paystackKeyValue = cartRestaurantInfo?.paystackKey || restaurantData?.paystackKey;
 
 			if (!paystackKeyValue) {
 				alert('Payment system not configured. Please contact the restaurant.');
@@ -436,13 +488,20 @@
 			}
 
 			const currentUser = userData;
+			const name = customerName.trim();
+			const email = customerEmail.trim().toLowerCase();
 
-			if (!currentUser) {
-				alert('Please log in to make a payment.');
+			if (!name) {
+				alert('Please enter your name.');
 				return;
 			}
 
-			const currentEmail = currentUser.email;
+			if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+				alert('Please enter a valid email address.');
+				return;
+			}
+
+			const currentEmail = email;
 
 			// Calculate total directly from cart store
 			const cartSnapshot = $cart;
@@ -499,10 +558,10 @@
 						reference: response.reference,
 						totalAmount: currentAmount,
 						type: deliveryOption,
-						user: currentUser.id,
+						...(currentUser?.id ? { user: currentUser.id } : {}),
 						dishes: orderedDishes,
-						name: currentUser.name,
-						email: currentUser.email,
+						name,
+						email,
 						quantity: $cart.length,
 						formattedPhone,
 						tableNumber,
@@ -618,17 +677,8 @@
 {/if}
 
 <main class="bg-base-200/50 min-h-screen pb-24">
-	{#if !$isLoggedIn}
-		<div class="mx-auto max-w-7xl px-4 py-8 text-center">
-			<div class="bg-base-100 rounded-2xl p-8 shadow-sm">
-				{@html iconLock}
-				<h2 class="mt-4 text-xl font-bold">Please Log In</h2>
-				<p class="text-base-content/70 mt-2">You need to be logged in to view your checkout.</p>
-				<a href="/login" class="btn btn-primary mt-4">Log In</a>
-			</div>
-		</div>
-	{:else if loading}
-		<div class="mx-auto max-w-7xl px-4 py-8">
+	{#if loading}
+		<div class="page-shell px-4 py-8">
 			<div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
 				<div class="space-y-4">
 					<div class="bg-base-300 h-8 w-1/3 animate-pulse rounded"></div>
@@ -638,7 +688,7 @@
 			</div>
 		</div>
 	{:else}
-		<div class="mx-auto max-w-7xl px-4 py-6 sm:py-8">
+		<div class="page-shell px-4 py-6 sm:py-8">
 			<div class="grid grid-cols-1 gap-6 lg:grid-cols-5 lg:gap-8">
 				<div class="space-y-6 lg:col-span-2" in:fade={{ duration: 300, delay: 100 }}>
 					<div class="bg-base-100 rounded-2xl p-6 shadow-sm">
@@ -860,7 +910,7 @@
 							{#if $cart.length > 0}
 								<div class="mb-6 space-y-3">
 									<div class="flex items-center justify-between">
-										<span class="text-base-content/70">Items ({$cart.length})</span>
+										<span class="text-base-content/70">Items ({itemCount})</span>
 										<button
 											onclick={() => (showDetails = !showDetails)}
 											class="text-primary flex items-center gap-1 text-sm hover:underline"
@@ -882,10 +932,7 @@
 														>{item.quantity}x {item.expand.dish.name}</span
 													>
 													<span class="font-medium"
-														>₦{(
-															(item.expand.dish.promoAmount || item.expand.dish.defaultAmount) *
-															item.quantity
-														).toLocaleString()}</span
+														>₦{getCartItemLineTotal(item).toLocaleString()}</span
 													>
 												</div>
 											{/each}
@@ -893,20 +940,28 @@
 									{/if}
 									<div class="flex justify-between text-sm">
 										<span class="text-base-content/70">Subtotal</span><span class="font-medium"
-											>₦{$total.toLocaleString()}</span
+											>₦{subtotalAmount.toLocaleString()}</span
 										>
 									</div>
 									{#if deliveryOption === 'home'}
 										<div class="flex justify-between text-sm">
 											<span class="text-base-content/70">Delivery Fee</span>
-											<span class="text-warning font-medium">Pay on delivery</span>
+											<span class="text-warning font-medium">Calculated on delivery</span>
+										</div>
+										<div class="flex justify-between text-sm">
+											<span class="text-base-content/70">Amount due now</span>
+											<span class="font-medium">₦{grandTotal.toLocaleString()}</span>
 										</div>
 									{/if}
 									<div class="border-base-300 mt-4 border-t-2 pt-4">
 										<div class="flex items-end justify-between">
 											<div>
-												<p class="text-sm font-semibold">Total Amount</p>
-												<p class="text-base-content/60 text-xs">Pay on delivery for home orders</p>
+												<p class="text-sm font-semibold">{deliveryOption === 'home' ? 'Pay Now' : 'Total Amount'}</p>
+												<p class="text-base-content/60 text-xs">
+													{deliveryOption === 'home'
+														? 'Delivery charges are settled on delivery'
+														: 'Secure online payment'}
+												</p>
 											</div>
 											<p class="text-primary text-3xl font-bold">₦{grandTotal.toLocaleString()}</p>
 										</div>
@@ -1103,50 +1158,7 @@
 											</label>
 										{/if}
 
-										{#if hasRoomService}
-											<label class="block cursor-pointer">
-												<input
-													type="radio"
-													bind:group={deliveryOption}
-													value="roomService"
-													class="peer sr-only"
-												/>
-												<div
-													class="border-base-300 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/30 group flex items-start gap-4 rounded-xl border-2 p-4 transition-all duration-300"
-												>
-													<div
-														class="bg-primary/10 group-hover:bg-primary/20 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors"
-													>
-														<svg
-															xmlns="http://www.w3.org/2000/svg"
-															class="h-6 w-6"
-															fill="none"
-															viewBox="0 0 24 24"
-															stroke="currentColor"
-															stroke-width="2"
-														>
-															<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-															<polyline points="9 22 9 12 15 12 15 22" />
-														</svg>
-													</div>
-													<div class="flex-1">
-														<div class="mb-1 flex items-center justify-between">
-															<p class="font-semibold">Room Service</p>
-															<div
-																class="border-base-300 peer-checked:border-primary peer-checked:bg-primary flex h-5 w-5 items-center justify-center rounded-full border-2"
-															>
-																<div class="h-2 w-2 rounded-full bg-white"></div>
-															</div>
-														</div>
-														<p class="text-base-content/70 text-sm">
-															Order for delivery to your hotel room
-														</p>
-													</div>
-												</div>
-											</label>
-										{/if}
-
-										{#if showPickupWarning}
+									{#if showPickupWarning}
 											{@const uniqueRestaurantCount = new Set(
 												$cart.map(
 													(item: any) => item.expand?.dish?.restaurantId || item.restaurantId
@@ -1176,11 +1188,12 @@
 											<div class="space-y-4" transition:slide={{ duration: 300 }}>
 												{#if deliveryOption === 'tableService'}
 													<div class="space-y-2">
-														<label class="block flex items-center gap-2 text-sm font-medium"
+														<label for="table-number" class="block flex items-center gap-2 text-sm font-medium"
 															>{@html iconHash} Table Number</label
 														>
 														<div class="relative">
 															<input
+																id="table-number"
 																type="number"
 																bind:value={tableNumber}
 																placeholder="e.g., 12"
@@ -1195,7 +1208,7 @@
 													</div>
 												{:else if deliveryOption === 'roomService'}
 													<div class="space-y-2">
-														<label class="block flex items-center gap-2 text-sm font-medium"
+														<label for="room-number" class="block flex items-center gap-2 text-sm font-medium"
 															><svg
 																xmlns="http://www.w3.org/2000/svg"
 																class="h-4 w-4"
@@ -1210,6 +1223,7 @@
 														>
 														<div class="relative">
 															<input
+																id="room-number"
 																type="text"
 																bind:value={roomNumber}
 																placeholder="e.g., 501"
@@ -1223,11 +1237,12 @@
 													</div>
 												{:else if deliveryOption === 'restaurantPickup'}
 													<div class="space-y-2">
-														<label class="block flex items-center gap-2 text-sm font-medium"
+														<label for="pickup-hour" class="block flex items-center gap-2 text-sm font-medium"
 															>{@html iconClock} Pickup Time</label
 														>
 														<div class="flex gap-3">
 															<select
+																id="pickup-hour"
 																bind:value={hour}
 																class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 flex-1 cursor-pointer appearance-none rounded-xl border-2 px-4 py-3 outline-none focus:ring-4"
 															>
@@ -1255,10 +1270,11 @@
 													</div>
 												{:else if deliveryOption === 'home'}
 													<div class="space-y-2">
-														<label class="block flex items-center gap-2 text-sm font-medium"
+														<label for="delivery-address" class="block flex items-center gap-2 text-sm font-medium"
 															>{@html iconMapPin} Delivery Address</label
 														>
 														<textarea
+															id="delivery-address"
 															bind:value={homeAddress}
 															placeholder="Enter your complete address including landmarks..."
 															rows="3"
@@ -1272,13 +1288,37 @@
 															>
 															<span class="text-base-content/40">{homeAddress.length}/200</span>
 														</div>
-													</div>
-												{/if}
-											</div>
-										{/if}
-										<div class="border-base-200 space-y-4 border-t pt-6">
+														</div>
+													{/if}
+									</div>
+								{/if}
+								<div class="border-base-200 space-y-4 border-t pt-6">
+									<div class="space-y-2">
+										<label for="customer-name" class="block text-sm font-medium">Full Name</label>
+										<input
+											id="customer-name"
+											type="text"
+											bind:value={customerName}
+											placeholder="Enter your full name"
+											class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-full rounded-xl border-2 px-4 py-3 transition-all outline-none focus:ring-4"
+											required
+										/>
+									</div>
+									<div class="space-y-2">
+										<label for="customer-email" class="block text-sm font-medium">Email Address</label>
+										<input
+											id="customer-email"
+											type="email"
+											bind:value={customerEmail}
+											placeholder="Enter your email address"
+											class="border-base-300 focus:border-primary focus:ring-primary/10 bg-base-100 w-full rounded-xl border-2 px-4 py-3 transition-all outline-none focus:ring-4"
+											required
+										/>
+									</div>
+								</div>
+								<div class="border-base-200 space-y-4 border-t pt-6">
 											<div class="space-y-2">
-												<label class="block flex items-center gap-2 text-sm font-medium"
+												<label for="customer-phone" class="block flex items-center gap-2 text-sm font-medium"
 													>{@html iconPhone} Phone Number</label
 												>
 												<div class="flex gap-3">
@@ -1299,6 +1339,7 @@
 													</select>
 													<div class="relative flex-1">
 														<input
+															id="customer-phone"
 															type="tel"
 															bind:value={phone}
 															placeholder="801 234 5678"
@@ -1426,15 +1467,15 @@
 											{/if}
 											<button
 												type="button"
-												class="bg-primary hover:bg-primary/90 text-primary-content shadow-primary/20 flex w-full transform items-center justify-center gap-3 rounded-xl px-6 py-4 text-lg font-bold shadow-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
-												disabled={$cart.length === 0 ||
-													!deliveryOption ||
-													!cartLocationInfo.valid ||
-													(deliveryOption === 'home' && !locationConfirmed)}
-												onclick={payWithPaystack}
-											>
-												{@html iconLock}<span>Pay ₦{$total.toLocaleString()}</span>
-											</button>
+										class="bg-primary hover:bg-primary/90 text-primary-content shadow-primary/20 flex w-full transform items-center justify-center gap-3 rounded-xl px-6 py-4 text-lg font-bold shadow-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
+										disabled={$cart.length === 0 ||
+											!deliveryOption ||
+											!cartLocationInfo.valid ||
+											(deliveryOption === 'home' && !locationConfirmed)}
+										onclick={payWithPaystack}
+									>
+										{@html iconLock}<span>Pay ₦{grandTotal.toLocaleString()}</span>
+									</button>
 											<div
 												class="text-base-content/50 flex items-center justify-center gap-4 text-xs"
 											>

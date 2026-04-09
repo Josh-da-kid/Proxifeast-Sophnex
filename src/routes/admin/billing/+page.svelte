@@ -832,11 +832,14 @@
 
 					<div class="space-y-4">
 						<div>
-							<label class="mb-2 block text-sm font-medium text-slate-700">Select Plan</label>
-							<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-								{#each getAvailablePlans(data.restaurant) as plan}
-									<button
-										class="relative rounded-xl border-2 p-4 text-left transition-all {selectedPlan ===
+						<p id="subscription-plan-label" class="mb-2 block text-sm font-medium text-slate-700">Select Plan</p>
+						<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+							{#each getAvailablePlans(data.restaurant) as plan}
+								<button
+									type="button"
+									aria-pressed={selectedPlan === plan.id}
+									aria-labelledby="subscription-plan-label"
+									class="relative rounded-xl border-2 p-4 text-left transition-all {selectedPlan ===
 										plan.id
 											? 'border-primary bg-primary/5'
 											: 'border-slate-200 hover:border-slate-300'}"
@@ -1269,16 +1272,21 @@
 		{#if showHistoryModal}
 			<div
 				class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-				onclick={() => (showHistoryModal = false)}
+				onkeydown={(e) => e.key === 'Escape' && (showHistoryModal = false)}
+				role="dialog"
+				aria-modal="true"
+				tabindex="-1"
 			>
+				<button class="absolute inset-0" aria-label="Close payment history" onclick={() => (showHistoryModal = false)}></button>
 				<div
 					class="m-4 max-h-[80vh] w-full max-w-2xl overflow-auto rounded-2xl bg-white p-6"
-					onclick={(e) => e.stopPropagation()}
+					role="document"
 				>
 					<div class="mb-4 flex items-center justify-between">
 						<h3 class="font-playfair text-xl font-bold text-slate-800">Payment History</h3>
 						<button
 							onclick={() => (showHistoryModal = false)}
+							aria-label="Close payment history"
 							class="text-slate-400 hover:text-slate-600"
 						>
 							<svg
@@ -1772,8 +1780,9 @@
 
 					<div class="space-y-4">
 						<div>
-							<label class="mb-1 block text-sm font-medium text-slate-700">Select Restaurant</label>
+							<label for="new-subscription-restaurant" class="mb-1 block text-sm font-medium text-slate-700">Select Restaurant</label>
 							<select
+								id="new-subscription-restaurant"
 								bind:value={selectedRestaurant}
 								class="focus:border-primary focus:ring-primary/20 w-full rounded-xl border border-slate-200 px-4 py-3 focus:ring-2 focus:outline-none"
 							>
@@ -1786,10 +1795,13 @@
 
 						{#if selectedRestaurant}
 							<div>
-								<label class="mb-2 block text-sm font-medium text-slate-700">Select Plan</label>
+								<p id="new-subscription-plan-label" class="mb-2 block text-sm font-medium text-slate-700">Select Plan</p>
 								<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 									{#each getAvailablePlans(selectedRestaurant) as plan}
 										<button
+											type="button"
+											aria-pressed={selectedPlan === plan.id}
+											aria-labelledby="new-subscription-plan-label"
 											class="relative rounded-xl border-2 p-4 text-left transition-all {selectedPlan ===
 											plan.id
 												? 'border-primary bg-primary/5'

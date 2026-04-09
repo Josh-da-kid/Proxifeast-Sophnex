@@ -1,15 +1,23 @@
-import { json, type RequestHandler } from "@sveltejs/kit";
+import { json, type RequestHandler } from '@sveltejs/kit';
+import { canAdminAccessRestaurant, resolveRestaurantByDomain } from '$lib/server/restaurantAccess';
 
 export const GET: RequestHandler = async ({ request, locals }) => {
 	try {
-		// Get current domain
-		const host = request.headers.get('host') || '';
-		const domain = host.split(':')[0];
+		if (!locals.user) {
+			return json({ orders: [], error: 'Unauthorized' }, { status: 401 });
+		}
 
-		// Get restaurant ID by domain
-		const restaurant = await locals.pb
-			.collection('restaurants')
-			.getFirstListItem(`domain="${domain}"`);
+		const restaurant = await resolveRestaurantByDomain(
+			locals.pb,
+			request.headers.get('host') || ''
+		);
+		if (!restaurant) {
+			return json({ orders: [], error: 'Restaurant not found' }, { status: 404 });
+		}
+
+		if (!(await canAdminAccessRestaurant(locals.pb, locals.user, restaurant.id))) {
+			return json({ orders: [], error: 'Forbidden' }, { status: 403 });
+		}
 
 		// Fetch orders specific to that restaurant
 		const orders = await locals.pb.collection('orders').getFullList({
@@ -24,4 +32,3 @@ export const GET: RequestHandler = async ({ request, locals }) => {
 		return json({ orders: [], error: 'Failed to fetch orders' }, { status: 500 });
 	}
 };
-

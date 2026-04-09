@@ -398,15 +398,20 @@
 								{#if modalImage}
 									<div
 										class="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
-										onclick={() => (modalImage = null)}
+										onkeydown={(e) => e.key === 'Escape' && (modalImage = null)}
+										role="dialog"
+										aria-modal="true"
+										tabindex="-1"
 									>
+										<button class="absolute inset-0" aria-label="Close image preview" onclick={() => (modalImage = null)}></button>
 										<div
 											class="relative max-w-2xl rounded-xl bg-white p-4"
-											onclick={(e) => e.stopPropagation()}
+											role="document"
 										>
 											<button
 												class="absolute top-2 right-2 rounded-full bg-slate-100 p-2 hover:bg-slate-200"
 												onclick={() => (modalImage = null)}
+												aria-label="Close image preview"
 											>
 												<svg
 													xmlns="http://www.w3.org/2000/svg"
@@ -434,6 +439,7 @@
 												<h3 class="text-lg font-semibold text-slate-900">Upload Dish Image</h3>
 												<button
 													onclick={() => (showImageCropper = false)}
+													aria-label="Close image cropper"
 													class="rounded-lg p-2 hover:bg-slate-100"
 												>
 													<svg
@@ -461,12 +467,13 @@
 
 								<!-- Dish Image -->
 								<figure class="relative overflow-hidden">
-									<img
-										src={dish.image}
-										alt={dish.name}
-										class="h-48 w-full object-cover transition-transform duration-300 hover:scale-105"
-										onclick={() => (modalImage = dish.image)}
-									/>
+										<button type="button" class="block w-full" onclick={() => (modalImage = dish.image)} aria-label={`Preview ${dish.name} image`}>
+											<img
+												src={dish.image}
+												alt={dish.name}
+												class="h-48 w-full object-cover transition-transform duration-300 hover:scale-105"
+											/>
+										</button>
 									{#if dish.availability === 'Available'}
 										<span
 											class="absolute top-3 right-3 rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700"
@@ -513,6 +520,7 @@
 											<button
 												class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
 												onclick={() => openEditDrawer(dish)}
+												aria-label={`Edit ${dish.name}`}
 											>
 												<svg
 													xmlns="http://www.w3.org/2000/svg"
@@ -532,6 +540,7 @@
 													dishToDelete = dish;
 													deleteModal.showModal();
 												}}
+												aria-label={`Delete ${dish.name}`}
 											>
 												<svg
 													xmlns="http://www.w3.org/2000/svg"
@@ -623,6 +632,7 @@
 						</div>
 						<button
 							onclick={closeSideBar}
+							aria-label="Close edit dish drawer"
 							class="rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
 						>
 							<svg
@@ -652,8 +662,9 @@
 					<div class="space-y-5">
 						<!-- Name -->
 						<div>
-							<label class="mb-1.5 block text-sm font-medium text-slate-700">Dish Name *</label>
+							<label for="edit-dish-name" class="mb-1.5 block text-sm font-medium text-slate-700">Dish Name *</label>
 							<input
+								id="edit-dish-name"
 								type="text"
 								name="name"
 								bind:value={selectedDish.name}
@@ -665,8 +676,9 @@
 
 						<!-- Description -->
 						<div>
-							<label class="mb-1.5 block text-sm font-medium text-slate-700">Description *</label>
+							<label for="edit-dish-description" class="mb-1.5 block text-sm font-medium text-slate-700">Description *</label>
 							<textarea
+								id="edit-dish-description"
 								name="description"
 								bind:value={selectedDish.description}
 								class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
@@ -679,8 +691,9 @@
 						<!-- Category & Availability -->
 						<div class="grid grid-cols-2 gap-4">
 							<div>
-								<label class="mb-1.5 block text-sm font-medium text-slate-700">Category *</label>
+								<label for="edit-dish-category" class="mb-1.5 block text-sm font-medium text-slate-700">Category *</label>
 								<select
+									id="edit-dish-category"
 									name="category"
 									bind:value={selectedDish.category}
 									class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
@@ -692,9 +705,10 @@
 								</select>
 							</div>
 							<div>
-								<label class="mb-1.5 block text-sm font-medium text-slate-700">Availability *</label
+								<label for="edit-dish-availability" class="mb-1.5 block text-sm font-medium text-slate-700">Availability *</label
 								>
 								<select
+									id="edit-dish-availability"
 									name="availability"
 									bind:value={selectedDish.availability}
 									class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
@@ -708,7 +722,7 @@
 
 						<!-- Image URL -->
 						<div>
-							<label class="mb-1.5 block text-sm font-medium text-slate-700">Dish Image</label>
+							<label for="edit-dish-image-trigger" class="mb-1.5 block text-sm font-medium text-slate-700">Dish Image</label>
 							{#if selectedDish.image}
 								<div class="relative mb-3">
 									<img
@@ -718,6 +732,7 @@
 									/>
 									<button
 										type="button"
+										id="edit-dish-image-trigger"
 										onclick={openImageCropper}
 										class="absolute right-2 bottom-2 rounded-lg bg-white/90 px-2 py-1 text-xs font-medium text-slate-700 shadow hover:bg-white"
 									>
@@ -727,6 +742,7 @@
 							{:else}
 								<button
 									type="button"
+									id="edit-dish-image-trigger"
 									onclick={openImageCropper}
 									class="flex w-full items-center justify-center rounded-lg border-2 border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500 hover:border-amber-500 hover:text-amber-500"
 								>
@@ -750,8 +766,9 @@
 
 						<!-- Quantity -->
 						<div>
-							<label class="mb-1.5 block text-sm font-medium text-slate-700">Quantity *</label>
+							<label for="edit-dish-quantity" class="mb-1.5 block text-sm font-medium text-slate-700">Quantity *</label>
 							<input
+								id="edit-dish-quantity"
 								type="number"
 								name="quantity"
 								bind:value={selectedDish.quantity}
@@ -764,10 +781,11 @@
 						<!-- Pricing -->
 						<div class="grid grid-cols-2 gap-4">
 							<div>
-								<label class="mb-1.5 block text-sm font-medium text-slate-700"
+								<label for="edit-dish-default-amount" class="mb-1.5 block text-sm font-medium text-slate-700"
 									>Regular Price (₦) *</label
 								>
 								<input
+									id="edit-dish-default-amount"
 									type="number"
 									name="defaultAmount"
 									bind:value={selectedDish.defaultAmount}
@@ -777,10 +795,11 @@
 								/>
 							</div>
 							<div>
-								<label class="mb-1.5 block text-sm font-medium text-slate-700"
+								<label for="edit-dish-promo-amount" class="mb-1.5 block text-sm font-medium text-slate-700"
 									>Promo Price (₦)</label
 								>
 								<input
+									id="edit-dish-promo-amount"
 									type="number"
 									name="promoAmount"
 									bind:value={selectedDish.promoAmount}
@@ -828,10 +847,11 @@
 							<h2 class="font-playfair text-xl font-semibold text-white">Edit Dish</h2>
 							<p class="mt-1 text-sm text-slate-300">Update menu item</p>
 						</div>
-						<button
-							onclick={closeSideBar}
-							class="rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
-						>
+					<button
+						onclick={closeSideBar}
+						aria-label="Close edit dish drawer"
+						class="rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+					>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								class="h-5 w-5"

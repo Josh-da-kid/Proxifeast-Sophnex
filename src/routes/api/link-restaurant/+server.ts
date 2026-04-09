@@ -1,11 +1,16 @@
 // src/routes/api/link-restaurant/+server.ts
 
 import { json, type RequestHandler } from '@sveltejs/kit';
+import { getScopedRestaurantForRequest } from '$lib/server/restaurantAccess';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const data = await request.json();
 
 	try {
+		if (!locals.user) {
+			return json({ error: true, message: 'Unauthorized.' }, { status: 401 });
+		}
+
 		const { userId, restaurantId } = data;
 
 		if (!userId || !restaurantId) {
@@ -18,7 +23,20 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			);
 		}
 
-		console.log('Link request - userId:', userId, 'restaurantId:', restaurantId);
+		if (locals.user.id !== userId) {
+			return json({ error: true, message: 'Forbidden.' }, { status: 403 });
+		}
+
+		const { allowed } = await getScopedRestaurantForRequest(
+			locals.pb,
+			request.headers.get('host') || '',
+			restaurantId,
+			{ allowSuperFallback: true }
+		);
+
+		if (!allowed) {
+			return json({ error: true, message: 'Invalid restaurant context.' }, { status: 403 });
+		}
 
 		// Get user directly by ID (requires auth, but we can use the authenticated pb instance)
 		const user = await locals.pb.collection('users').getOne(userId);
@@ -49,8 +67,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		await locals.pb.collection('users').update(user.id, {
 			restaurantIds
 		});
-
-		console.log('Linked user', user.id, 'to restaurant', restaurantId);
 
 		return json({
 			error: false,

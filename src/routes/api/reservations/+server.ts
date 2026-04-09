@@ -1,5 +1,6 @@
 import type { RequestHandler } from './$types';
 import crypto from 'crypto';
+import { getScopedRestaurantForRequest } from '$lib/server/restaurantAccess';
 
 function generateQRToken(): string {
 	return crypto.randomBytes(32).toString('hex');
@@ -102,6 +103,20 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const user = locals.user;
 
 	try {
+		const { allowed } = await getScopedRestaurantForRequest(
+			locals.pb,
+			request.headers.get('host') || '',
+			storeId,
+			{ allowSuperFallback: true }
+		);
+
+		if (!allowed) {
+			return new Response(JSON.stringify({ error: 'Invalid restaurant context' }), {
+				status: 403,
+				headers: { 'Content-Type': 'application/json' }
+			});
+		}
+
 		const qrToken = generateQRToken();
 
 		// Generate QR code image URL

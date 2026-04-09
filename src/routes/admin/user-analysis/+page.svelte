@@ -662,13 +662,14 @@
 {#if showCustomerModal && selectedCustomer}
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-		onclick={closeCustomerModal}
+		onkeydown={(e) => e.key === 'Escape' && closeCustomerModal()}
 		role="dialog"
 		aria-modal="true"
+		tabindex="-1"
 	>
+		<button class="absolute inset-0" aria-label="Close customer details" onclick={closeCustomerModal}></button>
 		<div
 			class="max-h-[90vh] w-full max-w-lg overflow-auto rounded-2xl bg-white"
-			onclick={(e) => e.stopPropagation()}
 			role="document"
 		>
 			<div class="flex items-center justify-between border-b border-slate-100 p-4">

@@ -2,6 +2,7 @@
 
 import { error, json, type RequestHandler } from '@sveltejs/kit';
 import PocketBase, { ClientResponseError } from 'pocketbase';
+import { resolveRestaurantByDomain } from '$lib/server/restaurantAccess';
 
 const pb = new PocketBase('https://playgzero.pb.itcass.net/');
 
@@ -11,16 +12,9 @@ export const POST: RequestHandler = async ({ request }) => {
 	// Normalize email to lowercase for consistent lookups
 	const normalizedEmail = data.email?.toLowerCase().trim();
 
-	const host = request.headers.get('host') || '';
-	const domain = host.split(':')[0];
-
-	// 1. Get restaurant by domain
-	let restaurant;
-	try {
-		restaurant = await pb.collection('restaurants').getFirstListItem(`domain="${domain}"`);
-	} catch (e) {
-		throw error(400, 'Restaurant not found');
-	}
+	const restaurant = await resolveRestaurantByDomain(pb, request.headers.get('host') || '', {
+		allowSuperFallback: true
+	});
 
 	if (!restaurant) {
 		throw error(400, 'Restaurant not found');

@@ -332,10 +332,11 @@
 								}}
 							>
 								<input type="hidden" name="dishId" value={dish.id} />
-								<button
-									type="submit"
-									disabled={isProcessing}
-									class="rounded-lg bg-slate-100 p-2 text-slate-600 transition-colors hover:bg-orange-100 hover:text-orange-600"
+							<button
+								type="submit"
+								disabled={isProcessing}
+								aria-label={`Add ${dish.name} to featured`}
+								class="rounded-lg bg-slate-100 p-2 text-slate-600 transition-colors hover:bg-orange-100 hover:text-orange-600"
 									title="Add to featured"
 								>
 									<svg
@@ -363,14 +364,16 @@
 	{#if showAddModal}
 		<div
 			class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm"
-			onclick={() => (showAddModal = false)}
+			onkeydown={(e) => e.key === 'Escape' && (showAddModal = false)}
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="modal-title"
+			tabindex="-1"
 		>
+			<button class="absolute inset-0" aria-label="Close add to today's menu modal" onclick={() => (showAddModal = false)}></button>
 			<div
 				class="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl"
-				onclick={(e) => e.stopPropagation()}
+				role="document"
 				in:fly={{ y: 20, duration: 300 }}
 			>
 				<!-- Modal Header -->
@@ -393,6 +396,7 @@
 						</div>
 						<button
 							onclick={() => (showAddModal = false)}
+							aria-label="Close add to today's menu modal"
 							class="rounded-full bg-white/20 p-2 text-white transition-colors hover:bg-white/30"
 						>
 							<svg

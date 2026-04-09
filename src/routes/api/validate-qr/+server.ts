@@ -1,9 +1,11 @@
 import type { RequestHandler } from './$types';
+import { canAdminAccessRestaurant } from '$lib/server/restaurantAccess';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const formData = await request.formData();
 	let qrToken = formData.get('qrToken') as string;
 	const action = formData.get('action') as string;
+	const isAdminLookup = action === 'lookup' || action === 'checkin';
 
 	if (!qrToken) {
 		return new Response(JSON.stringify({ error: 'QR token is required' }), {
@@ -37,6 +39,22 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		const reservation = reservations[0];
+
+		if (isAdminLookup) {
+			if (!locals.user) {
+				return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+					status: 401,
+					headers: { 'Content-Type': 'application/json' }
+				});
+			}
+
+			if (!(await canAdminAccessRestaurant(locals.pb, locals.user, reservation.storeId))) {
+				return new Response(JSON.stringify({ error: 'Forbidden' }), {
+					status: 403,
+					headers: { 'Content-Type': 'application/json' }
+				});
+			}
+		}
 
 		// If action is to check-in, validate and update
 		if (action === 'checkin') {
@@ -90,6 +108,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 					message: 'Guest checked in successfully',
 					reservation: {
 						...updated,
+						qrToken,
 						storeName
 					}
 				}),
@@ -100,7 +119,41 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			);
 		}
 
-		// Just return reservation details without modifying
+		if (action === 'lookup') {
+			let storeName = 'Unknown Store';
+			try {
+				const store = await locals.pb.collection('restaurants').getOne(reservation.storeId);
+				storeName = store.name;
+			} catch (e) {}
+
+			return new Response(
+				JSON.stringify({
+					success: true,
+					reservation: {
+						id: reservation.id,
+						qrToken,
+						type: reservation.type,
+						guestName: reservation.guestName,
+						guestEmail: reservation.guestEmail,
+						guestPhone: reservation.guestPhone,
+						reservationDate: reservation.reservationDate,
+						checkInTime: reservation.checkInTime,
+						partySize: reservation.partySize,
+						roomNumber: reservation.roomNumber,
+						status: reservation.status,
+						checkedInAt: reservation.checkedInAt,
+						storeId: reservation.storeId,
+						storeName
+					}
+				}),
+				{
+					status: 200,
+					headers: { 'Content-Type': 'application/json' }
+				}
+			);
+		}
+
+		// Public token validation returns limited details only.
 		let storeName = 'Unknown Store';
 		try {
 			const store = await locals.pb.collection('restaurants').getOne(reservation.storeId);
@@ -111,7 +164,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			JSON.stringify({
 				success: true,
 				reservation: {
-					...reservation,
+					id: reservation.id,
+					guestName: reservation.guestName,
+					reservationDate: reservation.reservationDate,
+					checkInTime: reservation.checkInTime,
+					partySize: reservation.partySize,
+					status: reservation.status,
 					storeName
 				}
 			}),

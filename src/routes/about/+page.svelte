@@ -40,8 +40,8 @@
 	</section>
 
 	<!-- Content -->
-	<section class="container mx-auto px-4 py-16">
-		<div class="mx-auto max-w-5xl">
+	<section class="page-shell px-4 py-16">
+		<div class="mx-auto max-w-6xl 2xl:max-w-7xl">
 			<!-- What is Proxifeast -->
 			<article
 				class="mb-12 rounded-2xl bg-white p-8 shadow-lg md:p-12"

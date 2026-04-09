@@ -15,6 +15,7 @@
 	let orders: any = $state([]);
 	let filteredOrders: any = $state([]);
 	let loading = $state(true);
+	const canSearch = $derived(Boolean(searchInput.trim()));
 	const restaurantName = get(page).data.restaurant?.name;
 	const allRestaurants = get(page).data.allRestaurantsIncludingSuper ?? [];
 	const currentRestaurantId = get(page).data.restaurantId;
@@ -125,9 +126,9 @@
 
 	<!-- Search & Filters -->
 	<section class="container mx-auto px-4 py-6">
-		<form onsubmit={handleSearchSubmit} class="flex flex-col gap-4 md:flex-row md:items-center">
+		<form onsubmit={handleSearchSubmit} class="flex flex-col gap-4 rounded-2xl bg-white/70 p-4 shadow-lg shadow-slate-900/5 md:flex-row md:items-center">
 			<div
-				class="flex items-center gap-2 rounded-xl bg-white px-4 py-2 shadow-md shadow-slate-900/5"
+				class="flex flex-1 items-center gap-2 rounded-xl bg-white px-4 py-2 shadow-md shadow-slate-900/5"
 			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -144,15 +145,8 @@
 					name="search"
 					bind:value={searchInput}
 					placeholder="Search orders..."
-					class="bg-transparent py-2 text-slate-700 placeholder-slate-400 focus:outline-none"
+					class="w-full bg-transparent py-2 text-slate-700 placeholder-slate-400 focus:outline-none"
 				/>
-				{#if searchInput}
-					<button
-						type="button"
-						onclick={clearSearch}
-						class="text-sm text-slate-500 hover:text-slate-700">Clear</button
-					>
-				{/if}
 			</div>
 
 			<div class="flex flex-wrap gap-2">
@@ -176,6 +170,13 @@
 					<option value="Delivered">Delivered</option>
 					<option value="Cancelled">Cancelled</option>
 				</select>
+			</div>
+
+			<div class="flex gap-2 md:ml-auto">
+				<button type="submit" disabled={!canSearch} class="rounded-xl bg-slate-800 px-5 py-3 text-sm font-medium text-white transition enabled:hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300">Search</button>
+				{#if searchInput || selectedCategoryInput !== 'All' || selectedRestaurantInput !== 'All'}
+					<button type="button" onclick={clearSearch} class="rounded-xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-200">Clear</button>
+				{/if}
 			</div>
 		</form>
 	</section>
@@ -237,69 +238,61 @@
 					<Carousel>
 						{#each filteredOrders as order}
 							<article
-								class="w-96 shrink-0 snap-start rounded-xl border border-slate-100 bg-white p-5 shadow-sm"
+								class="w-[min(26rem,88vw)] shrink-0 snap-start rounded-2xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-900/5 transition-all hover:-translate-y-1 hover:shadow-xl"
 								in:fly={{ y: 20, duration: 300 }}
 							>
-								<!-- Header -->
-								<div class="mb-4 flex items-start justify-between">
+								<div class="mb-5 flex items-start justify-between gap-4">
 									<div>
-										<p class="text-xs text-slate-500">Order Ref</p>
-										<h3 class="font-semibold text-slate-900">{order.reference}</h3>
-										<p class="text-sm text-slate-600">{order.name || 'Guest'}</p>
+										<p class="text-[11px] font-semibold tracking-[0.22em] text-slate-400 uppercase">Archived Order</p>
+										<h3 class="mt-1 font-mono text-base font-semibold text-slate-900">{order.reference}</h3>
+										<p class="mt-1 text-sm text-slate-500">{order.name || 'Guest'}</p>
 									</div>
-									<span
-										class="rounded-full border px-3 py-1 text-xs font-medium {getStatusColor(
-											order.status
-										)}"
-									>
-										{order.status}
-									</span>
+									<span class="rounded-full border px-3 py-1 text-xs font-semibold {getStatusColor(order.status)}">{order.status}</span>
 								</div>
 
-								<!-- Details -->
-								<div class="mb-4 space-y-1 text-sm">
-									<div class="flex justify-between">
-										<span class="text-slate-500">Total</span>
-										<span class="font-semibold text-slate-700"
-											>₦{(order.orderTotal ?? order.totalAmount ?? 0).toLocaleString()}</span
-										>
+								<div class="mb-4 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-700 p-4 text-white">
+									<p class="text-xs uppercase tracking-[0.2em] text-white/60">Recorded Total</p>
+									<div class="mt-2 flex items-end justify-between gap-3">
+										<p class="text-3xl font-bold">₦{(order.orderTotal ?? order.totalAmount ?? 0).toLocaleString()}</p>
+										<div class="text-right text-sm text-white/70">
+											<p>{order.quantity} item{order.quantity !== 1 ? 's' : ''}</p>
+											<p>{order.restaurantName || restaurantName}</p>
+										</div>
 									</div>
-									<div class="flex justify-between">
-										<span class="text-slate-500">Items</span>
-										<span class="text-slate-700">{order.quantity}</span>
-									</div>
-									<div class="flex justify-between">
-										<span class="text-slate-500">Type</span>
-										<span class="text-slate-700">
-											{#if order.deliveryType === 'restaurantPickup'}Pickup
-											{:else if order.deliveryType === 'home'}Home Delivery
-											{:else if order.deliveryType === 'tableService'}Dine-in
-											{/if}
-										</span>
-									</div>
-									<p class="text-xs text-slate-500">{order.restaurantName || restaurantName}</p>
 								</div>
 
-								<!-- Dishes -->
-								<details class="mb-4">
-									<summary
-										class="cursor-pointer rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-									>
-										View Dishes ({order.dishes?.length || 0})
+								<div class="mb-4 grid grid-cols-2 gap-3 text-sm">
+									<div class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+										<p class="text-xs uppercase tracking-wide text-slate-400">Fulfilment</p>
+										<p class="mt-1 font-semibold text-slate-800">{#if order.deliveryType === 'restaurantPickup'}Pickup{:else if order.deliveryType === 'home'}Home Delivery{:else if order.deliveryType === 'tableService'}Dine-in{:else}{order.deliveryType}{/if}</p>
+									</div>
+									<div class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+										<p class="text-xs uppercase tracking-wide text-slate-400">Closed</p>
+										<p class="mt-1 font-semibold text-slate-800">{new Date(order.updated).toLocaleDateString()}</p>
+									</div>
+								</div>
+
+								<details class="mb-4 rounded-2xl border border-slate-200 bg-white open:bg-slate-50">
+									<summary class="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-slate-800">
+										<div class="flex items-center justify-between gap-3">
+											<span>Order Items ({order.dishes?.length || 0})</span>
+											<span class="text-xs font-medium text-slate-400">Tap to expand</span>
+										</div>
 									</summary>
-									<div class="mt-2 space-y-1">
+									<div class="space-y-2 px-4 pb-4">
 										{#each order.dishes || [] as item}
-											<div class="flex justify-between rounded bg-slate-50 px-3 py-1.5 text-xs">
-												<span class="text-slate-700">{item.name}</span>
-												<span class="text-slate-500">×{item.quantity}</span>
+											<div class="flex items-center justify-between rounded-xl bg-white px-3 py-3 text-sm shadow-sm shadow-slate-900/5">
+												<div>
+													<p class="font-medium text-slate-800">{item.name}</p>
+													<p class="text-xs text-slate-400">Quantity</p>
+												</div>
+												<span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">×{item.quantity}</span>
 											</div>
 										{/each}
 									</div>
 								</details>
 
-								<p class="text-xs text-slate-400">
-									Completed: {new Date(order.updated).toLocaleString()}
-								</p>
+								<p class="border-t border-slate-100 pt-4 text-xs text-slate-400">Completed {new Date(order.updated).toLocaleString()}</p>
 							</article>
 						{/each}
 					</Carousel>

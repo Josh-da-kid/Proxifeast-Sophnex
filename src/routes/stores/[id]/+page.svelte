@@ -235,7 +235,7 @@
 		</div>
 
 		<!-- Restaurant Info Card -->
-		<div class="relative mx-auto -mt-20 max-w-5xl px-4">
+		<div class="page-shell relative -mt-20 px-4">
 			<div class="rounded-2xl bg-white p-6 shadow-xl" in:fly={{ y: 20, duration: 400 }}>
 				<div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
 					<!-- Logo & Basic Info -->

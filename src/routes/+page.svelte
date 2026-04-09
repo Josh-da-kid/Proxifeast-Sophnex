@@ -274,8 +274,8 @@
 	let modalId: string | null = $state(null);
 	let modalRestaurantId: string | null = $state(null);
 
-	let deleteModal: HTMLDialogElement;
-	let clearModal: HTMLDialogElement;
+	let deleteModal = $state<HTMLDialogElement | undefined>(undefined);
+	let clearModal = $state<HTMLDialogElement | undefined>(undefined);
 	let dishToDelete: any = $state(null);
 
 	let unsubscribeDish: () => void;
@@ -284,7 +284,7 @@
 	// PWA Install Banner State
 	let showInstallBanner = $state(false);
 	let isIOS = $state(false);
-	let deferredPrompt: any = null;
+	let deferredPrompt: any = $state(null);
 	let installDismissed = $state(false);
 
 	// Initialize state from URL on mount
@@ -629,16 +629,6 @@
 			return;
 		}
 
-		// Check if user is logged in first - if not, prompt them to login
-		if (!$isLoggedIn) {
-			cartErrorMessage = 'Please login to add items to cart';
-			cartErrorAlert = true;
-			setTimeout(() => {
-				cartErrorAlert = false;
-			}, 3000);
-			return;
-		}
-
 		isAddingToCart.set(dish.id, true);
 		lastAddedDishId = dish.id;
 
@@ -652,6 +642,10 @@
 		addToCartOptimistic(dish, quantity, dish.restaurantId, restaurantName);
 
 		try {
+			if (!$isLoggedIn) {
+				return;
+			}
+
 			await addToCartPB(
 				pb,
 				dish.id,
@@ -691,7 +685,11 @@
 
 	export async function clearCart(clearModal?: HTMLDialogElement) {
 		const userId = $user?.id;
-		if (!userId) return;
+		if (!userId) {
+			cart.set([]);
+			clearModal?.close();
+			return;
+		}
 
 		isClearingCart = true;
 		try {
@@ -712,6 +710,11 @@
 
 	export async function removeFromCart(id: string) {
 		try {
+			if (id.startsWith('temp-')) {
+				cart.update((items) => items.filter((item: any) => item.id !== id));
+				return;
+			}
+
 			await pb.collection('cart').delete(id);
 			await fetchCart();
 		} catch (err) {
@@ -738,6 +741,18 @@
 
 		if (newQty < 1) {
 			await removeFromCart(itemId);
+			return;
+		}
+
+		if (itemId.startsWith('temp-')) {
+			cart.update((items) => {
+				return items.map((item: any) => {
+					if (item.id === itemId) {
+						return { ...item, quantity: newQty, amount: unitPrice * newQty };
+					}
+					return item;
+				});
+			});
 			return;
 		}
 
@@ -856,6 +871,7 @@
 		href="https://wa.me/2347068346403?text=Hello%20Proxifeast,%20I%20need%20assistance%20with%20my%20order."
 		target="_blank"
 		rel="noopener noreferrer"
+		aria-label="Contact us on WhatsApp"
 		class="tooltip fixed right-4 bottom-22 z-40 md:right-6 md:bottom-24"
 		data-tip="Contact us on WhatsApp"
 	>
@@ -1450,7 +1466,7 @@
 		<!-- Gallery Section (when restaurant is selected) -->
 		{#if selectedRestaurant?.galleryImages && selectedRestaurant.galleryImages.length > 0}
 			<section class="bg-base-100 relative overflow-hidden py-12">
-				<div class="container mx-auto px-6">
+				<div class="page-shell px-6">
 					<div class="mb-8 text-center">
 						<h2 class="font-playfair text-primary text-2xl font-bold sm:text-3xl">
 							{selectedRestaurant.name} Gallery
@@ -1474,7 +1490,7 @@
 			<div class="absolute top-16 -left-24 h-48 w-48 rounded-full bg-amber-200/20"></div>
 			<div class="absolute -right-24 bottom-16 h-56 w-56 rounded-full bg-amber-100/30"></div>
 
-			<div class="container mx-auto px-6">
+			<div class="page-shell px-6">
 				<div class="mb-12 text-center">
 					<span
 						class="mb-3 inline-block rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-500/30"
@@ -1487,7 +1503,7 @@
 					<p class="text-base-content/60 mt-3 text-lg">Handpicked dishes just for you</p>
 				</div>
 
-				<div class="container mx-auto px-6">
+				<div class="page-shell px-6">
 					<Carousel showArrows={true} showDots={true} autoplay={true} autoplayDelay={5000}>
 						{#each filteredFeaturedDishes as dish}
 							<div
@@ -1572,9 +1588,12 @@
 												{/if}
 											</div>
 											<div class="flex items-center gap-2">
-												{#if isSuper}
-													<button
-														class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border-2 border-amber-500 text-amber-500 transition-all hover:bg-amber-500 hover:text-white"
+						{#if isSuper}
+							<button
+								aria-label={dishFavorites.includes(dish.id)
+									? `Remove ${dish.name} from favorites`
+									: `Add ${dish.name} to favorites`}
+								class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border-2 border-amber-500 text-amber-500 transition-all hover:bg-amber-500 hover:text-white"
 														class:bg-amber-500={dishFavorites.includes(dish.id)}
 														class:text-white={dishFavorites.includes(dish.id)}
 														onclick={(e) => toggleDishFavorite(dish.id, e)}
@@ -1664,7 +1683,7 @@
 	{/if}
 
 	<!-- Search Section -->
-	<section id="menu" class="container mx-auto mb-8 px-6 py-8">
+	<section id="menu" class="page-shell mb-8 px-6 py-8">
 		<div class="mb-12 text-center">
 			<span
 				class="mb-2 inline-block rounded-full bg-amber-100 px-4 py-1 text-sm font-semibold text-amber-700"
@@ -1708,16 +1727,18 @@
 							<circle cx="11" cy="11" r="8" />
 							<path d="m21 21-4.3-4.3" />
 						</svg>
-						<input
-							type="text"
-							bind:value={searchInput}
-							placeholder="Search dishes..."
-							class="w-full rounded-xl border-0 bg-white py-3 pr-4 pl-12 placeholder-slate-400 shadow-lg shadow-slate-900/10 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-						/>
-						{#if searchInput}
-							<button
-								type="button"
-								onclick={() => (searchInput = '')}
+					<input
+						type="text"
+						bind:value={searchInput}
+						placeholder="Search dishes..."
+						aria-label="Search dishes"
+						class="w-full rounded-xl border-0 bg-white py-3 pr-4 pl-12 placeholder-slate-400 shadow-lg shadow-slate-900/10 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+					/>
+					{#if searchInput}
+						<button
+							type="button"
+							aria-label="Clear dish search"
+							onclick={() => (searchInput = '')}
 								class="absolute top-1/2 right-3 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
 							>
 								<svg
@@ -2084,7 +2105,7 @@
 		<!-- Menu View -->
 		{#if isLoading}
 			<!-- Skeleton Loading for Dishes -->
-			<div class="container mx-auto max-w-7xl px-4 py-6">
+			<div class="page-shell px-4 py-6">
 				<!-- Category Skeleton -->
 				<div class="mb-10">
 					<div class="mb-6 ml-4 h-8 w-32 animate-pulse rounded bg-gray-300"></div>
@@ -2149,20 +2170,36 @@
 					<Carousel>
 						{#each dishesInCategory as dish}
 							<div class="group w-80 shrink-0 snap-start" in:fly={{ y: 50, duration: 600 }}>
-								<article
-									class="relative flex h-full flex-col overflow-hidden rounded-xl border border-slate-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-									onclick={() => (
-										(modalImage = dish.image),
+							<div
+								class="relative flex h-full flex-col overflow-hidden rounded-xl border border-slate-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+								role="button"
+								tabindex="0"
+								onclick={() => (
+									(modalImage = dish.image),
 										(modalDish = dish.name),
 										(modalId = dish.id),
 										(modalRestaurantId = dish.restaurantId),
 										(modalPrice = dish.amount),
 										(modalDescription = dish.description),
 										(modalPromo = dish.promoAmount),
-										(modalDefault = dish.defaultAmount),
-										(modalAvailability = dish.availability)
-									)}
-								>
+									(modalDefault = dish.defaultAmount),
+									(modalAvailability = dish.availability)
+								)}
+								onkeydown={(e) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault();
+										modalImage = dish.image;
+										modalDish = dish.name;
+										modalId = dish.id;
+										modalRestaurantId = dish.restaurantId;
+										modalPrice = dish.amount;
+										modalDescription = dish.description;
+										modalPromo = dish.promoAmount;
+										modalDefault = dish.defaultAmount;
+										modalAvailability = dish.availability;
+									}
+								}}
+							>
 									<!-- Image Container -->
 									<div class="relative h-56 overflow-hidden">
 										<img
@@ -2263,8 +2300,9 @@
 											<div class="mt-auto flex flex-wrap items-center justify-between gap-3">
 												<!-- Quantity Selector -->
 												<div class="flex items-center gap-2 rounded-full bg-slate-100 p-1">
-													<button
-														onclick={(e) => {
+									<button
+										aria-label="Decrease quantity"
+										onclick={(e) => {
 															e.stopPropagation();
 															updateDishQuantity(dish.id, -1);
 														}}
@@ -2286,8 +2324,9 @@
 													<span class="w-8 text-center font-semibold text-slate-800">
 														{dishQuantities[dish.id] || 1}
 													</span>
-													<button
-														onclick={(e) => {
+									<button
+										aria-label="Increase quantity"
+										onclick={(e) => {
 															e.stopPropagation();
 															updateDishQuantity(dish.id, 1);
 														}}
@@ -2308,9 +2347,12 @@
 												</div>
 
 												<!-- Favorite Button (Super restaurants only) -->
-												{#if isSuper}
-													<button
-														class="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-amber-500 text-amber-500 transition-all hover:bg-amber-500 hover:text-white"
+										{#if isSuper}
+											<button
+												aria-label={dishFavorites.includes(dish.id)
+													? `Remove ${dish.name} from favorites`
+													: `Add ${dish.name} to favorites`}
+												class="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-amber-500 text-amber-500 transition-all hover:bg-amber-500 hover:text-white"
 														class:bg-amber-500={dishFavorites.includes(dish.id)}
 														class:text-white={dishFavorites.includes(dish.id)}
 														onclick={(e) => toggleDishFavorite(dish.id, e)}
@@ -2361,7 +2403,7 @@
 											</div>
 										</div>
 									</div>
-								</article>
+								</div>
 							</div>
 						{/each}
 					</Carousel>
@@ -2400,7 +2442,7 @@
 							>
 							Your Cart
 						</h2>
-						<button onclick={closeSideBar} class="btn btn-ghost btn-circle btn-sm">
+						<button aria-label="Close cart" onclick={closeSideBar} class="btn btn-ghost btn-circle btn-sm">
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								width="20"
@@ -2459,8 +2501,9 @@
 															'Store'}
 													</span>
 												</div>
-												<button
-													onclick={() => {
+										<button
+											aria-label={`Remove ${item.expand.dish.name} from cart`}
+											onclick={() => {
 														dishToDelete = item;
 														deleteModal.showModal();
 													}}
@@ -2777,7 +2820,7 @@
 							>
 							Your Cart
 						</h2>
-						<button onclick={closeSideBar} class="btn btn-ghost btn-circle btn-sm">
+						<button aria-label="Close cart" onclick={closeSideBar} class="btn btn-ghost btn-circle btn-sm">
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								width="20"

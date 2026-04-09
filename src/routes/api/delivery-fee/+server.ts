@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import PocketBase from 'pocketbase';
+import { getScopedRestaurantForRequest } from '$lib/server/restaurantAccess';
 
 // Try to get API key from environment
 // In production, use process.env, in dev use import.meta.env
@@ -149,6 +150,19 @@ export async function POST({ request }: { request: Request }) {
 	console.log('Order Subtotal:', orderSubtotal);
 
 	try {
+		const { allowed } = await getScopedRestaurantForRequest(
+			pb,
+			request.headers.get('host') || '',
+			restaurantId,
+			{
+				allowSuperFallback: true
+			}
+		);
+
+		if (!allowed) {
+			return json({ success: false, error: 'Invalid restaurant context' }, { status: 403 });
+		}
+
 		// Fetch restaurant data with all fields
 		const restaurant = await pb.collection('restaurants').getOne(restaurantId);
 

@@ -288,7 +288,7 @@
 					Get Started Now
 				</a>
 				<a
-					href="/pricing"
+					href="/setup-pricing"
 					class="rounded-full border border-slate-600 px-8 py-3 font-semibold text-white transition-all hover:bg-slate-800"
 				>
 					View Pricing

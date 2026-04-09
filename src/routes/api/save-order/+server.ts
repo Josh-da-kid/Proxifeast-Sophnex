@@ -2,6 +2,8 @@
 import { error, type RequestHandler } from '@sveltejs/kit';
 import PocketBase from 'pocketbase';
 import nodemailer from 'nodemailer';
+import { getScopedRestaurantForRequest } from '$lib/server/restaurantAccess';
+import { sendPushNotificationToUser } from '$lib/server/push';
 
 const pb = new PocketBase('https://playgzero.pb.itcass.net/');
 
@@ -20,7 +22,7 @@ function isRestaurantOpen(restaurant: any): boolean {
 	return currentTime >= openTime && currentTime <= closeTime;
 }
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	const data = await request.json();
 
 	// Validate address for home delivery
@@ -38,6 +40,10 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	try {
+		if (!Array.isArray(data.dishes) || data.dishes.length === 0) {
+			throw error(400, 'At least one dish is required');
+		}
+
 		// Get restaurant info for each dish and group by restaurant
 		const dishRestaurantMap = new Map<string, any[]>();
 
@@ -45,20 +51,43 @@ export const POST: RequestHandler = async ({ request }) => {
 			try {
 				const dish = await pb.collection('dishes').getOne(dishItem.dish);
 				const restaurantId = dish.restaurantId;
+				const quantity = Math.max(1, Number.parseInt(String(dishItem.quantity ?? 1), 10) || 1);
+				const unitAmount = Number(dish.promoAmount || dish.defaultAmount || dish.amount || 0);
+
+				const { allowed } = await getScopedRestaurantForRequest(
+					pb,
+					request.headers.get('host') || '',
+					restaurantId,
+					{ allowSuperFallback: true }
+				);
+
+				if (!allowed) {
+					throw error(403, 'Dish does not belong to the current restaurant context');
+				}
 
 				if (!dishRestaurantMap.has(restaurantId)) {
 					dishRestaurantMap.set(restaurantId, []);
 				}
 				dishRestaurantMap.get(restaurantId)!.push({
-					...dishItem,
-					dishName: dish.name
+					dish: dish.id,
+					dishName: dish.name,
+					quantity,
+					amount: unitAmount,
+					lineTotal: unitAmount * quantity
 				});
 			} catch (e) {
+				if ((e as { status?: number })?.status) {
+					throw e;
+				}
 				console.log('Could not get dish info for:', dishItem.dish);
 			}
 		}
 
 		const restaurantIds = Array.from(dishRestaurantMap.keys());
+		if (restaurantIds.length === 0) {
+			throw error(400, 'No valid dishes were found for this order');
+		}
+
 		const isMultiRestaurant = restaurantIds.length > 1;
 		const mainReference = data.reference;
 
@@ -80,11 +109,10 @@ export const POST: RequestHandler = async ({ request }) => {
 			}
 
 			const dishesForRestaurant = dishRestaurantMap.get(restaurantId)!;
-			const restaurantTotal = dishesForRestaurant.reduce((sum, d) => sum + (d.amount || 0), 0);
+			const restaurantTotal = dishesForRestaurant.reduce((sum, d) => sum + (d.lineTotal || 0), 0);
 			const restaurantQuantity = dishesForRestaurant.reduce((sum, d) => sum + (d.quantity || 0), 0);
 
 			const orderData: any = {
-				user: data.user,
 				name: data.name,
 				phone: data.formattedPhone,
 				email: data.email,
@@ -121,6 +149,10 @@ export const POST: RequestHandler = async ({ request }) => {
 				totalRestaurants: restaurantIds.length
 			};
 
+			if (locals.user?.id) {
+				orderData.user = locals.user.id;
+			}
+
 			const record = await pb.collection('orders').create(orderData);
 			createdOrders.push(record);
 
@@ -136,19 +168,14 @@ export const POST: RequestHandler = async ({ request }) => {
 				});
 
 				for (const admin of adminUsers) {
-					await fetch('https://playgzero.pb.itcass.net/api/send-push-notification', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({
-							userId: admin.id,
-							title: 'New Order Received!',
-							body: `New order #${orderData.reference} from ${orderData.name} - ₦${orderData.totalAmount.toLocaleString()}`,
-							data: {
-								url: '/admin/admin-order',
-								orderId: record.id
-							},
-							tag: `new-order-${record.id}`
-						})
+					await sendPushNotificationToUser(pb, admin.id, {
+						title: 'New Order Received!',
+						body: `New order #${orderData.reference} from ${orderData.name} - ₦${orderData.totalAmount.toLocaleString()}`,
+						data: {
+							url: '/admin/admin-order',
+							orderId: record.id
+						},
+						tag: `new-order-${record.id}`
 					});
 				}
 			} catch (pushErr) {

@@ -160,6 +160,12 @@ body {
 	-moz-osx-font-smoothing: grayscale;
 }
 
+.page-shell {
+	width: 100%;
+	max-width: 96rem;
+	margin-inline: auto;
+}
+
 h1,
 h2,
 h3,

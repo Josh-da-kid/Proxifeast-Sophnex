@@ -1,4 +1,5 @@
 import { writable, derived } from 'svelte/store';
+import { browser } from '$app/environment';
 import pb from '$lib/pb'; // your PocketBase instance
 
 type CartItem = {
@@ -13,6 +14,45 @@ type CartItem = {
 };
 
 export const cart = writable<any[]>([]);
+
+const GUEST_CART_STORAGE_KEY = 'proxifeast_guest_cart';
+
+function readGuestCart() {
+	if (!browser) return [];
+
+	try {
+		const raw = localStorage.getItem(GUEST_CART_STORAGE_KEY);
+		if (!raw) return [];
+		const parsed = JSON.parse(raw);
+		return Array.isArray(parsed) ? parsed : [];
+	} catch (err) {
+		console.error('Failed to read guest cart:', err);
+		return [];
+	}
+}
+
+function persistGuestCart(items: any[]) {
+	if (!browser) return;
+
+	try {
+		const guestItems = items.filter((item) => String(item.id).startsWith('temp-'));
+		if (guestItems.length === 0) {
+			localStorage.removeItem(GUEST_CART_STORAGE_KEY);
+			return;
+		}
+
+		localStorage.setItem(GUEST_CART_STORAGE_KEY, JSON.stringify(guestItems));
+	} catch (err) {
+		console.error('Failed to persist guest cart:', err);
+	}
+}
+
+if (browser) {
+	cart.set(readGuestCart());
+	cart.subscribe((items) => {
+		persistGuestCart(items);
+	});
+}
 
 export const total = derived(cart, ($cart) =>
 	$cart.reduce((acc, item) => {
@@ -74,8 +114,7 @@ export async function fetchCart(restaurantId?: string, userId?: string) {
 	try {
 		const currentUserId = userId || pb.authStore.model?.id;
 		if (!currentUserId) {
-			console.log('No user ID found for cart fetch');
-			return cart.set([]);
+			return cart.set(readGuestCart());
 		}
 
 		const records = await pb.collection('cart').getFullList({
@@ -102,7 +141,10 @@ export async function fetchCart(restaurantId?: string, userId?: string) {
 
 export async function clearCart(restaurantId?: string) {
 	const userId = pb.authStore.model?.id;
-	if (!userId) return;
+	if (!userId) {
+		cart.set([]);
+		return;
+	}
 
 	try {
 		let items = await pb.collection('cart').getFullList({
@@ -126,6 +168,11 @@ export async function clearCart(restaurantId?: string) {
 
 export async function removeFromCart(id: string) {
 	try {
+		if (id.startsWith('temp-')) {
+			cart.update((items) => items.filter((item: any) => item.id !== id));
+			return;
+		}
+
 		await pb.collection('cart').delete(id);
 		await fetchCart();
 	} catch (err) {

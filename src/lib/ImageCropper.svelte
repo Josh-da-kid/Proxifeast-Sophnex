@@ -35,9 +35,9 @@
 		}
 	});
 
-	let containerRef: HTMLDivElement;
-	let imageRef: HTMLImageElement;
-	let fileInputRef: HTMLInputElement;
+	let containerRef = $state<HTMLDivElement | undefined>(undefined);
+	let imageRef = $state<HTMLImageElement | undefined>(undefined);
+	let fileInputRef = $state<HTMLInputElement | undefined>(undefined);
 
 	let originalImage: string = $state(initialImage || '');
 	let isDragging = $state(false);
@@ -80,12 +80,17 @@
 	function handleDrop(event: DragEvent) {
 		event.preventDefault();
 		const file = event.dataTransfer?.files?.[0];
-		if (file && file.type.startsWith('image/')) {
+		const input = fileInputRef;
+		if (file && file.type.startsWith('image/') && input) {
 			const dataTransfer = new DataTransfer();
 			dataTransfer.items.add(file);
-			fileInputRef.files = dataTransfer.files;
-			handleFileSelect({ target: fileInputRef } as any);
+			input.files = dataTransfer.files;
+			handleFileSelect({ target: input } as any);
 		}
+	}
+
+	function triggerFileInput() {
+		fileInputRef?.click();
 	}
 
 	function handleDragOver(event: DragEvent) {
@@ -248,10 +253,10 @@
 			class="flex h-48 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 transition-colors hover:border-amber-500 hover:bg-amber-50"
 			ondrop={handleDrop}
 			ondragover={handleDragOver}
-			onclick={() => fileInputRef.click()}
+			onclick={triggerFileInput}
 			role="button"
 			tabindex="0"
-			onkeydown={(e) => e.key === 'Enter' && fileInputRef.click()}
+			onkeydown={(e) => e.key === 'Enter' && triggerFileInput()}
 		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
@@ -283,6 +288,7 @@
 	{#if originalImage && !showPreview}
 		<div class="space-y-4">
 			<!-- Viewfinder -->
+			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 			<div
 				bind:this={containerRef}
 				class="relative mx-auto overflow-hidden rounded-xl bg-slate-900"

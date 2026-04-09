@@ -289,6 +289,7 @@
 							href="https://instagram.com/proxifeast"
 							target="_blank"
 							rel="noopener noreferrer"
+							aria-label="Visit Proxifeast on Instagram"
 							class="text-slate-500 transition-colors hover:text-orange-400"
 						>
 							<svg
@@ -309,6 +310,7 @@
 							href="https://twitter.com/proxifeast"
 							target="_blank"
 							rel="noopener noreferrer"
+							aria-label="Visit Proxifeast on Twitter"
 							class="text-slate-500 transition-colors hover:text-orange-400"
 						>
 							<svg
@@ -329,6 +331,7 @@
 							href="https://wa.me/2347068346403"
 							target="_blank"
 							rel="noopener noreferrer"
+							aria-label="Chat with Proxifeast on WhatsApp"
 							class="text-slate-500 transition-colors hover:text-orange-400"
 						>
 							<svg
@@ -347,6 +350,7 @@
 							href="https://linkedin.com/company/proxifeast"
 							target="_blank"
 							rel="noopener noreferrer"
+							aria-label="Visit Proxifeast on LinkedIn"
 							class="text-slate-500 transition-colors hover:text-orange-400"
 						>
 							<svg

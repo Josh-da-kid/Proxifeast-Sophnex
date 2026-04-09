@@ -92,10 +92,11 @@
 							<h2 class="font-playfair text-xl font-semibold text-white">Add New Dish</h2>
 							<p class="mt-1 text-sm text-slate-300">Create a new menu item</p>
 						</div>
-						<button
-							onclick={closeSideBar}
-							class="rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
-						>
+					<button
+						onclick={closeSideBar}
+						aria-label="Close add dish drawer"
+						class="rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+					>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								class="h-5 w-5"
@@ -185,10 +186,11 @@
 
 						<!-- Category -->
 						<div>
-							<label class="mb-1.5 block text-sm font-medium text-slate-700">Category *</label>
-							<select
-								class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
-								name="category"
+						<label for="category" class="mb-1.5 block text-sm font-medium text-slate-700">Category *</label>
+						<select
+							id="category"
+							class="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-900 focus:border-slate-500 focus:bg-white focus:ring-1 focus:ring-slate-500 focus:outline-none"
+							name="category"
 								required
 							>
 								<option value="" disabled selected>Select Category</option>
@@ -291,10 +293,11 @@
 							</div>
 						{:else if imageSource === 'file'}
 							<div>
-								<label class="mb-1.5 block text-sm font-medium text-slate-700">Upload Image</label>
-								<input
-									type="file"
-									name="imageFile"
+							<label for="imageFile" class="mb-1.5 block text-sm font-medium text-slate-700">Upload Image</label>
+							<input
+								type="file"
+								id="imageFile"
+								name="imageFile"
 									accept="image/*"
 									class="w-full cursor-pointer rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-700 file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-slate-200 file:px-4 file:py-2 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-300"
 								/>
@@ -412,10 +415,11 @@
 						<div class="w-full max-w-2xl rounded-2xl bg-white p-6">
 							<div class="mb-4 flex items-center justify-between">
 								<h3 class="text-lg font-semibold text-slate-900">Crop Dish Image</h3>
-								<button
-									onclick={() => (showImageCropper = false)}
-									class="rounded-lg p-2 hover:bg-slate-100"
-								>
+							<button
+								onclick={() => (showImageCropper = false)}
+								aria-label="Close image cropper"
+								class="rounded-lg p-2 hover:bg-slate-100"
+							>
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
 										class="h-5 w-5"
@@ -460,6 +464,7 @@
 						</div>
 						<button
 							onclick={closeSideBar}
+							aria-label="Close add dish drawer"
 							class="rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
 						>
 							<svg

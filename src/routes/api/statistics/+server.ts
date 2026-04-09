@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import pb from '$lib/pb';
+import { canAdminAccessRestaurant, resolveRestaurantByDomain } from '$lib/server/restaurantAccess';
 
 function calculateStats(orders: any[]) {
 	const uniqueCustomers = new Set(orders.map((o: any) => o.user).filter(Boolean));
@@ -65,14 +65,24 @@ function getFilteredOrders(allOrders: any[], period: string) {
 }
 
 export const GET: RequestHandler = async ({ url, locals, request }) => {
-	const host = request.headers.get('host') || '';
-	const domain = host.split(':')[0];
 	const period = url.searchParams.get('period') || '30days';
 
 	try {
-		const restaurant = await locals.pb
-			.collection('restaurants')
-			.getFirstListItem(`domain = "${domain}"`);
+		if (!locals.user) {
+			return json({ error: 'Unauthorized' }, { status: 401 });
+		}
+
+		const restaurant = await resolveRestaurantByDomain(
+			locals.pb,
+			request.headers.get('host') || ''
+		);
+		if (!restaurant) {
+			return json({ error: 'Restaurant not found' }, { status: 404 });
+		}
+
+		if (!(await canAdminAccessRestaurant(locals.pb, locals.user, restaurant.id))) {
+			return json({ error: 'Forbidden' }, { status: 403 });
+		}
 
 		const isSuper = restaurant.isSuper === true;
 		const restaurantId = restaurant.id;

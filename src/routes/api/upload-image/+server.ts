@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { canAdminAccessRestaurant } from '$lib/server/restaurantAccess';
 
 export const POST: RequestHandler = async ({ locals, request, url }) => {
 	// Check if user is authenticated
@@ -12,6 +13,10 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
 
 	if (!restaurantId) {
 		return json({ error: 'Restaurant ID required' }, { status: 400 });
+	}
+
+	if (!(await canAdminAccessRestaurant(locals.pb, locals.user, restaurantId))) {
+		return json({ error: 'Forbidden' }, { status: 403 });
 	}
 
 	try {

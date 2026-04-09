@@ -5,7 +5,7 @@
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
-const CACHE = `cache-${process.env.npm_package_version || Date.now().toString()}`;
+const CACHE = `cache-${Date.now().toString()}`;
 
 console.log('[SW] Service Worker starting...');
 
