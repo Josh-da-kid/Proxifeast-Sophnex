@@ -308,10 +308,12 @@
 
 	let chartData = $derived(getChartDataForPeriod(selectedPeriod));
 
+	let lineChart: Chart | null = null;
+	let breakdownChart: Chart | null = null;
+	let newReturningChart: Chart | null = null;
+
 	onMount(() => {
 		const lineCtx = document.getElementById('ordersChart')?.getContext('2d');
-		let lineChart: Chart | null = null;
-
 		if (lineCtx) {
 			lineChart = new Chart(lineCtx, {
 				type: 'line',
@@ -329,7 +331,7 @@
 
 		const pieCtx = document.getElementById('breakdownChart')?.getContext('2d');
 		if (pieCtx && charts.orderBreakdown.labels?.length > 0) {
-			new Chart(pieCtx, {
+			breakdownChart = new Chart(pieCtx, {
 				type: 'pie',
 				data: charts.orderBreakdown,
 				options: {
@@ -339,9 +341,9 @@
 			});
 		}
 
-		const newReturningCtx = document.getElementById('newReturningChart')?.getContext('2d');
-		if (newReturningCtx && charts.newVsReturning.labels?.length > 0) {
-			new Chart(newReturningCtx, {
+		const nrCtx = document.getElementById('newReturningChart')?.getContext('2d');
+		if (nrCtx && charts.newVsReturning.labels?.length > 0) {
+			newReturningChart = new Chart(nrCtx, {
 				type: 'doughnut',
 				data: charts.newVsReturning,
 				options: {
@@ -353,7 +355,16 @@
 
 		return () => {
 			lineChart?.destroy();
+			breakdownChart?.destroy();
+			newReturningChart?.destroy();
 		};
+	});
+
+	$effect(() => {
+		if (lineChart && chartData) {
+			lineChart.data = chartData;
+			lineChart.update();
+		}
 	});
 </script>
 

@@ -2,9 +2,10 @@
 
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals, url, request }) => {
+export const load: PageServerLoad = async ({ locals, url, request, parent }) => {
+	const layoutData = await parent();
 	// Get current restaurant from layout - this is already correctly selected
-	const restaurantFromLayout = locals.restaurant;
+	const restaurantFromLayout = layoutData.restaurant || locals.restaurant;
 
 	// Helper function to check if restaurant is super
 	const isSuperRestaurant = (r: any) => r?.isSuper === true || r?.isSuper === 'true';
@@ -88,23 +89,42 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			}
 		}
 
-		if (!restaurant) {
-			return defaults;
+		// Fetch all restaurants for dropdown (for super users only)
+		const allRestaurants: any[] =
+			layoutData.allRestaurantsIncludingSuper ||
+			(await locals.pb.collection('restaurants').getFullList());
+
+		// Find super restaurant to get payment config
+		let superRestaurant = allRestaurants.find((r: any) => isSuperRestaurant(r));
+
+		// If not found from layout data, fetch super restaurant directly
+		if (!superRestaurant) {
+			try {
+				const superRestaurants = await locals.pb.collection('restaurants').getFullList({
+					filter: 'isSuper = true'
+				});
+				superRestaurant = superRestaurants?.[0] || null;
+			} catch (e) {
+				console.error('Failed to fetch super restaurant for paystack key:', e);
+			}
 		}
 
-		// Fetch all restaurants for dropdown (for super users only)
-		const allRestaurants: any[] = await locals.pb.collection('restaurants').getFullList();
+		if (!restaurant) {
+			return {
+				...defaults,
+				isSuper: false
+			};
+		}
 
-		// Find super restaurant
-		const superRestaurant = allRestaurants.find((r: any) => isSuperRestaurant(r));
-
-		// Determine if this is a super restaurant
+		// Billing rendering is based on the current restaurant context.
 		const isSuperRestaurantValue = isSuperRestaurant(restaurant);
 
 		console.log('=== BILLING PAGE DEBUG ===');
 		console.log('Restaurant found:', restaurant?.name, restaurant?.id);
 		console.log('restaurant.isSuper:', restaurant?.isSuper);
 		console.log('isSuperRestaurant:', isSuperRestaurantValue);
+		console.log('superRestaurant found:', !!superRestaurant, superRestaurant?.name);
+		console.log('paystackKey present:', !!superRestaurant?.paystackKey);
 		console.log('=========================');
 
 		// Get super restaurant for settings (for paystack key)
@@ -114,7 +134,7 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		const supportEmail = superRest?.supportEmail || 'support@proxifeast.com';
 
 		let subscription: any = null;
-		// Only show as active if the CURRENT restaurant is super
+		// Only show global subscription dashboard for current super restaurant
 		let subscriptionStatus = isSuperRestaurantValue ? 'active' : 'not_subscribed';
 		let subscriptions: any[] = [];
 		let restaurantsList: any[] = [];
@@ -209,7 +229,7 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			isAdminForRestaurant: true,
 			paystackKey,
 			supportEmail,
-			expired: url.searchParams.get('expired') === '1',
+			expired: !isSuperRestaurantValue && url.searchParams.get('expired') === '1',
 			restaurant: isSuperRestaurantValue ? null : restaurant,
 			subscriptions,
 			restaurants: restaurantsList,

@@ -1,5 +1,14 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { canAdminAccessRestaurant, isSuperadmin } from '$lib/server/restaurantAccess';
+
+async function assertRestaurantAccess(locals: App.Locals, restaurantId: string) {
+	return canAdminAccessRestaurant(locals.pb, locals.user, restaurantId);
+}
+
+function hasSuperStoreContext(locals: App.Locals) {
+	return locals.restaurant?.isSuper === true || locals.restaurant?.isSuper === 'true';
+}
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
@@ -98,11 +107,16 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		const shouldShowSuperData = isCurrentRestaurantSuper;
 		console.log('shouldShowSuperData:', shouldShowSuperData);
 
-		// Fetch all needed data
-		const [allRestaurantsData, allUsers] = await Promise.all([
-			locals.pb.collection('restaurants').getFullList({ sort: 'name' }),
-			locals.pb.collection('users').getFullList({ sort: 'name' })
-		]);
+		const allRestaurantsData = shouldShowSuperData
+			? await locals.pb.collection('restaurants').getFullList({ sort: 'name' })
+			: [restaurant];
+
+		const allUsers = shouldShowSuperData
+			? await locals.pb.collection('users').getFullList({ sort: 'name' })
+			: await locals.pb.collection('users').getFullList({
+					filter: `adminRestaurantIds ?~ "${restaurantId}"`,
+					sort: 'name'
+				});
 
 		let setupInquiries: any[] = [];
 		if (shouldShowSuperData) {
@@ -117,25 +131,53 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 		// Process team members based on whether CURRENT restaurant is super
 		let teamMembers;
+		let managedStores: any[] = [];
+		let globalUsers: any[] = [];
 		if (shouldShowSuperData) {
-			const superRestaurants = allRestaurantsData.filter(
-				(r: any) => r.isSuper === true || r.isSuper === 'true'
-			);
-
-			teamMembers = superRestaurants.map((r: any) => {
+			managedStores = allRestaurantsData.map((r: any) => {
 				const admins = allUsers.filter((u: any) => (u.adminRestaurantIds || []).includes(r.id));
+				const members = allUsers.filter((u: any) => (u.restaurantIds || []).includes(r.id));
 				return {
 					id: r.id,
 					name: r.name,
 					email: r.email || '',
 					domain: r.domain,
 					isSuper: r.isSuper,
+					type: r.type || 'restaurant',
+					adminCount: admins.length,
+					memberCount: members.length,
 					role: 'restaurant',
-					adminUsers: admins.map((a: any) => ({ name: a.name, email: a.email, role: a.role }))
+					adminUsers: admins.map((a: any) => ({
+						id: a.id,
+						name: a.name,
+						email: a.email,
+						role: a.role
+					}))
 				};
 			});
 
-			console.log('Super restaurants with admins:', teamMembers.length);
+			globalUsers = allUsers.map((user: any) => {
+				const adminIds = user.adminRestaurantIds || [];
+				const memberIds = user.restaurantIds || [];
+				return {
+					id: user.id,
+					name: user.name,
+					email: user.email,
+					role: user.role || 'manager',
+					isActive: user.isActive !== false,
+					isSuperUser: user.isSuper === true || user.isSuper === 'true',
+					adminRestaurants: allRestaurantsData
+						.filter((store: any) => adminIds.includes(store.id))
+						.map((store: any) => ({ id: store.id, name: store.name })),
+					memberRestaurants: allRestaurantsData
+						.filter((store: any) => memberIds.includes(store.id))
+						.map((store: any) => ({ id: store.id, name: store.name }))
+				};
+			});
+
+			teamMembers = managedStores;
+
+			console.log('Super stores loaded:', managedStores.length, 'users:', globalUsers.length);
 		} else {
 			// For regular restaurants, show users who are ADMINS of this specific restaurant
 			teamMembers = allUsers.filter((m: any) => {
@@ -158,8 +200,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			const otherRestaurants = allRestaurantsData.filter((r: any) => r.id !== restaurantId);
 			restaurants = currentRest ? [currentRest, ...otherRestaurants] : allRestaurantsData;
 		} else if (allAccessibleIds.length > 0) {
-			// Use the already fetched allRestaurantsData instead of making another request
-			restaurants = allRestaurantsData.filter((r: any) => allAccessibleIds.includes(r.id));
+			restaurants = userAccessibleRestaurants;
 		}
 
 		let galleryImages: string[] = [];
@@ -206,6 +247,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 					};
 				}
 			}),
+			managedStores,
+			globalUsers,
 			isSuper: shouldShowSuperData,
 			isAdminForRestaurant: true,
 			setupInquiries
@@ -241,7 +284,7 @@ export const actions: Actions = {
 		const userRole = locals.user?.role || 'manager';
 		const isManagerOrOwner = userRole === 'owner' || userRole === 'manager';
 
-		if (!isManagerOrOwner) {
+		if (!isManagerOrOwner || !(await assertRestaurantAccess(locals, restaurantId))) {
 			return fail(403, { error: 'Unauthorized' });
 		}
 
@@ -266,6 +309,121 @@ export const actions: Actions = {
 		}
 	},
 
+	updateUserAdminAccess: async ({ request, locals }) => {
+		if (!hasSuperStoreContext(locals) && !(await isSuperadmin(locals.pb, locals.user))) {
+			return fail(403, { error: 'Only super admins can manage global user access' });
+		}
+
+		const formData = await request.formData();
+		const userId = formData.get('userId') as string;
+		const restaurantId = formData.get('restaurantId') as string;
+		const mode = formData.get('mode') as string;
+
+		if (!userId || !restaurantId || !mode) {
+			return fail(400, { error: 'Missing required fields' });
+		}
+
+		if (userId === locals.user?.id && mode === 'remove') {
+			return fail(400, { error: 'You cannot remove your own admin access' });
+		}
+
+		try {
+			const user = await locals.pb.collection('users').getOne(userId);
+			const restaurant = await locals.pb.collection('restaurants').getOne(restaurantId);
+
+			const adminRestaurantIds = [...new Set([...(user.adminRestaurantIds || [])])];
+			const restaurantIds = [...new Set([...(user.restaurantIds || [])])];
+
+			if (mode === 'grant') {
+				if (!adminRestaurantIds.includes(restaurantId)) adminRestaurantIds.push(restaurantId);
+				if (!restaurantIds.includes(restaurantId)) restaurantIds.push(restaurantId);
+			} else if (mode === 'remove') {
+				if (restaurant.isSuper === true || restaurant.isSuper === 'true') {
+					return fail(400, { error: 'Use the super user toggle to manage super-store access' });
+				}
+
+				const nextAdminIds = adminRestaurantIds.filter((id: string) => id !== restaurantId);
+				const nextRestaurantIds = restaurantIds.filter((id: string) => id !== restaurantId);
+
+				await locals.pb.collection('users').update(userId, {
+					adminRestaurantIds: nextAdminIds,
+					restaurantIds: nextRestaurantIds
+				});
+
+				return { success: true, message: 'Admin access removed successfully' };
+			} else {
+				return fail(400, { error: 'Invalid action requested' });
+			}
+
+			await locals.pb.collection('users').update(userId, {
+				adminRestaurantIds,
+				restaurantIds
+			});
+
+			return { success: true, message: 'Admin access updated successfully' };
+		} catch (error) {
+			return fail(500, { error: 'Failed to update admin access' });
+		}
+	},
+
+	toggleSuperStore: async ({ request, locals }) => {
+		if (!hasSuperStoreContext(locals) && !(await isSuperadmin(locals.pb, locals.user))) {
+			return fail(403, { error: 'Only super admins can manage super stores' });
+		}
+
+		const formData = await request.formData();
+		const restaurantId = formData.get('restaurantId') as string;
+		const nextValue = formData.get('isSuper') === 'true';
+
+		if (!restaurantId) {
+			return fail(400, { error: 'Store is required' });
+		}
+
+		try {
+			await locals.pb.collection('restaurants').update(restaurantId, {
+				isSuper: nextValue
+			});
+
+			return {
+				success: true,
+				message: nextValue ? 'Store promoted to super store' : 'Store removed from super stores'
+			};
+		} catch (error) {
+			return fail(500, { error: 'Failed to update store tier' });
+		}
+	},
+
+	toggleSuperUser: async ({ request, locals }) => {
+		if (!hasSuperStoreContext(locals) && !(await isSuperadmin(locals.pb, locals.user))) {
+			return fail(403, { error: 'Only super admins can manage super users' });
+		}
+
+		const formData = await request.formData();
+		const userId = formData.get('userId') as string;
+		const nextValue = formData.get('isSuper') === 'true';
+
+		if (!userId) {
+			return fail(400, { error: 'User is required' });
+		}
+
+		if (userId === locals.user?.id && !nextValue) {
+			return fail(400, { error: 'You cannot remove your own super access' });
+		}
+
+		try {
+			await locals.pb.collection('users').update(userId, {
+				isSuper: nextValue
+			});
+
+			return {
+				success: true,
+				message: nextValue ? 'User promoted to super admin' : 'Super admin access removed'
+			};
+		} catch (error) {
+			return fail(500, { error: 'Failed to update super admin access' });
+		}
+	},
+
 	updateRestaurantInfo: async ({ request, locals, url }) => {
 		const formData = await request.formData();
 
@@ -281,7 +439,7 @@ export const actions: Actions = {
 		const userRole = locals.user?.role || 'manager';
 		const isManagerOrOwner = userRole === 'owner' || userRole === 'manager';
 
-		if (!isManagerOrOwner) {
+		if (!isManagerOrOwner || !(await assertRestaurantAccess(locals, restaurantId))) {
 			return fail(403, { error: 'Unauthorized' });
 		}
 
@@ -363,7 +521,7 @@ export const actions: Actions = {
 		const userRole = locals.user?.role || 'manager';
 		const isManagerOrOwner = userRole === 'owner' || userRole === 'manager';
 
-		if (!isManagerOrOwner) {
+		if (!isManagerOrOwner || !(await assertRestaurantAccess(locals, restaurantId))) {
 			return fail(403, { error: 'Unauthorized' });
 		}
 
@@ -402,7 +560,7 @@ export const actions: Actions = {
 		const userRole = locals.user?.role || 'manager';
 		const isManagerOrOwner = userRole === 'owner' || userRole === 'manager';
 
-		if (!isManagerOrOwner) {
+		if (!isManagerOrOwner || !(await assertRestaurantAccess(locals, restaurantId))) {
 			return fail(403, { error: 'Unauthorized' });
 		}
 
@@ -419,6 +577,16 @@ export const actions: Actions = {
 		}
 
 		try {
+			const targetUser = await locals.pb.collection('users').getOne(userId);
+			const isAssignedToRestaurant = [
+				...(targetUser.adminRestaurantIds || []),
+				...(targetUser.restaurantIds || [])
+			].includes(restaurantId);
+
+			if (!isAssignedToRestaurant) {
+				return fail(404, { error: 'User is not assigned to this store' });
+			}
+
 			await locals.pb.collection('users').update(userId, {
 				role: newRole
 			});
@@ -442,7 +610,7 @@ export const actions: Actions = {
 		const userRole = locals.user?.role || 'manager';
 		const isOwner = userRole === 'owner';
 
-		if (!isOwner) {
+		if (!isOwner || !(await assertRestaurantAccess(locals, restaurantId))) {
 			return fail(403, { error: 'Only owners can remove team members' });
 		}
 
@@ -487,10 +655,8 @@ export const actions: Actions = {
 			...new Set([...userAdminRestaurantIds, ...userRestaurantIdsList])
 		];
 
-		const isSuperUser = allUserRestaurantIds.some((id: string) => {
-			const rest = allRestaurantsForSuperCheck.find((r: any) => r.id === id);
-			return rest?.isSuper === true || rest?.isSuper === 'true';
-		});
+		const isSuperUser =
+			hasSuperStoreContext(locals) || (await isSuperadmin(locals.pb, locals.user));
 
 		console.log('isSuperUser for create:', {
 			userAdminRestaurantIds,
@@ -623,7 +789,7 @@ export const actions: Actions = {
 	updateInquiryStatus: async ({ request, locals, url }) => {
 		const formData = await request.formData();
 
-		const isSuper = locals.user?.isSuper || locals.isSuper || false;
+		const isSuper = hasSuperStoreContext(locals) || (await isSuperadmin(locals.pb, locals.user));
 		if (!isSuper) {
 			return fail(403, { error: 'Only super admins can update inquiries' });
 		}

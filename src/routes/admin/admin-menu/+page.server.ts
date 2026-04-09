@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { canAdminAccessRestaurant, resolveRestaurantByDomain } from '$lib/server/restaurantAccess';
 
 // Helper function to check if user is admin for a specific restaurant
 function isUserAdminForRestaurant(user: any, restaurantId: string): boolean {
@@ -11,6 +12,13 @@ function isUserAdminForRestaurant(user: any, restaurantId: string): boolean {
 	}
 	// Fallback to global isAdmin flag
 	return user?.isAdmin === true && userRestaurantIds.includes(restaurantId);
+}
+
+async function getScopedRestaurantId(locals: App.Locals, request: Request) {
+	const restaurant = await resolveRestaurantByDomain(locals.pb, request.headers.get('host') || '', {
+		allowSuperFallback: true
+	});
+	return restaurant?.id || null;
 }
 
 export const load: PageServerLoad = async ({ locals, url, parent }) => {
@@ -54,21 +62,13 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 
 export const actions: Actions = {
 	toggleFeatured: async ({ locals, request }) => {
-		const host = request.headers.get('host') || '';
-		const domain = host.split(':')[0];
+		const restaurantId = await getScopedRestaurantId(locals, request);
 
-		let restaurantId: string;
-		try {
-			const restaurant = await locals.pb
-				.collection('restaurants')
-				.getFirstListItem(`domain = "${domain}"`);
-			restaurantId = restaurant.id;
-		} catch {
+		if (!restaurantId) {
 			return fail(400, { error: 'Restaurant not found.' });
 		}
 
-		// Check if user is admin for this restaurant
-		if (!isUserAdminForRestaurant(locals.user, restaurantId)) {
+		if (!(await canAdminAccessRestaurant(locals.pb, locals.user, restaurantId))) {
 			return fail(403, { error: 'Forbidden. You must be an admin.' });
 		}
 
@@ -99,21 +99,13 @@ export const actions: Actions = {
 	},
 
 	createDish: async ({ locals, request }) => {
-		const host = request.headers.get('host') || '';
-		const domain = host.split(':')[0];
+		const restaurantId = await getScopedRestaurantId(locals, request);
 
-		let restaurantId: string;
-		try {
-			const restaurant = await locals.pb
-				.collection('restaurants')
-				.getFirstListItem(`domain = "${domain}"`);
-			restaurantId = restaurant.id;
-		} catch {
+		if (!restaurantId) {
 			return fail(400, { error: 'Restaurant not found.' });
 		}
 
-		// Check if user is admin for this restaurant
-		if (!isUserAdminForRestaurant(locals.user, restaurantId)) {
+		if (!(await canAdminAccessRestaurant(locals.pb, locals.user, restaurantId))) {
 			return fail(403, { error: 'Forbidden. You must be an admin.' });
 		}
 
@@ -156,21 +148,13 @@ export const actions: Actions = {
 	},
 
 	editDish: async ({ locals, request }) => {
-		const host = request.headers.get('host') || '';
-		const domain = host.split(':')[0];
+		const restaurantId = await getScopedRestaurantId(locals, request);
 
-		let restaurantId: string;
-		try {
-			const restaurant = await locals.pb
-				.collection('restaurants')
-				.getFirstListItem(`domain = "${domain}"`);
-			restaurantId = restaurant.id;
-		} catch {
+		if (!restaurantId) {
 			return fail(400, { error: 'Restaurant not found.' });
 		}
 
-		// Check if user is admin for this restaurant
-		if (!isUserAdminForRestaurant(locals.user, restaurantId)) {
+		if (!(await canAdminAccessRestaurant(locals.pb, locals.user, restaurantId))) {
 			return fail(403, { error: 'Forbidden. You must be an admin.' });
 		}
 

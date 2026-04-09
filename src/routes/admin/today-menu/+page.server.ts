@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { canAdminAccessRestaurant } from '$lib/server/restaurantAccess';
 
 function isUserAdminForRestaurant(user: any, restaurantId: string): boolean {
 	const adminRestaurantIds = user?.adminRestaurantIds || [];
@@ -24,7 +25,7 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 		return { featuredDishes: [], allDishes: [], restaurant: null };
 	}
 
-	if (!isUserAdminForRestaurant(locals.user, restaurantId)) {
+	if (!(await canAdminAccessRestaurant(locals.pb, locals.user, restaurantId))) {
 		return { featuredDishes: [], allDishes: [], restaurant: null };
 	}
 
@@ -61,6 +62,11 @@ export const actions: Actions = {
 		}
 
 		try {
+			const dish = await locals.pb.collection('dishes').getOne(dishId);
+			if (!(await canAdminAccessRestaurant(locals.pb, locals.user, dish.restaurantId))) {
+				return fail(403, { error: 'Forbidden.' });
+			}
+
 			await locals.pb.collection('dishes').update(dishId, {
 				isFeatured: !isFeatured
 			});
@@ -80,6 +86,11 @@ export const actions: Actions = {
 		}
 
 		try {
+			const dish = await locals.pb.collection('dishes').getOne(dishId);
+			if (!(await canAdminAccessRestaurant(locals.pb, locals.user, dish.restaurantId))) {
+				return fail(403, { error: 'Forbidden.' });
+			}
+
 			await locals.pb.collection('dishes').update(dishId, {
 				isFeatured: false
 			});
@@ -99,6 +110,11 @@ export const actions: Actions = {
 		}
 
 		try {
+			const dish = await locals.pb.collection('dishes').getOne(dishId);
+			if (!(await canAdminAccessRestaurant(locals.pb, locals.user, dish.restaurantId))) {
+				return fail(403, { error: 'Forbidden.' });
+			}
+
 			await locals.pb.collection('dishes').update(dishId, {
 				isFeatured: true
 			});

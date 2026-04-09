@@ -582,7 +582,7 @@
 	{/if}
 
 	<!-- Expired/Cancelled/Pending/Not Subscribed Alert -->
-	{#if data.expired || data.subscriptionStatus === 'expired' || data.subscriptionStatus === 'not_subscribed' || data.subscriptionStatus === 'cancelled' || data.subscriptionStatus === 'pending'}
+	{#if (!data.isSuper && (data.expired || data.subscriptionStatus === 'expired' || data.subscriptionStatus === 'not_subscribed' || data.subscriptionStatus === 'cancelled' || data.subscriptionStatus === 'pending'))}
 		<div class="container mx-auto mt-6 px-4">
 			<div class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
 				<svg
@@ -625,7 +625,7 @@
 				</div>
 			</div>
 		</div>
-	{:else if data.subscriptionStatus === 'expiring_soon'}
+	{:else if !data.isSuper && data.subscriptionStatus === 'expiring_soon'}
 		<div class="container mx-auto mt-6 px-4">
 			<div class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
 				<svg
@@ -738,8 +738,8 @@
 								<button
 									class="btn btn-primary w-full"
 									onclick={() => {
-										activeTab = 'add';
 										selectedPlan = data.subscription?.plan || 'monthly';
+										handleSubscribe();
 									}}
 								>
 									Renew Now

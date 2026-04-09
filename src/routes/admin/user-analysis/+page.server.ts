@@ -1,33 +1,8 @@
 import type { PageServerLoad } from '../$types';
 
-export const load: PageServerLoad = async ({ locals, request }) => {
-	const host = request.headers.get('host') || '';
-	const domainOnly = host.split(':')[0].replace('www.', '').toLowerCase();
-
-	let restaurant: any = null;
-	let restaurantId: string | null = null;
-
-	try {
-		restaurant = await locals.pb
-			.collection('restaurants')
-			.getFirstListItem(`domain = "${domainOnly}"`);
-		restaurantId = restaurant?.id || null;
-	} catch {
-		try {
-			const results = await locals.pb
-				.collection('restaurants')
-				.getList(1, 5, { filter: `domain ~ "${domainOnly}"` });
-			if (results.items.length > 0) restaurant = results.items[0];
-		} catch {}
-		if (!restaurant) {
-			try {
-				restaurant = await locals.pb.collection('restaurants').getFirstListItem('isSuper = true');
-			} catch {}
-		}
-		restaurantId = restaurant?.id || null;
-	}
-
-	console.log('User Analysis - Restaurant ID:', restaurantId);
+export const load: PageServerLoad = async ({ locals, parent }) => {
+	const layoutData = await parent();
+	const restaurantId = layoutData.restaurantId || null;
 
 	if (!restaurantId) return getEmptyData();
 
@@ -307,7 +282,12 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 
 		return {
 			customerStats,
-			userOrdersMap: Object.fromEntries(customerStats.map((c: any) => [c.id, c.orders || []])),
+			userOrdersMap: Object.fromEntries(
+				Object.entries(customerMap).map(([id, customer]: [string, any]) => [
+					id,
+					customer.orders || []
+				])
+			),
 			charts: {
 				revenueOverTime,
 				tierDistribution,

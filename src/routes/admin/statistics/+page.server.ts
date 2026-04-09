@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { isSuperadmin } from '$lib/server/restaurantAccess';
 
 function calculateStats(orders: any[]) {
 	const uniqueCustomers = new Set(orders.map((o: any) => o.user).filter(Boolean));
@@ -108,22 +109,23 @@ function getMonthlyStats(orders: any[]): { labels: string[]; revenue: number[]; 
 	};
 }
 
-export const load: PageServerLoad = async ({ locals, request }) => {
-	const host = request.headers.get('host') || '';
-	const domain = host.split(':')[0];
-
+export const load: PageServerLoad = async ({ locals, parent }) => {
 	try {
-		const restaurant = await locals.pb
-			.collection('restaurants')
-			.getFirstListItem(`domain = "${domain}"`);
+		const layoutData = await parent();
+		const restaurant = layoutData.restaurant;
+		const isSuper = await isSuperadmin(locals.pb, locals.user);
+		const restaurantId = layoutData.restaurantId;
+		const restaurantName = restaurant?.name || 'Store';
 
-		const isSuper = restaurant.isSuper === true || restaurant.isSuper === 'true';
-		const restaurantId = restaurant.id;
-		const restaurantName = restaurant.name;
+		if (!restaurantId) {
+			throw new Error('Restaurant context not found');
+		}
 
-		const allRestaurants = await locals.pb.collection('restaurants').getFullList({
-			fields: 'id, name, isSuper'
-		});
+		const allRestaurants = isSuper
+			? await locals.pb.collection('restaurants').getFullList({
+					fields: 'id, name, isSuper'
+				})
+			: [restaurant].filter(Boolean);
 
 		const myDeliveredOrders = await locals.pb.collection('orders').getFullList({
 			filter: `restaurantId = "${restaurantId}" && status = "Delivered"`,
@@ -260,82 +262,26 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 				statusBreakdown: Object.entries(statusCounts).map(([status, count]) => ({ status, count }))
 			};
 		} else {
-			const allOrders = await locals.pb.collection('orders').getFullList({
-				filter: `status = "Delivered"`,
-				sort: '-created'
-			});
-
-			const restaurantStats: any[] = [];
-			for (const r of allRestaurants) {
-				const rOrders = allOrders.filter((o: any) => o.restaurantId === r.id);
-				if (rOrders.length > 0) {
-					const stats = calculateStats(rOrders);
-					restaurantStats.push({
-						revenue: stats.revenue,
-						orders: stats.orders,
-						customers: stats.customers,
-						avgOrderValue: stats.avgOrderValue,
-						recurringRate: parseInt(stats.recurringRate)
-					});
-				}
-			}
-
-			const revenues = restaurantStats.map((r) => r.revenue).sort((a: number, b: number) => a - b);
-			const ordersList = restaurantStats.map((r) => r.orders).sort((a: number, b: number) => a - b);
-			const avgOrdersList = restaurantStats
-				.map((r) => r.avgOrderValue)
-				.sort((a: number, b: number) => a - b);
-
-			function getPercentile(value: number, sortedList: number[]): number {
-				if (sortedList.length === 0) return 0;
-				const index = sortedList.findIndex((v) => v >= value);
-				if (index === -1) return 100;
-				return Math.round((index / sortedList.length) * 100);
-			}
-
-			const revenuePercentile = getPercentile(myRevenue, revenues);
-			const ordersPercentile = getPercentile(myOrders, ordersList);
-			const avgOrderPercentile = getPercentile(myAvgOrder, avgOrdersList);
-
-			const totalRev = revenues.reduce((a: number, b: number) => a + b, 0);
-			const totalOrds = ordersList.reduce((a: number, b: number) => a + b, 0);
-			const avgRevenue = restaurantStats.length > 0 ? totalRev / restaurantStats.length : 0;
-			const avgOrd = restaurantStats.length > 0 ? totalOrds / restaurantStats.length : 0;
-			const avgCust =
-				restaurantStats.length > 0
-					? restaurantStats.reduce((sum: number, r: any) => sum + r.customers, 0) /
-						restaurantStats.length
-					: 0;
+			const revenuePercentile = 100;
+			const ordersPercentile = 100;
+			const avgOrderPercentile = 100;
 
 			const comparison = {
-				revenueVsAvg: avgRevenue > 0 ? ((myRevenue / avgRevenue) * 100).toFixed(0) : '0',
-				ordersVsAvg: avgOrd > 0 ? ((myOrders / avgOrd) * 100).toFixed(0) : '0',
-				avgOrderVsAvg: avgOrd > 0 ? ((myAvgOrder / avgOrd) * 100).toFixed(0) : '0'
+				revenueVsAvg: '100',
+				ordersVsAvg: '100',
+				avgOrderVsAvg: '100'
 			};
 
-			const topPerformers = [...restaurantStats]
-				.sort((a: any, b: any) => b.revenue - a.revenue)
-				.slice(0, 5)
-				.map((r: any, i: number) => ({
-					rank: i + 1,
-					label: `Top Restaurant ${i + 1}`,
-					orders: r.orders,
-					revenue: r.revenue
-				}));
+			const topPerformers: any[] = [];
 
 			const benchmarks = {
-				avgRevenue: Math.round(avgRevenue),
-				avgOrders: Math.round(avgOrd),
-				avgCustomers: Math.round(avgCust),
-				totalRestaurants: restaurantStats.length
+				avgRevenue: Math.round(myRevenue),
+				avgOrders: Math.round(myOrders),
+				avgCustomers: Math.round(myCustomers),
+				totalRestaurants: 1
 			};
 
-			const avgPercentile = (revenuePercentile + ordersPercentile + avgOrderPercentile) / 3;
-			let rating = 'Needs Improvement';
-			if (avgPercentile >= 80) rating = 'Excellent';
-			else if (avgPercentile >= 60) rating = 'Good';
-			else if (avgPercentile >= 40) rating = 'Average';
-			else if (avgPercentile >= 20) rating = 'Below Average';
+			const rating = 'Store View';
 
 			const last30DaysData = getDailyStats(myDeliveredOrders, 30);
 			const monthlyData = getMonthlyStats(myDeliveredOrders);

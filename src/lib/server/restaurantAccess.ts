@@ -71,23 +71,7 @@ export async function resolveRestaurantByDomain(
 
 export async function isSuperadmin(pb: PocketBase, user: UserRecord): Promise<boolean> {
 	if (!user) return false;
-	if (user.isSuper === true || user.isSuper === 'true') return true;
-
-	const accessibleIds = [
-		...new Set([...getUserAdminRestaurantIds(user), ...getUserRestaurantIds(user)])
-	];
-	if (accessibleIds.length === 0) return false;
-
-	const filter = accessibleIds.map((id) => `id = "${escapeFilterValue(id)}"`).join(' || ');
-
-	if (!filter) return false;
-
-	const restaurants = await pb.collection('restaurants').getFullList({
-		filter,
-		fields: 'id,isSuper'
-	});
-
-	return restaurants.some((restaurant: Record<string, any>) => isSuperRestaurant(restaurant));
+	return user.isSuper === true || user.isSuper === 'true';
 }
 
 export async function canAdminAccessRestaurant(

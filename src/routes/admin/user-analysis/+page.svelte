@@ -60,7 +60,7 @@
 		return `${Math.floor(diffDays / 365)} years ago`;
 	}
 
-	const filteredCustomers = $derived(() => {
+	const filteredCustomers = $derived.by(() => {
 		if (!searchQuery) return customers;
 		const query = searchQuery.toLowerCase();
 		return customers.filter(
@@ -482,7 +482,7 @@
 						</tr>
 					</thead>
 					<tbody class="divide-y divide-slate-100">
-						{#each filteredCustomers() as customer}
+						{#each filteredCustomers as customer}
 							{@const metrics = getCustomerMetrics(customer)}
 							{@const tierInfo = getCustomerTier(customer)}
 							<tr class="hover:bg-slate-50">

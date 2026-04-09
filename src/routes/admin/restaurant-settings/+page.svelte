@@ -14,6 +14,8 @@
 	};
 	const teamMembers = data?.teamMembers ?? [];
 	const restaurants = data?.restaurants ?? [];
+	const managedStores = data?.managedStores ?? [];
+	const globalUsers = data?.globalUsers ?? [];
 	const currentUserId = $page.data.user?.id;
 	const currentRestaurantId = data?.restaurantId;
 	// Use isSuper from page server data (returned from load function)
@@ -386,6 +388,45 @@
 	let errorAlert = $state(false);
 	let errorMessage = $state('');
 	let successMessage = $state('');
+	let selectedStoreByUser = $state<Record<string, string>>({});
+	let storesExpanded = $state(true);
+	let usersExpanded = $state(true);
+	let storeSearchQuery = $state('');
+	let userSearchQuery = $state('');
+
+	let filteredManagedStores = $derived(
+		storeSearchQuery.trim()
+			? managedStores.filter(
+					(s: any) =>
+						s.name?.toLowerCase().includes(storeSearchQuery.toLowerCase()) ||
+						s.domain?.toLowerCase().includes(storeSearchQuery.toLowerCase()) ||
+						s.type?.toLowerCase().includes(storeSearchQuery.toLowerCase())
+				)
+			: managedStores
+	);
+
+	let filteredGlobalUsers = $derived(
+		userSearchQuery.trim()
+			? globalUsers.filter(
+					(u: any) =>
+						u.name?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+						u.email?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+						u.role?.toLowerCase().includes(userSearchQuery.toLowerCase())
+				)
+			: globalUsers
+	);
+
+	$effect(() => {
+		if (isSuper && managedStores.length > 0 && globalUsers.length > 0) {
+			const fallbackStoreId = currentRestaurantId || managedStores[0]?.id || '';
+			selectedStoreByUser = Object.fromEntries(
+				globalUsers.map((member: any) => [
+					member.id,
+					member.adminRestaurants?.[0]?.id || fallbackStoreId
+				])
+			);
+		}
+	});
 
 	function switchRestaurant(restaurantId: string) {
 		const baseUrl = window.location.pathname;
@@ -562,6 +603,84 @@
 			}, 3000);
 		}
 	}
+
+	async function updateGlobalAdminAccess(userId: string, mode: 'grant' | 'remove') {
+		const restaurantId = selectedStoreByUser[userId];
+		if (!restaurantId) {
+			errorAlert = true;
+			errorMessage = 'Select a store first';
+			setTimeout(() => (errorAlert = false), 3000);
+			return;
+		}
+
+		const formData = new FormData();
+		formData.append('userId', userId);
+		formData.append('restaurantId', restaurantId);
+		formData.append('mode', mode);
+
+		const response = await fetch('?/updateUserAdminAccess', {
+			method: 'POST',
+			body: formData
+		});
+
+		const result = await response.json();
+		if (result.type === 'success') {
+			successAlert = true;
+			successMessage = result.data?.message || 'Admin access updated successfully!';
+			setTimeout(() => (successAlert = false), 3000);
+			await invalidateAll();
+		} else {
+			errorAlert = true;
+			errorMessage = result.data?.error || 'Failed to update admin access';
+			setTimeout(() => (errorAlert = false), 3000);
+		}
+	}
+
+	async function toggleStoreSuperStatus(restaurantId: string, nextValue: boolean) {
+		const formData = new FormData();
+		formData.append('restaurantId', restaurantId);
+		formData.append('isSuper', String(nextValue));
+
+		const response = await fetch('?/toggleSuperStore', {
+			method: 'POST',
+			body: formData
+		});
+
+		const result = await response.json();
+		if (result.type === 'success') {
+			successAlert = true;
+			successMessage = result.data?.message || 'Store tier updated successfully!';
+			setTimeout(() => (successAlert = false), 3000);
+			await invalidateAll();
+		} else {
+			errorAlert = true;
+			errorMessage = result.data?.error || 'Failed to update store tier';
+			setTimeout(() => (errorAlert = false), 3000);
+		}
+	}
+
+	async function toggleGlobalSuperUser(userId: string, nextValue: boolean) {
+		const formData = new FormData();
+		formData.append('userId', userId);
+		formData.append('isSuper', String(nextValue));
+
+		const response = await fetch('?/toggleSuperUser', {
+			method: 'POST',
+			body: formData
+		});
+
+		const result = await response.json();
+		if (result.type === 'success') {
+			successAlert = true;
+			successMessage = result.data?.message || 'Super access updated successfully!';
+			setTimeout(() => (successAlert = false), 3000);
+			await invalidateAll();
+		} else {
+			errorAlert = true;
+			errorMessage = result.data?.error || 'Failed to update super access';
+			setTimeout(() => (errorAlert = false), 3000);
+		}
+	}
 </script>
 
 <svelte:head>
@@ -702,209 +821,320 @@
 				</form>
 			</div>
 
-			<!-- Team Management Section -->
-			<div class="rounded-lg bg-white shadow">
-				<div class="border-b border-slate-200 px-6 py-4">
-					<h2 class="text-lg font-semibold text-slate-900">
-						{isSuper ? 'Super Stores Management' : 'Team Management'}
-					</h2>
-					<p class="mt-1 text-sm text-slate-600">
-						{isSuper
-							? 'Manage all super stores and their administrators'
-							: 'Manage team members who are admins for this store'}
-					</p>
-				</div>
+			{#if isSuper}
+				<!-- Super Stores Management -->
+				<div class="rounded-2xl bg-white shadow">
+					<button
+						type="button"
+						onclick={() => (storesExpanded = !storesExpanded)}
+						class="flex w-full items-center justify-between border-b border-slate-200 px-6 py-4 text-left transition-colors hover:bg-slate-50"
+					>
+						<div>
+							<h2 class="text-lg font-semibold text-slate-900">Super Stores Management</h2>
+							<p class="mt-1 text-sm text-slate-600">Review every registered store, its tier, and the admins assigned to it.</p>
+						</div>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="h-5 w-5 shrink-0 text-slate-400 transition-transform duration-200 {storesExpanded ? 'rotate-180' : ''}"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path d="m6 9 6 6 6-6" />
+						</svg>
+					</button>
 
-				<div class="p-6">
-					{#if teamMembers.length === 0}
-						<p class="py-4 text-center text-slate-500">No team members found.</p>
-					{:else}
-						<div class="overflow-x-auto">
-							<table class="min-w-full divide-y divide-slate-200">
-								<thead class="bg-slate-50">
-									<tr>
-										{#if isSuper}
-											<th
-												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
-											>
-												Store
-											</th>
-											<th
-												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
-											>
-												Domain
-											</th>
-											<th
-												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
-											>
-												Admin Users
-											</th>
-											<th
-												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
-											>
-												Status
-											</th>
-										{:else}
-											<th
-												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
-											>
-												Member
-											</th>
-											<th
-												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
-											>
-												Email
-											</th>
-											<th
-												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
-											>
-												Role
-											</th>
-											<th
-												class="px-4 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase"
-											>
-												Actions
-											</th>
-										{/if}
-									</tr>
-								</thead>
-								<tbody class="divide-y divide-slate-200 bg-white">
-									{#each teamMembers as member}
-										{#if isSuper}
-											<!-- Super Admin View: Show Restaurants -->
-											<tr>
-												<td class="px-4 py-3 whitespace-nowrap">
-													<div class="flex items-center">
-														<div
-															class="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 font-medium text-purple-700"
-														>
-															{member.name?.charAt(0).toUpperCase() || 'R'}
-														</div>
-														<span class="ml-3 text-sm font-medium text-slate-900">
-															{member.name || 'Unknown'}
-														</span>
+					{#if storesExpanded}
+						<div class="space-y-6 p-6">
+							<div class="grid gap-4 sm:grid-cols-3">
+								<div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+									<p class="text-xs font-semibold tracking-wider text-slate-400 uppercase">Registered Stores</p>
+									<p class="mt-2 text-3xl font-bold text-slate-900">{managedStores.length}</p>
+								</div>
+								<div class="rounded-xl border border-purple-200 bg-purple-50 p-4">
+									<p class="text-xs font-semibold tracking-wider text-purple-500 uppercase">Super Stores</p>
+									<p class="mt-2 text-3xl font-bold text-purple-900">{managedStores.filter((s) => s.isSuper).length}</p>
+								</div>
+								<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+									<p class="text-xs font-semibold tracking-wider text-emerald-500 uppercase">Admin Assignments</p>
+									<p class="mt-2 text-3xl font-bold text-emerald-900">{managedStores.reduce((sum, s) => sum + s.adminCount, 0)}</p>
+								</div>
+							</div>
+
+							{#if managedStores.length > 4}
+								<div class="relative">
+									<svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+										<circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+									</svg>
+									<input
+										type="text"
+										bind:value={storeSearchQuery}
+										placeholder="Search stores by name, domain, or type..."
+										class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm focus:border-amber-500 focus:bg-white focus:ring-1 focus:ring-amber-500 focus:outline-none"
+									/>
+								</div>
+							{/if}
+
+							{#if managedStores.length === 0}
+								<p class="py-8 text-center text-slate-400">No stores registered yet.</p>
+							{:else}
+								<div class="grid gap-4 md:grid-cols-2">
+									{#each filteredManagedStores as store}
+										<div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+											<div class="flex items-start justify-between gap-3">
+												<div class="min-w-0 flex-1">
+													<div class="flex items-center gap-2">
+														<h3 class="truncate text-base font-semibold text-slate-900">{store.name}</h3>
+														{#if store.isSuper}
+															<span class="shrink-0 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold text-purple-700">SUPER</span>
+														{/if}
 													</div>
-												</td>
-												<td class="px-4 py-3 text-sm text-slate-600">
-													{member.domain || 'N/A'}
-												</td>
-												<td class="px-4 py-3">
-													{#if member.adminUsers && member.adminUsers.length > 0}
-														<div class="flex flex-wrap gap-1">
-															{#each member.adminUsers as admin}
-																<span
-																	class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700"
-																>
-																	{admin.name} ({admin.role})
-																</span>
-															{/each}
-														</div>
-													{:else}
-														<span class="text-xs text-slate-400">No admins assigned</span>
-													{/if}
-												</td>
-												<td class="px-4 py-3 whitespace-nowrap">
-													{#if member.isSuper}
-														<span
-															class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700"
-														>
-															Super
-														</span>
-													{:else}
-														<span
-															class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700"
-														>
-															Regular
-														</span>
-													{/if}
-												</td>
-											</tr>
-										{:else}
-											<!-- Regular Admin View: Show Team Members -->
-											<tr>
-												<td class="px-4 py-3 whitespace-nowrap">
-													<div class="flex items-center">
-														<div
-															class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 font-medium text-amber-700"
-														>
-															{member.name?.charAt(0).toUpperCase() || 'U'}
-														</div>
-														<span class="ml-3 text-sm font-medium text-slate-900">
-															{member.name || 'Unknown'}
-															{#if member.id === currentUserId}
-																<span class="ml-1 text-xs text-slate-500">(You)</span>
-															{/if}
-														</span>
-													</div>
-												</td>
-												<td class="px-4 py-3 text-sm whitespace-nowrap text-slate-600">
-													{member.email || 'N/A'}
-												</td>
-												<td class="px-4 py-3 whitespace-nowrap">
-													{#if member.id === currentUserId}
-														<span
-															class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold {getRoleBadgeClass(
-																member.role
-															)}"
-														>
-															{member.role || 'manager'}
-														</span>
-													{:else}
-														<select
-															value={member.role || 'manager'}
-															onchange={(e) => updateRole(member.id, e.currentTarget.value)}
-															class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none"
-														>
-															<option value="owner">Owner</option>
-															<option value="manager">Manager</option>
-															<option value="kitchen">Kitchen</option>
-															<option value="waiter">Waiter</option>
-														</select>
-													{/if}
-												</td>
-												<td class="px-4 py-3 whitespace-nowrap">
-													{#if member.id !== currentUserId}
-														<button
-															onclick={() => removeTeamMember(member.id)}
-															class="text-sm font-medium text-red-600 hover:text-red-800"
-														>
-															Remove
-														</button>
-													{:else}
-														<span class="text-sm text-slate-400">-</span>
-													{/if}
-												</td>
-											</tr>
-										{/if}
+													<p class="mt-0.5 truncate text-sm text-slate-500">{store.domain || 'No domain set'}</p>
+												</div>
+												<label class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-200">
+													<input
+														type="checkbox"
+														checked={store.isSuper}
+														onchange={(e) => toggleStoreSuperStatus(store.id, e.currentTarget.checked)}
+														class="toggle toggle-xs"
+													/>
+													<span>{store.isSuper ? 'Super' : 'Regular'}</span>
+												</label>
+											</div>
+
+											<div class="mt-3 flex items-center gap-4 text-sm">
+												<span class="text-slate-400">{store.type}</span>
+												<span class="text-slate-300">|</span>
+												<span class="text-slate-600">{store.adminCount} admin{store.adminCount !== 1 ? 's' : ''}</span>
+												<span class="text-slate-300">|</span>
+												<span class="text-slate-600">{store.memberCount} member{store.memberCount !== 1 ? 's' : ''}</span>
+											</div>
+
+											{#if store.adminUsers.length > 0}
+												<div class="mt-3 flex flex-wrap gap-1.5">
+													{#each store.adminUsers as admin}
+														<span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">{admin.name} <span class="text-emerald-600">&middot; {admin.role}</span></span>
+													{/each}
+												</div>
+											{:else}
+												<p class="mt-3 text-xs text-slate-400">No admin assigned yet</p>
+											{/if}
+										</div>
 									{/each}
-								</tbody>
-							</table>
+								</div>
+
+								{#if storeSearchQuery && filteredManagedStores.length === 0}
+									<p class="py-4 text-center text-sm text-slate-400">No stores match "{storeSearchQuery}"</p>
+								{/if}
+							{/if}
 						</div>
 					{/if}
+				</div>
 
-					<div class="mt-6 rounded-lg bg-slate-50 p-4">
+				<!-- Global User Access -->
+				<div class="rounded-2xl bg-white shadow">
+					<button
+						type="button"
+						onclick={() => (usersExpanded = !usersExpanded)}
+						class="flex w-full items-center justify-between border-b border-slate-200 px-6 py-4 text-left transition-colors hover:bg-slate-50"
+					>
+						<div>
+							<h2 class="text-lg font-semibold text-slate-900">Global User Access</h2>
+							<p class="mt-1 text-sm text-slate-600">View every user, promote them into store admins, and manage super-admin access.</p>
+						</div>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="h-5 w-5 shrink-0 text-slate-400 transition-transform duration-200 {usersExpanded ? 'rotate-180' : ''}"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path d="m6 9 6 6 6-6" />
+						</svg>
+					</button>
+
+					{#if usersExpanded}
+						<div class="space-y-5 p-6">
+							{#if globalUsers.length > 3}
+								<div class="relative">
+									<svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+										<circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+									</svg>
+									<input
+										type="text"
+										bind:value={userSearchQuery}
+										placeholder="Search users by name, email, or role..."
+										class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm focus:border-amber-500 focus:bg-white focus:ring-1 focus:ring-amber-500 focus:outline-none"
+									/>
+								</div>
+							{/if}
+
+							{#if globalUsers.length === 0}
+								<p class="py-8 text-center text-slate-400">No users found.</p>
+							{:else if userSearchQuery && filteredGlobalUsers.length === 0}
+								<p class="py-4 text-center text-sm text-slate-400">No users match "{userSearchQuery}"</p>
+							{:else}
+								{#each filteredGlobalUsers as member}
+									<div class="rounded-xl border border-slate-200 bg-slate-50/50 p-5">
+										<div class="flex items-start gap-4">
+											<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-sm font-bold text-white">
+												{member.name?.charAt(0).toUpperCase() || 'U'}
+											</div>
+											<div class="min-w-0 flex-1">
+												<div class="flex flex-wrap items-center gap-2">
+													<p class="font-semibold text-slate-900">{member.name || 'Unnamed User'}</p>
+													{#if member.id === currentUserId}
+														<span class="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-medium text-white">You</span>
+													{/if}
+													{#if member.isSuperUser}
+														<span class="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold text-purple-800">Super Admin</span>
+													{/if}
+													<span class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium capitalize text-slate-600">{member.role}</span>
+												</div>
+												<p class="mt-0.5 text-sm text-slate-500">{member.email || 'No email'}</p>
+
+												<div class="mt-3 space-y-2">
+													{#if member.adminRestaurants.length > 0}
+														<div>
+															<p class="mb-1.5 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">Admin Stores</p>
+															<div class="flex flex-wrap gap-1.5">
+																{#each member.adminRestaurants as store}
+																	<span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">{store.name}</span>
+																{/each}
+															</div>
+														</div>
+													{/if}
+													{#if member.memberRestaurants.length > 0}
+														<div>
+															<p class="mb-1.5 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">Memberships</p>
+															<div class="flex flex-wrap gap-1.5">
+																{#each member.memberRestaurants as store}
+																	<span class="rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-medium text-slate-700">{store.name}</span>
+																{/each}
+															</div>
+														</div>
+													{/if}
+												</div>
+											</div>
+										</div>
+
+										<div class="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
+											<div class="flex-1">
+												<p class="mb-1.5 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">Target Store</p>
+												<select
+													bind:value={selectedStoreByUser[member.id]}
+													aria-label={`Target store for ${member.name || member.email}`}
+													class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none"
+												>
+													{#each managedStores as store}
+														<option value={store.id}>{store.name}</option>
+													{/each}
+												</select>
+											</div>
+
+											<div class="flex items-center gap-2">
+												<button
+													type="button"
+													onclick={() => updateGlobalAdminAccess(member.id, 'grant')}
+													class="rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800"
+												>
+													Make Admin
+												</button>
+												<button
+													type="button"
+													onclick={() => updateGlobalAdminAccess(member.id, 'remove')}
+													class="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50"
+												>
+													Remove Admin
+												</button>
+											</div>
+
+											<label class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700">
+												<input
+													type="checkbox"
+													checked={member.isSuperUser}
+													onchange={(e) => toggleGlobalSuperUser(member.id, e.currentTarget.checked)}
+													class="toggle toggle-xs"
+												/>
+												<span>Super</span>
+											</label>
+										</div>
+									</div>
+								{/each}
+							{/if}
+						</div>
+					{/if}
+				</div>
+			{:else}
+				<div class="rounded-2xl bg-white shadow">
+					<div class="border-b border-slate-200 px-6 py-4">
+						<h2 class="text-lg font-semibold text-slate-900">Team Management</h2>
+						<p class="mt-1 text-sm text-slate-600">See every admin on this store, review their role, and keep your team organized.</p>
+					</div>
+
+					<div class="grid gap-4 p-6 md:grid-cols-4">
+						<div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:col-span-2">
+							<p class="text-xs font-semibold tracking-[0.18em] text-slate-400 uppercase">Admin Team Size</p>
+							<p class="mt-2 text-3xl font-bold text-slate-900">{teamMembers.length}</p>
+						</div>
+						<div class="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+							<p class="text-xs font-semibold tracking-[0.18em] text-blue-500 uppercase">Owners</p>
+							<p class="mt-2 text-3xl font-bold text-blue-900">{teamMembers.filter((member) => member.role === 'owner').length}</p>
+						</div>
+						<div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+							<p class="text-xs font-semibold tracking-[0.18em] text-emerald-500 uppercase">Managers</p>
+							<p class="mt-2 text-3xl font-bold text-emerald-900">{teamMembers.filter((member) => member.role === 'manager').length}</p>
+						</div>
+					</div>
+
+					<div class="grid gap-4 px-6 pb-6 lg:grid-cols-2">
+						{#if teamMembers.length === 0}
+							<p class="py-6 text-center text-slate-500 lg:col-span-2">No team members found.</p>
+						{:else}
+							{#each teamMembers as member}
+								<div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+									<div class="flex items-start justify-between gap-4">
+										<div class="flex items-center gap-3">
+											<div class="flex h-11 w-11 items-center justify-center rounded-full bg-amber-100 font-medium text-amber-700">{member.name?.charAt(0).toUpperCase() || 'U'}</div>
+											<div>
+												<p class="font-semibold text-slate-900">{member.name || 'Unknown'} {#if member.id === currentUserId}<span class="text-xs text-slate-500">(You)</span>{/if}</p>
+												<p class="text-sm text-slate-500">{member.email || 'N/A'}</p>
+											</div>
+										</div>
+										<span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold {getRoleBadgeClass(member.role)}">{member.role || 'manager'}</span>
+									</div>
+
+									<div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+										{#if member.id === currentUserId}
+											<p class="text-sm text-slate-500">You can see your permissions but cannot change your own role here.</p>
+										{:else}
+											<select value={member.role || 'manager'} onchange={(e) => updateRole(member.id, e.currentTarget.value)} class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none">
+												<option value="owner">Owner</option>
+												<option value="manager">Manager</option>
+												<option value="kitchen">Kitchen</option>
+												<option value="waiter">Waiter</option>
+											</select>
+											<button onclick={() => removeTeamMember(member.id)} class="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100">Remove from Team</button>
+										{/if}
+									</div>
+								</div>
+							{/each}
+						{/if}
+					</div>
+
+					<div class="mx-6 mb-6 rounded-2xl bg-slate-50 p-4">
 						<h3 class="mb-2 text-sm font-medium text-slate-900">Role Permissions</h3>
 						<div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
-							<div>
-								<p class="font-medium text-purple-700">Owner</p>
-								<p class="text-slate-600">Full access, can manage billing, remove team members</p>
-							</div>
-							<div>
-								<p class="font-medium text-blue-700">Manager</p>
-								<p class="text-slate-600">Can manage orders, menu, team roles, analytics</p>
-							</div>
-							<div>
-								<p class="font-medium text-orange-700">Kitchen</p>
-								<p class="text-slate-600">Can view/manage orders, view menu, today's menu</p>
-							</div>
-							<div>
-								<p class="font-medium text-green-700">Waiter</p>
-								<p class="text-slate-600">Can view/manage orders, view menu</p>
-							</div>
+							<div><p class="font-medium text-purple-700">Owner</p><p class="text-slate-600">Full access, can manage billing, remove team members</p></div>
+							<div><p class="font-medium text-blue-700">Manager</p><p class="text-slate-600">Can manage orders, menu, team roles, analytics</p></div>
+							<div><p class="font-medium text-orange-700">Kitchen</p><p class="text-slate-600">Can view/manage orders, view menu, today's menu</p></div>
+							<div><p class="font-medium text-green-700">Waiter</p><p class="text-slate-600">Can view/manage orders, view menu</p></div>
 						</div>
 					</div>
 				</div>
-			</div>
+			{/if}
 
 			<!-- Setup Inquiries Section (Super Admin Only) -->
 			{#if isSuper && setupInquiries.length > 0}

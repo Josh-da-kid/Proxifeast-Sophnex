@@ -1,4 +1,5 @@
 import type { PageServerLoad } from '../$types';
+import { isSuperadmin } from '$lib/server/restaurantAccess';
 
 function calculateStats(orders: any[]) {
 	const uniqueCustomers = new Set(orders.map((o: any) => o.user).filter(Boolean));
@@ -38,18 +39,18 @@ function getOrdersByDateRange(orders: any[], startDate: Date, endDate: Date) {
 	});
 }
 
-export const load: PageServerLoad = async ({ locals, request }) => {
-	const host = request.headers.get('host') || '';
-	const domain = host.split(':')[0];
-
+export const load: PageServerLoad = async ({ locals, parent }) => {
 	try {
-		const restaurant = await locals.pb
-			.collection('restaurants')
-			.getFirstListItem(`domain = "${domain}"`);
-		const restaurantId = restaurant.id;
+		const layoutData = await parent();
+		const restaurant = layoutData.restaurant;
+		const restaurantId = layoutData.restaurantId;
+		const isSuper = await isSuperadmin(locals.pb, locals.user);
 
-		const isAdmin = locals.user?.isAdmin === true;
-		const restaurantFilter = isAdmin ? '' : `restaurantId = "${restaurantId}" && `;
+		if (!restaurantId) {
+			throw new Error('Restaurant context not found');
+		}
+
+		const restaurantFilter = isSuper ? '' : `restaurantId = "${restaurantId}" && `;
 
 		const deliveredOrders = await locals.pb.collection('orders').getFullList({
 			filter: `${restaurantFilter}status = "Delivered"`,

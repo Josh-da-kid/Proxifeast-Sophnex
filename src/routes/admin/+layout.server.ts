@@ -1,6 +1,11 @@
 // src/routes/admin/+layout.server.ts
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
+import {
+	isSuperadmin,
+	normalizeDomain,
+	resolveRestaurantByDomain
+} from '$lib/server/restaurantAccess';
 
 // Role-based route access map
 const roleRoutes: Record<string, string[]> = {
@@ -43,19 +48,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			);
 		} catch {}
 
-		// Check if any of the user's restaurants is a super restaurant
-		let userHasSuperAccess = false;
-		for (const id of allUserRestaurantIds) {
-			const rest = allRestaurantsForCheck.find((r: any) => r.id === id);
-			console.log(`Checking if restaurant ${id} is super:`, rest?.name, 'isSuper:', rest?.isSuper);
-			if (rest?.isSuper === true || rest?.isSuper === 'true') {
-				userHasSuperAccess = true;
-				console.log('Found super restaurant:', rest.name);
-				break;
-			}
-		}
-
-		// Also check if the user record itself has isSuper field (legacy)
+		const userHasSuperAccess = await isSuperadmin(locals.pb, locals.user);
 		const userHasOwnSuperFlag = locals.user?.isSuper === true || locals.user?.isSuper === 'true';
 		console.log('User has own isSuper flag:', userHasOwnSuperFlag);
 
@@ -83,7 +76,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		}
 
 		const fullHost = request.headers.get('host') || '';
-		const domainOnly = fullHost.split(':')[0].replace('www.', '').toLowerCase();
+		const domainOnly = normalizeDomain(fullHost);
 
 		// Use already fetched allRestaurantsForCheck to find the restaurant
 		let restaurant: any = null;
@@ -127,16 +120,16 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			console.log('Using user accessible restaurant (non-super优先):', restaurant?.name);
 		}
 
-		// 4. If user has no accessible restaurants, try domain match in all restaurants
-		if (!restaurant) {
+		// 4. Only verified super admins may resolve against all restaurants.
+		if (!restaurant && userHasSuperAccess) {
 			restaurant = allRestaurantsForCheck.find((r: any) => {
 				const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
 				return rDomain === domainOnly;
 			});
 		}
 
-		// 5. Try partial match in all restaurants
-		if (!restaurant) {
+		// 5. Try partial match in all restaurants for verified super admins only.
+		if (!restaurant && userHasSuperAccess) {
 			restaurant = allRestaurantsForCheck.find((r: any) => {
 				const rDomain = (r.domain || '').replace('www.', '').toLowerCase().trim();
 				return domainOnly.includes(rDomain) || rDomain.includes(domainOnly);
@@ -145,9 +138,9 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 
 		// 6. Final fallback to super restaurant only if user has super access
 		if (!restaurant && userHasSuperAccess) {
-			restaurant = allRestaurantsForCheck.find(
-				(r: any) => r.isSuper === true || r.isSuper === 'true'
-			);
+			restaurant = await resolveRestaurantByDomain(locals.pb, fullHost, {
+				allowSuperFallback: true
+			});
 		}
 
 		if (!restaurant) {
@@ -166,19 +159,17 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		locals.restaurant = restaurant;
 
 		// Use already calculated values from above
-		// User is super if:1) they have access to a super restaurant, OR 2) the current restaurant is super, OR 3) user record has isSuper flag
-		const finalIsSuper =
-			userHasSuperAccess ||
-			userHasOwnSuperFlag ||
-			restaurant?.isSuper === true ||
-			restaurant?.isSuper === 'true';
+		// User is super if: 1) they have access to a super restaurant, OR 2) the current restaurant is super, OR 3) user record has isSuper flag
+		const restaurantIsSuper = isSuperRestaurant(restaurant);
+		const finalIsSuper = userHasSuperAccess || userHasOwnSuperFlag || restaurantIsSuper;
 
 		locals.isSuper = finalIsSuper;
 
 		console.log('Final isSuper calculation:', {
 			userHasSuperAccess,
 			userHasOwnSuperFlag,
-			restaurantIsSuper: restaurant?.isSuper,
+			restaurantIsSuper,
+			restaurantIsSuperFlag: restaurant?.isSuper,
 			finalIsSuper
 		});
 
@@ -303,7 +294,8 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 			subscriptionStatus === 'test' ||
 			subscriptionStatus === 'pending';
 
-		if (!isSubscriptionActive && !isBillingPage) {
+		// Super restaurants never need subscription - always allow access
+		if (!locals.isSuper && !isSubscriptionActive && !isBillingPage) {
 			throw redirect(307, '/admin/billing?expired=1');
 		}
 
