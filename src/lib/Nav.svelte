@@ -379,22 +379,46 @@
 			<div class="dropdown dropdown-end">
 				<button
 					tabindex="0"
-					class="btn btn-ghost btn-circle avatar !overflow-hidden !p-0"
-					style="height: 36px; min-height: 36px; width: 36px; line-height: 36px; padding: 0;"
+					class="flex items-center gap-2 rounded-full border-2 border-transparent p-0.5 transition-all hover:border-slate-200"
 				>
-					<div
-						class="flex items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-base font-semibold text-white"
-						style="height: 36px; width: 36px;"
-					>
-						{$user.name?.charAt(0).toUpperCase() || 'U'}
+					<div class="relative">
+						<div
+							class="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm"
+							style="background: linear-gradient(135deg, #0f4c38 0%, #1a7a5a 100%);"
+						>
+							{$user.name?.split(' ').map((n: string) => n.charAt(0)).join('').toUpperCase().slice(0, 2) || 'U'}
+						</div>
+						<div class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-400"></div>
 					</div>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="14"
+						height="14"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						class="text-slate-400"
+					>
+						<path d="m6 9 6 6 6-6" />
+					</svg>
 				</button>
 				<ul
-					class="dropdown-content menu rounded-box mt-2 w-52 border border-slate-100 bg-white p-2 shadow-lg"
+					class="dropdown-content menu rounded-xl mt-3 w-56 border border-slate-100 bg-white p-2 shadow-xl"
 				>
-					<li class="menu-title px-3 py-2">
-						<span class="font-semibold text-slate-900">{$user.name}</span>
-						<span class="text-xs text-slate-500">{$user.email}</span>
+					<li class="mb-1 rounded-lg bg-slate-50 px-3 py-2.5">
+						<div class="flex items-center gap-3">
+							<div
+								class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+								style="background: linear-gradient(135deg, #0f4c38 0%, #1a7a5a 100%);"
+							>
+								{$user.name?.split(' ').map((n: string) => n.charAt(0)).join('').toUpperCase().slice(0, 2) || 'U'}
+							</div>
+							<div class="min-w-0">
+								<p class="truncate text-sm font-semibold text-slate-900">{$user.name}</p>
+								<p class="truncate text-xs text-slate-500">{$user.email}</p>
+							</div>
+						</div>
 					</li>
 					<li><a href="/history" class="text-slate-700">Order History</a></li>
 					{#if $isSuper || $isAdminForRestaurant}
@@ -506,10 +530,14 @@
 				{#if $user}
 					<div class="border-b border-slate-100 p-4">
 						<div class="flex items-center gap-3">
-							<div
-								class="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-xl leading-none font-bold text-white"
-							>
-								{$user.name?.charAt(0).toUpperCase() || 'U'}
+							<div class="relative">
+								<div
+									class="flex h-12 w-12 items-center justify-center rounded-full text-base font-bold text-white shadow-sm"
+									style="background: linear-gradient(135deg, #0f4c38 0%, #1a7a5a 100%);"
+								>
+									{$user.name?.split(' ').map((n: string) => n.charAt(0)).join('').toUpperCase().slice(0, 2) || 'U'}
+								</div>
+								<div class="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-400"></div>
 							</div>
 							<div>
 								<p class="font-semibold text-slate-900">{$user.name}</p>
