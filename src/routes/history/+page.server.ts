@@ -7,7 +7,7 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 			locals.pb,
 			request.headers.get('host') || '',
 			{
-				allowSuperFallback: true
+				allowSuperFallback: false
 			}
 		);
 

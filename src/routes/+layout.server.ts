@@ -6,7 +6,7 @@ export const load: LayoutServerLoad = async ({ locals, request }) => {
 	try {
 		const fullHost = request.headers.get('host') || '';
 		const restaurant = await resolveRestaurantByDomain(locals.pb, fullHost, {
-			allowSuperFallback: true
+			allowSuperFallback: false
 		});
 
 		if (!restaurant) {

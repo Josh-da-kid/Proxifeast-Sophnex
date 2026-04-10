@@ -6,13 +6,11 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 	const host = request.headers.get('host') || '';
 	const restaurant = await resolveRestaurantByDomain(locals.pb, host, { allowSuperFallback: true });
 
-	const name = restaurant?.name
-		? `${restaurant.name} - Hospitality`
-		: 'Proxifeast - Hospitality Platform';
+	const name = restaurant?.name || 'Proxifeast';
 	const shortName = restaurant?.name || 'Proxifeast';
 	const description =
 		restaurant?.motto ||
-		`Your complete hospitality solution - order, reserve, and manage at ${restaurant?.name || 'your favorite venues'}`;
+		`Order online at ${restaurant?.name || 'your favorite restaurant'}. Scan, order, and enjoy!`;
 
 	const typeLabels: Record<string, string> = {
 		restaurant: 'Restaurant',

@@ -11,8 +11,13 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 	try {
 		const host = request.headers.get('host') || '';
 		const currentRestaurant = await resolveRestaurantByDomain(locals.pb, host, {
-			allowSuperFallback: true
+			allowSuperFallback: false
 		});
+
+		// If no restaurant found for this domain, show not found
+		if (!currentRestaurant) {
+			throw redirect(307, '/not-found');
+		}
 
 		const isSuper = isSuperRestaurant(currentRestaurant);
 
