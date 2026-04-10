@@ -379,60 +379,38 @@
 			<div class="dropdown dropdown-end">
 				<button
 					tabindex="0"
-					class="flex items-center gap-2 rounded-full border-2 border-transparent p-0.5 transition-all hover:border-slate-200"
+					class="btn btn-ghost btn-circle"
 				>
-					<div class="relative">
+					<div class="relative w-10 rounded-full">
 						<div
-							class="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm"
+							class="flex h-10 w-10 items-center justify-center rounded-full text-base font-bold text-white"
 							style="background: linear-gradient(135deg, #0f4c38 0%, #1a7a5a 100%);"
 						>
 							{$user.name?.split(' ').map((n: string) => n.charAt(0)).join('').toUpperCase().slice(0, 2) || 'U'}
 						</div>
-						<div class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-400"></div>
+						<div class="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-400"></div>
 					</div>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						width="14"
-						height="14"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						class="text-slate-400"
-					>
-						<path d="m6 9 6 6 6-6" />
-					</svg>
 				</button>
 				<ul
-					class="dropdown-content menu rounded-xl mt-3 w-56 border border-slate-100 bg-white p-2 shadow-xl"
+					class="dropdown-content z-[1] menu p-2 shadow-lg bg-white rounded-box w-56 mt-3"
 				>
-					<li class="mb-1 rounded-lg bg-slate-50 px-3 py-2.5">
-						<div class="flex items-center gap-3">
-							<div
-								class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-								style="background: linear-gradient(135deg, #0f4c38 0%, #1a7a5a 100%);"
-							>
-								{$user.name?.split(' ').map((n: string) => n.charAt(0)).join('').toUpperCase().slice(0, 2) || 'U'}
-							</div>
-							<div class="min-w-0">
-								<p class="truncate text-sm font-semibold text-slate-900">{$user.name}</p>
-								<p class="truncate text-xs text-slate-500">{$user.email}</p>
-							</div>
-						</div>
+					<li class="font-semibold text-sm text-slate-800 px-2 py-1">{$user.name}</li>
+					<li class="font-normal text-xs text-slate-400 px-2 pb-2">{$user.email}</li>
+					<li class="border-t border-slate-100 mt-1 pt-1">
+						<a href="/history">Order History</a>
 					</li>
-					<li><a href="/history" class="text-slate-700">Order History</a></li>
 					{#if $isSuper || $isAdminForRestaurant}
-						<li><a href="/admin" class="text-slate-700">Admin Dashboard</a></li>
+						<li><a href="/admin">Admin Dashboard</a></li>
 					{/if}
-					<li><a href="/about" class="text-slate-700">About</a></li>
-					<li><a href="/contact" class="text-slate-700">Contact</a></li>
-					<li><a href="/install-guide" class="text-slate-700">Install App</a></li>
+					<li><a href="/about">About</a></li>
+					<li><a href="/contact">Contact</a></li>
+					<li><a href="/install-guide">Install App</a></li>
 					<li>
-						<button onclick={toggleNotifications} class="w-full text-left text-slate-700">
+						<button onclick={toggleNotifications} class="w-full text-left">
 							{notificationsEnabled ? 'Disable Notifications' : 'Enable Notifications'}
 						</button>
 					</li>
-					<li>
+					<li class="border-b border-slate-100 pb-1">
 						<button onclick={() => logoutModalUser.showModal()} class="text-red-600">Logout</button>
 					</li>
 				</ul>
@@ -529,8 +507,8 @@
 				<!-- User Info -->
 				{#if $user}
 					<div class="border-b border-slate-100 p-4">
-						<div class="flex items-center gap-3">
-							<div class="relative">
+						<div class="flex items-center gap-3 overflow-hidden">
+							<div class="relative shrink-0">
 								<div
 									class="flex h-12 w-12 items-center justify-center rounded-full text-base font-bold text-white shadow-sm"
 									style="background: linear-gradient(135deg, #0f4c38 0%, #1a7a5a 100%);"
@@ -539,9 +517,9 @@
 								</div>
 								<div class="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-400"></div>
 							</div>
-							<div>
-								<p class="font-semibold text-slate-900">{$user.name}</p>
-								<p class="text-sm text-slate-500">{$user.email}</p>
+							<div class="min-w-0 flex-1 overflow-hidden">
+								<p class="truncate font-semibold text-slate-900">{$user.name}</p>
+								<p class="truncate text-sm text-slate-500">{$user.email}</p>
 							</div>
 						</div>
 					</div>
