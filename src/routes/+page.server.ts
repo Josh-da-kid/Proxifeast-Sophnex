@@ -21,6 +21,12 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 
 		const isSuper = isSuperRestaurant(currentRestaurant);
 
+		// For non-super restaurants, redirect to their dedicated store page
+		// This prevents flash of content by doing the redirect server-side
+		if (!isSuper) {
+			throw redirect(307, `/stores/${currentRestaurant.id}`);
+		}
+
 		// Fetch restaurants - only what's needed
 		let allRestaurants: any[] = [];
 		if (isSuper) {
@@ -133,7 +139,11 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 			isSuper,
 			currentRestaurant
 		};
-	} catch (error) {
+	} catch (error: any) {
+		// Re-throw redirects so SvelteKit can handle them properly
+		if (error?.status === 307 || error?.status === 308 || error?.location) {
+			throw error;
+		}
 		console.error('Error loading data:', error);
 		return {
 			restaurants: [],

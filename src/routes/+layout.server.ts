@@ -2,21 +2,28 @@ import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 import { isSuperRestaurant, resolveRestaurantByDomain } from '$lib/server/restaurantAccess';
 
-export const load: LayoutServerLoad = async ({ locals, request }) => {
+export const load: LayoutServerLoad = async ({ locals, request, url }) => {
 	try {
 		const fullHost = request.headers.get('host') || '';
+
 		const restaurant = await resolveRestaurantByDomain(locals.pb, fullHost, {
 			allowSuperFallback: false
 		});
 
 		if (!restaurant) {
-			console.error(`Restaurant not found for host: ${fullHost}`);
 			throw redirect(307, '/not-found');
 		}
 
 		locals.restaurant = restaurant;
 
 		const isSuper = isSuperRestaurant(restaurant);
+
+		// For non-super restaurants on root path, redirect to their store page
+		// This prevents any flash of content by doing redirect in layout (earliest possible)
+		if (!isSuper && url.pathname === '/') {
+			throw redirect(307, `/stores/${restaurant.id}`);
+		}
+
 		let filteredRestaurants: any[] = [];
 		let allRestaurants: any[] = [];
 
@@ -49,7 +56,11 @@ export const load: LayoutServerLoad = async ({ locals, request }) => {
 			restaurantId: restaurant.id,
 			isAdminForRestaurant
 		};
-	} catch (err) {
+	} catch (err: any) {
+		// Re-throw redirects so SvelteKit can handle them properly
+		if (err.status === 307 || err.status === 308 || err.location) {
+			throw err;
+		}
 		console.error('Layout server error:', err);
 		return {
 			user: locals.user ?? null,

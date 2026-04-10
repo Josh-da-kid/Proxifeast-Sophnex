@@ -13,6 +13,7 @@
 	const menuByCategory = $derived($page.data.menuByCategory ?? {});
 	const user = $derived($page.data.user);
 	const allRestaurants = $derived($page.data.allRestaurants ?? []);
+	const isSuper = $derived($page.data.isSuper ?? false);
 
 	let currentTime = $state(new Date());
 	let timeInterval: ReturnType<typeof setInterval>;
@@ -896,7 +897,8 @@
 					{/each}
 				</div>
 
-				<!-- View Full Menu CTA -->
+				{#if isSuper}
+				<!-- View Full Menu CTA - Only for super stores -->
 				<div class="mt-12 text-center">
 					<a
 						href="/?restaurant={restaurant?.id}#menu"
@@ -915,6 +917,7 @@
 						</svg>
 					</a>
 				</div>
+				{/if}
 			{:else}
 				<!-- Empty Menu State -->
 				<div class="py-16 text-center">

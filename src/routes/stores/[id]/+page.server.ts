@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { getScopedRestaurantForRequest } from '$lib/server/restaurantAccess';
+import { getScopedRestaurantForRequest, isSuperRestaurant } from '$lib/server/restaurantAccess';
 
 export const load: PageServerLoad = async ({ params, locals, request }) => {
 	const { id } = params;
@@ -11,7 +11,7 @@ export const load: PageServerLoad = async ({ params, locals, request }) => {
 			request.headers.get('host') || '',
 			id,
 			{
-				allowSuperFallback: true
+				allowSuperFallback: false
 			}
 		);
 
@@ -57,7 +57,8 @@ export const load: PageServerLoad = async ({ params, locals, request }) => {
 			categories,
 			menuByCategory,
 			user: locals.user || null,
-			allRestaurants
+			allRestaurants,
+			isSuper: isSuperRestaurant(scoped.currentRestaurant)
 		};
 	} catch (err) {
 		console.error('Failed to load restaurant:', err);
