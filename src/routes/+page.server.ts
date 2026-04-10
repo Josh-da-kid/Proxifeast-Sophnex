@@ -144,7 +144,17 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		if (error?.status === 307 || error?.status === 308 || error?.location) {
 			throw error;
 		}
-		console.error('Error loading data:', error);
+
+		// Ignore abort errors - they're caused by navigation redirects
+		if (
+			error?.isAbort ||
+			error?.message?.includes('aborted') ||
+			error?.message?.includes('autocancelled')
+		) {
+			throw error;
+		}
+
+		console.error('Error loading data:', error.message || error);
 		return {
 			restaurants: [],
 			allRestaurants: [],

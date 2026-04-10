@@ -231,43 +231,45 @@
 				Reservations
 			</span>
 		</a>
-		<a href="/subscriptions" class="nav-link">
-			<span class="flex items-center gap-2">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="16"
-					height="16"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-				>
-					<rect x="2" y="5" width="20" height="14" rx="2" />
-					<line x1="2" y1="10" x2="22" y2="10" />
-				</svg>
-				Pricing
-			</span>
-		</a>
-		<a href="/setup-pricing" class="nav-link-ordr">
-			<span class="flex items-center gap-2">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="16"
-					height="16"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-				>
-					<path
-						d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
-					/>
-					<polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-					<line x1="12" y1="22.08" x2="12" y2="12" />
-				</svg>
-				Hardware Setup
-			</span>
-		</a>
+		{#if $isSuper}
+			<a href="/subscriptions" class="nav-link">
+				<span class="flex items-center gap-2">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="16"
+						height="16"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<rect x="2" y="5" width="20" height="14" rx="2" />
+						<line x1="2" y1="10" x2="22" y2="10" />
+					</svg>
+					Pricing
+				</span>
+			</a>
+			<a href="/setup-pricing" class="nav-link-ordr">
+				<span class="flex items-center gap-2">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="16"
+						height="16"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<path
+							d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+						/>
+						<polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+						<line x1="12" y1="22.08" x2="12" y2="12" />
+					</svg>
+					Hardware Setup
+				</span>
+			</a>
+		{/if}
 
 		<a href="/checkout" class="nav-link relative flex items-center justify-center">
 			<svg

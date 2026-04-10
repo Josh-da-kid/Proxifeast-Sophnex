@@ -8,7 +8,7 @@ export const load: LayoutServerLoad = async ({ locals, request, url }) => {
 
 		const restaurant = await resolveRestaurantByDomain(locals.pb, fullHost, {
 			allowSuperFallback: false
-		});
+		}).catch(() => null);
 
 		if (!restaurant) {
 			throw redirect(307, '/not-found');
@@ -28,10 +28,13 @@ export const load: LayoutServerLoad = async ({ locals, request, url }) => {
 		let allRestaurants: any[] = [];
 
 		if (isSuper) {
-			allRestaurants = await locals.pb.collection('restaurants').getFullList({
-				fields:
-					'id,name,isSuper,state,localGovernment,restaurantAddress,openingTime,closingTime,orderServices,galleryImages,paystackKey,type,features,domain'
-			});
+			allRestaurants = await locals.pb
+				.collection('restaurants')
+				.getFullList({
+					fields:
+						'id,name,isSuper,state,localGovernment,restaurantAddress,openingTime,closingTime,orderServices,galleryImages,paystackKey,type,features,domain'
+				})
+				.catch(() => []);
 			filteredRestaurants = allRestaurants.filter((r: any) => !isSuperRestaurant(r));
 		}
 
@@ -61,7 +64,13 @@ export const load: LayoutServerLoad = async ({ locals, request, url }) => {
 		if (err.status === 307 || err.status === 308 || err.location) {
 			throw err;
 		}
-		console.error('Layout server error:', err);
+
+		// Ignore abort errors - they're caused by navigation redirects
+		if (err.isAbort || err.message?.includes('aborted')) {
+			throw err;
+		}
+
+		console.error('Layout server error:', err.message || err);
 		return {
 			user: locals.user ?? null,
 			restaurant: null,
