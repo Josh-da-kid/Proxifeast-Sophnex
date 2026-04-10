@@ -1,36 +1,17 @@
 import type { PageServerLoad } from '../$types';
-import { isSuperadmin } from '$lib/server/restaurantAccess';
-
-function calculateStats(orders: any[]) {
-	const uniqueCustomers = new Set(orders.map((o: any) => o.user).filter(Boolean));
-	const totalCustomers = uniqueCustomers.size;
-	const totalRevenue = orders.reduce(
-		(sum: number, order: any) => sum + (order.orderTotal || order.totalAmount || 0),
-		0
-	);
-	const avgOrderValue = orders.length > 0 ? Math.round(totalRevenue / orders.length) : 0;
-
-	const userOrderCounts: Record<string, number> = {};
-	orders.forEach((order: any) => {
-		if (order.user) {
-			userOrderCounts[order.user] = (userOrderCounts[order.user] || 0) + 1;
-		}
-	});
-	const newCustomers = Object.values(userOrderCounts).filter((count: any) => count === 1).length;
-	const returningCustomers = Object.values(userOrderCounts).filter(
-		(count: any) => count > 1
-	).length;
-	const recurringRate =
-		totalCustomers > 0 ? ((returningCustomers / totalCustomers) * 100).toFixed(0) : '0';
-
-	return {
-		customers: totalCustomers,
-		orders: orders.length,
-		revenue: totalRevenue,
-		recurringRate: `${recurringRate}%`,
-		avgOrderValue
-	};
-}
+import { isSuperRestaurant } from '$lib/server/restaurantAccess';
+import {
+	buildRestaurantStats,
+	calculateStats,
+	getBenchmarksForRestaurant,
+	getCategoryBreakdown,
+	getCustomerInsights,
+	getDailyStats,
+	getDeliveryBreakdown,
+	getTopCustomers,
+	getTopDishes,
+	summarizeRestaurantSegments
+} from '$lib/server/adminStatistics';
 
 function getOrdersByDateRange(orders: any[], startDate: Date, endDate: Date) {
 	return orders.filter((order: any) => {
@@ -39,166 +20,145 @@ function getOrdersByDateRange(orders: any[], startDate: Date, endDate: Date) {
 	});
 }
 
+function calculateChange(
+	current: number,
+	previous: number
+): { value: number; isPositive: boolean } {
+	if (previous === 0) return { value: 0, isPositive: true };
+	const change = ((current - previous) / previous) * 100;
+	return { value: Math.abs(change), isPositive: change >= 0 };
+}
+
+function getOrdersOverTimeChart(orders: any[], days: number) {
+	const daily = getDailyStats(orders, days);
+	return {
+		labels: daily.labels,
+		datasets: [
+			{
+				label: 'Orders',
+				data: daily.orders,
+				borderColor: '#475569',
+				backgroundColor: 'rgba(71, 85, 105, 0.1)',
+				tension: 0.3,
+				fill: true
+			}
+		]
+	};
+}
+
+function getRevenueOverTimeChart(orders: any[], days: number) {
+	const daily = getDailyStats(orders, days);
+	return {
+		labels: daily.labels,
+		datasets: [
+			{
+				label: 'Revenue',
+				data: daily.revenue,
+				borderColor: '#10b981',
+				backgroundColor: 'rgba(16, 185, 129, 0.12)',
+				tension: 0.3,
+				fill: true
+			}
+		]
+	};
+}
+
+function getHourlyDistributionChart(orders: any[]) {
+	const hourly = new Array(24).fill(0);
+	orders.forEach((order: any) => {
+		hourly[new Date(order.created).getHours()] += 1;
+	});
+
+	return {
+		labels: Array.from({ length: 24 }, (_, hour) => {
+			if (hour === 0) return '12am';
+			if (hour === 12) return '12pm';
+			return hour > 12 ? `${hour - 12}pm` : `${hour}am`;
+		}),
+		datasets: [
+			{
+				label: 'Orders',
+				data: hourly,
+				backgroundColor: 'rgba(245, 158, 11, 0.8)',
+				borderRadius: 4
+			}
+		]
+	};
+}
+
+function getWeekdayDistribution(orders: any[]) {
+	const weekdayOrder = [
+		'Sunday',
+		'Monday',
+		'Tuesday',
+		'Wednesday',
+		'Thursday',
+		'Friday',
+		'Saturday'
+	];
+	const counts: Record<string, number> = Object.fromEntries(weekdayOrder.map((day) => [day, 0]));
+
+	orders.forEach((order: any) => {
+		const weekday = new Date(order.created).toLocaleDateString('en-US', { weekday: 'long' });
+		counts[weekday] = (counts[weekday] || 0) + 1;
+	});
+
+	return weekdayOrder.map((day) => ({ day, orders: counts[day] || 0 }));
+}
+
+function buildRecentActivity(orders: any[]) {
+	return orders.slice(0, 12).map((order: any) => ({
+		id: order.id,
+		customerName: order.name || 'Guest',
+		amount: order.orderTotal || order.totalAmount || 0,
+		deliveryType: order.deliveryType || 'unknown',
+		timestamp: order.created,
+		initials: (order.name || 'G')
+			.split(' ')
+			.map((part: string) => part[0])
+			.join('')
+			.slice(0, 2)
+			.toUpperCase()
+	}));
+}
+
 export const load: PageServerLoad = async ({ locals, parent }) => {
 	try {
 		const layoutData = await parent();
 		const restaurant = layoutData.restaurant;
 		const restaurantId = layoutData.restaurantId;
-		const isSuper = await isSuperadmin(locals.pb, locals.user);
+		const isSuper = isSuperRestaurant(restaurant);
 
-		if (!restaurantId) {
+		if (!restaurantId || !restaurant) {
 			throw new Error('Restaurant context not found');
 		}
 
-		const restaurantFilter = isSuper ? '' : `restaurantId = "${restaurantId}" && `;
-
-		const deliveredOrders = await locals.pb.collection('orders').getFullList({
-			filter: `${restaurantFilter}status = "Delivered"`,
+		const allOrders = await locals.pb.collection('orders').getFullList({
+			filter: isSuper
+				? 'status = "Delivered"'
+				: `restaurantId = "${restaurantId}" && status = "Delivered"`,
 			sort: '-created'
 		});
+		const allRestaurants = isSuper
+			? await locals.pb.collection('restaurants').getFullList({ fields: 'id,name,isSuper' })
+			: [];
+		const allDishes = await locals.pb.collection('dishes').getFullList({
+			fields: 'id,name,category,restaurant,restaurantId'
+		});
 
-		// Get unique customers
-		const uniqueCustomers = new Set(deliveredOrders.map((o: any) => o.user).filter(Boolean));
-		const totalCustomers = uniqueCustomers.size;
-
-		// Calculate total revenue
-		const totalRevenue = deliveredOrders.reduce(
-			(sum: number, order: any) => sum + (order.orderTotal || order.totalAmount || 0),
-			0
+		const currentStats = calculateStats(allOrders);
+		const customerInsights = getCustomerInsights(allOrders);
+		const deliveryBreakdown = getDeliveryBreakdown(allOrders);
+		const categoryBreakdown = getCategoryBreakdown(
+			allOrders,
+			isSuper
+				? allDishes
+				: allDishes.filter(
+						(dish: any) => dish.restaurant === restaurantId || dish.restaurantId === restaurantId
+					)
 		);
-
-		// Calculate average order value
-		const avgOrderValue =
-			deliveredOrders.length > 0 ? Math.round(totalRevenue / deliveredOrders.length) : 0;
-
-		// Get last 30 days for orders over time
-		const thirtyDaysAgo = new Date();
-		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-		const recentOrders = await locals.pb.collection('orders').getFullList({
-			filter: `${restaurantFilter}status = "Delivered" && created >= "${thirtyDaysAgo.toISOString()}"`,
-			sort: '-created'
-		});
-
-		// Group orders by date for line chart
-		const ordersByDate: Record<string, number> = {};
-		recentOrders.forEach((order: any) => {
-			const date = new Date(order.created).toLocaleDateString('en-US', {
-				month: 'short',
-				day: 'numeric'
-			});
-			ordersByDate[date] = (ordersByDate[date] || 0) + 1;
-		});
-
-		// Get last 7 days labels
-		const last7Days: string[] = [];
-		for (let i = 6; i >= 0; i--) {
-			const d = new Date();
-			d.setDate(d.getDate() - i);
-			last7Days.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-		}
-
-		const ordersOverTime = {
-			labels: last7Days,
-			datasets: [
-				{
-					label: 'Orders',
-					data: last7Days.map((date) => ordersByDate[date] || 0),
-					borderColor: '#475569',
-					backgroundColor: 'rgba(71, 85, 105, 0.1)',
-					tension: 0.3,
-					fill: true
-				}
-			]
-		};
-
-		// Get payment method breakdown (if available in orders)
-		// Since we don't have payment method in orders, we'll use delivery types as breakdown
-		const deliveryTypes = deliveredOrders.reduce((acc: Record<string, number>, order: any) => {
-			const type = order.deliveryType || 'unknown';
-			acc[type] = (acc[type] || 0) + 1;
-			return acc;
-		}, {});
-
-		const orderBreakdown = {
-			labels: Object.keys(deliveryTypes).map((t) =>
-				t === 'home'
-					? 'Delivery'
-					: t === 'restaurantPickup'
-						? 'Pickup'
-						: t === 'tableService'
-							? 'Dine-in'
-							: 'Other'
-			),
-			datasets: [
-				{
-					label: 'Orders',
-					data: Object.values(deliveryTypes),
-					backgroundColor: ['#475569', '#0ea5e9', '#10b981', '#f59e0b']
-				}
-			]
-		};
-
-		// Calculate new vs returning customers (based on order count per user)
-		const userOrderCounts: Record<string, number> = {};
-		deliveredOrders.forEach((order: any) => {
-			if (order.user) {
-				userOrderCounts[order.user] = (userOrderCounts[order.user] || 0) + 1;
-			}
-		});
-
-		const newCustomers = Object.values(userOrderCounts).filter((count: any) => count === 1).length;
-		const returningCustomers = Object.values(userOrderCounts).filter(
-			(count: any) => count > 1
-		).length;
-
-		const newVsReturning = {
-			labels: ['New Customers', 'Returning Customers'],
-			datasets: [
-				{
-					data: [newCustomers, returningCustomers],
-					backgroundColor: ['#0ea5e9', '#f472b6']
-				}
-			]
-		};
-
-		// Get top dishes by counting appearances in orders
-		const dishCounts: Record<string, number> = {};
-		deliveredOrders.forEach((order: any) => {
-			if (order.dishes && Array.isArray(order.dishes)) {
-				order.dishes.forEach((dish: any) => {
-					const name = dish.name || 'Unknown';
-					dishCounts[name] = (dishCounts[name] || 0) + dish.quantity;
-				});
-			}
-		});
-
-		const topDishes = Object.entries(dishCounts)
-			.sort((a, b) => b[1] - a[1])
-			.slice(0, 5)
-			.map(([dish, sales]) => ({ dish, sales }));
-
-		// Get recent activity (last 10 delivered orders)
-		const recentActivity = deliveredOrders.slice(0, 10).map((order: any) => ({
-			time: new Date(order.created).toLocaleTimeString('en-US', {
-				hour: '2-digit',
-				minute: '2-digit'
-			}),
-			text: `${order.name || 'Guest'} placed an order ₦${(order.orderTotal || order.totalAmount || 0).toLocaleString()}`,
-			avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(order.name || 'G')}&background=random`
-		}));
-
-		// Get top customers by order count
-		const topCustomers = Object.entries(userOrderCounts)
-			.sort((a, b) => b[1] - a[1])
-			.slice(0, 5)
-			.map(([userId, orders]) => ({
-				name: deliveredOrders.find((o: any) => o.user === userId)?.name || 'Unknown',
-				orders,
-				avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(deliveredOrders.find((o: any) => o.user === userId)?.name || 'U')}&background=random`
-			}));
-
-		const currentStats = calculateStats(deliveredOrders);
+		const topDishes = getTopDishes(allOrders, 8);
+		const topCustomers = getTopCustomers(allOrders, 8);
 
 		const now = new Date();
 		const currentPeriodStart = new Date();
@@ -207,20 +167,11 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 		previousPeriodStart.setDate(now.getDate() - 60);
 
 		const prevPeriodOrders = getOrdersByDateRange(
-			deliveredOrders,
+			allOrders,
 			previousPeriodStart,
 			currentPeriodStart
 		);
 		const prevPeriodStats = calculateStats(prevPeriodOrders);
-
-		function calculateChange(
-			current: number,
-			previous: number
-		): { value: number; isPositive: boolean } {
-			if (previous === 0) return { value: 0, isPositive: true };
-			const change = ((current - previous) / previous) * 100;
-			return { value: Math.abs(change), isPositive: change >= 0 };
-		}
 
 		const comparison = {
 			customers: calculateChange(currentStats.customers, prevPeriodStats.customers),
@@ -232,25 +183,85 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 			)
 		};
 
+		const charts = {
+			ordersOverTime: getOrdersOverTimeChart(allOrders, 30),
+			revenueOverTime: getRevenueOverTimeChart(allOrders, 30),
+			orderBreakdown: {
+				labels: deliveryBreakdown.map((item) => item.label),
+				datasets: [
+					{
+						label: 'Orders',
+						data: deliveryBreakdown.map((item) => item.count),
+						backgroundColor: ['#475569', '#0ea5e9', '#10b981', '#f59e0b']
+					}
+				]
+			},
+			newVsReturning: {
+				labels: ['New Customers', 'Returning Customers'],
+				datasets: [
+					{
+						data: [customerInsights.newCustomers, customerInsights.returningCustomers],
+						backgroundColor: ['#0ea5e9', '#f472b6']
+					}
+				]
+			},
+			hourlyDistribution: getHourlyDistributionChart(allOrders)
+		};
+
+		const tables: any = {
+			topDishes,
+			topCustomers,
+			recentActivity: buildRecentActivity(allOrders),
+			weekdayPerformance: getWeekdayDistribution(allOrders),
+			categoryBreakdown,
+			deliveryBreakdown
+		};
+
+		if (isSuper) {
+			const restaurantStats = buildRestaurantStats(allOrders, allRestaurants);
+			tables.topRestaurants = [...restaurantStats]
+				.sort((a, b) => b.revenue - a.revenue)
+				.slice(0, 8);
+			return {
+				isSuper,
+				restaurantName: restaurant?.name || 'Store',
+				stats: currentStats,
+				prevStats: prevPeriodStats,
+				comparison,
+				charts,
+				tables,
+				allOrders,
+				customerInsights,
+				restaurantSegments: summarizeRestaurantSegments(restaurantStats)
+			};
+		}
+
+		const benchmarkPool = buildRestaurantStats(
+			await locals.pb
+				.collection('orders')
+				.getFullList({ filter: 'status = "Delivered"', sort: '-created' }),
+			(await locals.pb.collection('restaurants').getFullList({ fields: 'id,name,isSuper' })).filter(
+				(item: any) => !isSuperRestaurant(item)
+			)
+		);
+
 		return {
+			isSuper,
+			restaurantName: restaurant?.name || 'Store',
 			stats: currentStats,
 			prevStats: prevPeriodStats,
 			comparison,
-			charts: {
-				ordersOverTime,
-				orderBreakdown,
-				newVsReturning
-			},
-			tables: {
-				topDishes,
-				topCustomers,
-				recentActivity
-			},
-			allOrders: deliveredOrders
+			charts,
+			tables,
+			allOrders,
+			customerInsights,
+			benchmarks: getBenchmarksForRestaurant(currentStats, benchmarkPool)
 		};
 	} catch (error) {
 		console.error('Error loading analytics:', error);
 		return {
+			isSuper: false,
+			restaurantName: 'Store',
 			stats: {
 				customers: 0,
 				orders: 0,
@@ -273,15 +284,32 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 			},
 			charts: {
 				ordersOverTime: { labels: [], datasets: [] },
+				revenueOverTime: { labels: [], datasets: [] },
 				orderBreakdown: { labels: [], datasets: [] },
-				newVsReturning: { labels: [], datasets: [] }
+				newVsReturning: { labels: [], datasets: [] },
+				hourlyDistribution: { labels: [], datasets: [] }
 			},
 			tables: {
 				topDishes: [],
 				topCustomers: [],
-				recentActivity: []
+				recentActivity: [],
+				weekdayPerformance: [],
+				categoryBreakdown: [],
+				deliveryBreakdown: []
 			},
-			allOrders: []
+			allOrders: [],
+			customerInsights: {
+				newCustomers: 0,
+				returningCustomers: 0,
+				avgCustomerLTV: 0,
+				retentionRate: 0,
+				churnedCustomers: 0,
+				newUsersLast30Days: 0,
+				vipCount: 0,
+				premiumCount: 0,
+				regularCount: 0,
+				newCount: 0
+			}
 		};
 	}
 };

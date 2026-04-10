@@ -2161,13 +2161,16 @@
 			</p>
 		{:else}
 			{#each Object.entries(groupedDishes).sort( (a, b) => a[0].localeCompare(b[0]) ) as [category, dishesInCategory]}
-				<section class="mb-10 p-6">
-					<div class="text-secondary mb-6 ml-4 w-fit text-3xl">
-						<h3 class="font-semibold">{category}</h3>
-						<div class="border-2 underline"></div>
+				<section class="relative mb-10 px-6 py-6">
+					<div class="text-secondary mb-6 max-w-80 min-w-0 pr-40 text-3xl sm:pr-48">
+						<h3 class="font-semibold">
+							<span class="inline-block overflow-x-auto border-b-2 border-current pb-1 whitespace-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+								{category}
+							</span>
+						</h3>
 					</div>
 
-					<Carousel>
+					<Carousel headerAligned={true}>
 						{#each dishesInCategory as dish}
 							<div class="group w-80 shrink-0 snap-start" in:fly={{ y: 50, duration: 600 }}>
 							<div

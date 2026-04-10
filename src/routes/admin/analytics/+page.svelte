@@ -33,9 +33,16 @@
 	const defaultTables = {
 		topDishes: [],
 		topCustomers: [],
-		recentActivity: []
+		recentActivity: [],
+		weekdayPerformance: [],
+		categoryBreakdown: [],
+		deliveryBreakdown: [],
+		topRestaurants: []
 	};
 	const tables = data.tables ?? defaultTables;
+ 	const customerInsights = data.customerInsights ?? {};
+ 	const benchmarks = data.benchmarks ?? null;
+ 	const restaurantSegments = data.restaurantSegments ?? null;
 
 	let selectedPeriod = $state('last30');
 	let customStartDate = $state('');
@@ -176,7 +183,13 @@
 		return orders.slice(0, 10).map((order: any) => ({
 			time: formatActivityTime(order.created),
 			text: `${order.name || 'Guest'} placed an order ₦${(order.orderTotal || order.totalAmount || 0).toLocaleString()}`,
-			avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(order.name || 'G')}&background=random`,
+			initials: (order.name || 'G')
+				.split(' ')
+				.map((part: string) => part[0])
+				.join('')
+				.slice(0, 2)
+				.toUpperCase(),
+			deliveryType: order.deliveryType || 'unknown',
 			fullDate: new Date(order.created).toLocaleDateString('en-US', {
 				weekday: 'short',
 				month: 'short',
@@ -206,22 +219,33 @@
 
 	let filteredTopCustomers = $derived.by(() => {
 		const orders = filterDataByPeriod(allOrders, selectedPeriod);
-		const userOrderCounts: Record<string, { count: number; name: string }> = {};
+		const userOrderCounts: Record<string, { count: number; name: string; revenue: number }> = {};
 		orders.forEach((order: any) => {
 			if (order.user) {
 				if (!userOrderCounts[order.user]) {
-					userOrderCounts[order.user] = { count: 0, name: order.name || 'Unknown' };
+					userOrderCounts[order.user] = {
+						count: 0,
+						name: order.name || 'Unknown',
+						revenue: 0
+					};
 				}
 				userOrderCounts[order.user].count++;
+				userOrderCounts[order.user].revenue += order.orderTotal || order.totalAmount || 0;
 			}
 		});
 		return Object.entries(userOrderCounts)
-			.sort((a, b) => b[1].count - a[1].count)
+			.sort((a, b) => (b[1].revenue === a[1].revenue ? b[1].count - a[1].count : b[1].revenue - a[1].revenue))
 			.slice(0, 5)
 			.map(([userId, data]: [string, any]) => ({
 				name: data.name,
 				orders: data.count,
-				avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=random`
+				revenue: data.revenue,
+				initials: data.name
+					.split(' ')
+					.map((part: string) => part[0])
+					.join('')
+					.slice(0, 2)
+					.toUpperCase()
 			}));
 	});
 
@@ -311,9 +335,12 @@
 	let lineChart: Chart | null = null;
 	let breakdownChart: Chart | null = null;
 	let newReturningChart: Chart | null = null;
+	let hourlyChart: Chart | null = null;
 
 	onMount(() => {
-		const lineCtx = document.getElementById('ordersChart')?.getContext('2d');
+		const lineCtx = (document.getElementById('ordersChart') as HTMLCanvasElement | null)?.getContext(
+			'2d'
+		);
 		if (lineCtx) {
 			lineChart = new Chart(lineCtx, {
 				type: 'line',
@@ -329,7 +356,9 @@
 			});
 		}
 
-		const pieCtx = document.getElementById('breakdownChart')?.getContext('2d');
+		const pieCtx = (document.getElementById('breakdownChart') as HTMLCanvasElement | null)?.getContext(
+			'2d'
+		);
 		if (pieCtx && charts.orderBreakdown.labels?.length > 0) {
 			breakdownChart = new Chart(pieCtx, {
 				type: 'pie',
@@ -341,7 +370,9 @@
 			});
 		}
 
-		const nrCtx = document.getElementById('newReturningChart')?.getContext('2d');
+		const nrCtx = (document.getElementById('newReturningChart') as HTMLCanvasElement | null)?.getContext(
+			'2d'
+		);
 		if (nrCtx && charts.newVsReturning.labels?.length > 0) {
 			newReturningChart = new Chart(nrCtx, {
 				type: 'doughnut',
@@ -353,10 +384,30 @@
 			});
 		}
 
+		const hourlyCtx = (document.getElementById('hourlyChart') as HTMLCanvasElement | null)?.getContext(
+			'2d'
+		);
+		if (hourlyCtx && charts.hourlyDistribution?.labels?.length > 0) {
+			hourlyChart = new Chart(hourlyCtx, {
+				type: 'bar',
+				data: charts.hourlyDistribution,
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					plugins: { legend: { display: false } },
+					scales: {
+						x: { ticks: { maxRotation: 45, minRotation: 45 } },
+						y: { beginAtZero: true }
+					}
+				}
+			});
+		}
+
 		return () => {
 			lineChart?.destroy();
 			breakdownChart?.destroy();
 			newReturningChart?.destroy();
+			hourlyChart?.destroy();
 		};
 	});
 
@@ -384,7 +435,9 @@
 				Analytics
 			</h1>
 			<p class="text-xs text-slate-300 md:text-sm" in:fly={{ y: 20, duration: 400, delay: 100 }}>
-				Restaurant performance overview
+				{data.isSuper
+					? 'Platform-wide performance overview for the current super restaurant context'
+					: `Performance overview for ${data.restaurantName || 'your restaurant'}`}
 			</p>
 		</div>
 	</section>
@@ -427,12 +480,31 @@
 				{/if}
 			</div>
 
-			<div class="mt-3 flex items-center gap-2">
+		<div class="mt-3 flex items-center gap-2">
 				<span class="text-xs font-medium text-slate-500 md:text-sm">Showing:</span>
 				<span class="text-xs font-semibold text-slate-800 md:text-sm"
 					>{getPeriodLabel(selectedPeriod)}</span
 				>
+		</div>
+
+		<div class="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+			<div class="rounded-lg bg-slate-50 p-3">
+				<p class="text-xs text-slate-500">New Customers</p>
+				<p class="mt-1 text-lg font-bold text-slate-900">{customerInsights.newCustomers || 0}</p>
 			</div>
+			<div class="rounded-lg bg-slate-50 p-3">
+				<p class="text-xs text-slate-500">Returning Customers</p>
+				<p class="mt-1 text-lg font-bold text-slate-900">{customerInsights.returningCustomers || 0}</p>
+			</div>
+			<div class="rounded-lg bg-slate-50 p-3">
+				<p class="text-xs text-slate-500">Retention</p>
+				<p class="mt-1 text-lg font-bold text-slate-900">{customerInsights.retentionRate || 0}%</p>
+			</div>
+			<div class="rounded-lg bg-slate-50 p-3">
+				<p class="text-xs text-slate-500">Avg Customer LTV</p>
+				<p class="mt-1 text-lg font-bold text-slate-900">₦{(customerInsights.avgCustomerLTV || 0).toLocaleString()}</p>
+			</div>
+		</div>
 		</div>
 
 		<!-- KPI Cards -->
@@ -765,6 +837,24 @@
 				{/if}
 			</div>
 
+			<div
+				class="rounded-xl bg-white p-4 shadow-md md:rounded-2xl md:p-6"
+				in:fly={{ y: 20, duration: 400, delay: 475 }}
+			>
+				<h2 class="font-playfair mb-3 text-base font-semibold text-slate-900 md:mb-4 md:text-lg">
+					Orders by Hour
+				</h2>
+				{#if charts.hourlyDistribution?.labels?.length > 0}
+					<div class="h-40 md:h-48 lg:h-56">
+						<canvas id="hourlyChart"></canvas>
+					</div>
+				{:else}
+					<div class="flex h-32 items-center justify-center md:h-40">
+						<p class="text-sm text-slate-400">No hourly data available</p>
+					</div>
+				{/if}
+			</div>
+
 			<!-- Recent Activity -->
 			<div
 				class="rounded-xl bg-white p-4 shadow-md md:rounded-2xl md:p-6"
@@ -777,17 +867,19 @@
 					<ul class="max-h-56 space-y-2 overflow-y-auto md:max-h-64 md:space-y-3">
 						{#each filteredRecentActivity as a}
 							<li class="flex items-start gap-2 rounded-lg bg-slate-50 p-2 md:gap-3 md:p-3">
-								<img
-									src={a.avatar}
-									alt="user"
-									class="h-8 w-8 shrink-0 rounded-full md:h-10 md:w-10"
-								/>
+								<div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700 md:h-10 md:w-10">
+									{a.initials || a.text?.charAt(0) || 'G'}
+								</div>
 								<div class="min-w-0 flex-1">
 									<p class="truncate text-xs font-medium text-slate-700 md:text-sm">{a.text}</p>
 									<div class="mt-1 flex flex-wrap items-center gap-1 md:mt-1.5">
 										<span class="text-xs text-slate-500">{a.time}</span>
 										<span class="text-xs text-slate-300">•</span>
 										<span class="text-xs font-medium text-slate-600">{a.fullDate}</span>
+										{#if a.deliveryType}
+											<span class="text-xs text-slate-300">•</span>
+											<span class="text-xs text-slate-500 capitalize">{a.deliveryType}</span>
+										{/if}
 									</div>
 								</div>
 							</li>
@@ -873,6 +965,9 @@
 										>Customer</th
 									>
 									<th class="pb-2 text-right text-xs font-medium text-slate-500 md:pb-3 md:text-sm"
+										>Revenue</th
+									>
+									<th class="pb-2 text-right text-xs font-medium text-slate-500 md:pb-3 md:text-sm"
 										>Orders</th
 									>
 								</tr>
@@ -882,22 +977,23 @@
 									<tr class="border-b border-slate-50">
 										<td class="py-2 md:py-3">
 											<div class="flex items-center gap-2 md:gap-3">
-												<span
-													class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-medium text-amber-600 md:h-6 md:w-6"
-													>{i + 1}</span
-												>
-												<img
-													src={customer.avatar}
-													alt={customer.name}
-													class="h-6 w-6 shrink-0 rounded-full md:h-8 md:w-8"
-												/>
-												<span class="max-w-[120px] truncate text-xs text-slate-700 md:text-sm"
-													>{customer.name}</span
-												>
-											</div>
-										</td>
-										<td class="py-2 text-right md:py-3">
-											<span
+										<span
+											class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-medium text-amber-600 md:h-6 md:w-6"
+											>{i + 1}</span
+										>
+										<div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700 md:h-8 md:w-8">
+											{customer.initials}
+										</div>
+										<span class="max-w-[120px] truncate text-xs text-slate-700 md:text-sm"
+											>{customer.name}</span
+										>
+									</div>
+								</td>
+								<td class="py-2 text-right md:py-3">
+									<span class="text-xs font-medium text-slate-700 md:text-sm">₦{customer.revenue.toLocaleString()}</span>
+								</td>
+								<td class="py-2 text-right md:py-3">
+									<span
 												class="inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 md:px-3 md:py-1 md:text-sm"
 												>{customer.orders}</span
 											>
@@ -914,5 +1010,97 @@
 				{/if}
 			</div>
 		</div>
+
+		<div class="mt-6 grid gap-4 md:mt-8 md:gap-6 lg:grid-cols-2">
+			<div class="rounded-xl bg-white p-4 shadow-md md:rounded-2xl md:p-6">
+				<h2 class="font-playfair mb-3 text-base font-semibold text-slate-900 md:mb-4 md:text-lg">
+					Weekday Performance
+				</h2>
+				<div class="space-y-3">
+					{#each tables.weekdayPerformance || [] as item}
+						<div>
+							<div class="mb-1 flex items-center justify-between text-sm">
+								<span class="text-slate-700">{item.day}</span>
+								<span class="font-medium text-slate-900">{item.orders} orders</span>
+							</div>
+							<div class="h-2 rounded-full bg-slate-100">
+								<div class="h-2 rounded-full bg-slate-700" style="width: {Math.min(item.orders * 10, 100)}%"></div>
+							</div>
+						</div>
+					{:else}
+						<p class="text-sm text-slate-400">No weekday data available</p>
+					{/each}
+				</div>
+			</div>
+
+			<div class="rounded-xl bg-white p-4 shadow-md md:rounded-2xl md:p-6">
+				<h2 class="font-playfair mb-3 text-base font-semibold text-slate-900 md:mb-4 md:text-lg">
+					Category Mix
+				</h2>
+				<div class="space-y-3">
+					{#each (tables.categoryBreakdown || []).slice(0, 6) as item}
+						<div class="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+							<span class="text-sm text-slate-700">{item.name}</span>
+							<span class="text-sm font-semibold text-slate-900">{item.count}</span>
+						</div>
+					{:else}
+						<p class="text-sm text-slate-400">No category data available</p>
+					{/each}
+				</div>
+			</div>
+		</div>
+
+		{#if data.isSuper || benchmarks}
+			<div class="mt-6 grid gap-4 md:mt-8 md:gap-6 lg:grid-cols-2">
+				<div class="rounded-xl bg-white p-4 shadow-md md:rounded-2xl md:p-6">
+					<h2 class="font-playfair mb-3 text-base font-semibold text-slate-900 md:mb-4 md:text-lg">
+						{data.isSuper ? 'Restaurant Segments' : 'Benchmark Snapshot'}
+					</h2>
+					{#if data.isSuper}
+						<div class="grid grid-cols-2 gap-3">
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-500">Super Restaurants</p>
+								<p class="mt-1 text-lg font-bold text-slate-900">{restaurantSegments?.superRestaurants?.count || 0}</p>
+								<p class="text-xs text-slate-500">₦{(restaurantSegments?.superRestaurants?.revenue || 0).toLocaleString()}</p>
+							</div>
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-500">Regular Restaurants</p>
+								<p class="mt-1 text-lg font-bold text-slate-900">{restaurantSegments?.regularRestaurants?.count || 0}</p>
+								<p class="text-xs text-slate-500">₦{(restaurantSegments?.regularRestaurants?.revenue || 0).toLocaleString()}</p>
+							</div>
+						</div>
+					{:else}
+						<div class="grid grid-cols-2 gap-3">
+							<div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-500">Revenue Percentile</p><p class="mt-1 text-lg font-bold text-slate-900">{benchmarks?.percentiles?.revenue || 0}%</p></div>
+							<div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-500">Orders Percentile</p><p class="mt-1 text-lg font-bold text-slate-900">{benchmarks?.percentiles?.orders || 0}%</p></div>
+							<div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-500">Avg Revenue</p><p class="mt-1 text-lg font-bold text-slate-900">₦{(benchmarks?.benchmarks?.avgRevenue || 0).toLocaleString()}</p></div>
+							<div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-500">Avg Orders</p><p class="mt-1 text-lg font-bold text-slate-900">{benchmarks?.benchmarks?.avgOrders || 0}</p></div>
+						</div>
+					{/if}
+				</div>
+
+				{#if data.isSuper && tables.topRestaurants?.length > 0}
+					<div class="rounded-xl bg-white p-4 shadow-md md:rounded-2xl md:p-6">
+						<h2 class="font-playfair mb-3 text-base font-semibold text-slate-900 md:mb-4 md:text-lg">
+							Top Restaurants
+						</h2>
+						<div class="space-y-3">
+							{#each tables.topRestaurants as item, i}
+								<div class="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+									<div class="flex items-center gap-3">
+										<span class="flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">{i + 1}</span>
+										<div>
+											<p class="text-sm font-medium text-slate-900">{item.name}</p>
+											<p class="text-xs text-slate-500">{item.orders} orders</p>
+										</div>
+									</div>
+									<p class="text-sm font-semibold text-slate-900">₦{item.revenue.toLocaleString()}</p>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			</div>
+		{/if}
 	</main>
 </div>

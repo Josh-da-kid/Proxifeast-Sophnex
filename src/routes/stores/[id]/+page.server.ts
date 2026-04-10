@@ -1,10 +1,24 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { getScopedRestaurantForRequest } from '$lib/server/restaurantAccess';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params, locals, request }) => {
 	const { id } = params;
 
 	try {
+		const scoped = await getScopedRestaurantForRequest(
+			locals.pb,
+			request.headers.get('host') || '',
+			id,
+			{
+				allowSuperFallback: true
+			}
+		);
+
+		if (!scoped.currentRestaurant || !scoped.allowed) {
+			throw error(404, 'Restaurant not found');
+		}
+
 		const restaurant = await locals.pb.collection('restaurants').getOne(id);
 
 		const dishesResult = await locals.pb.collection('dishes').getList(1, 100, {

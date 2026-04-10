@@ -5,7 +5,7 @@
 	import Carousel from '$lib/Carousel.svelte';
 	import pb from '$lib/pb';
 	import { addToCartPB } from '$lib/addToCart';
-	import { cart, fetchCart } from '$lib/stores/cart';
+	import { addToCartOptimistic, cart, fetchCart, total } from '$lib/stores/cart';
 
 	const restaurant = $derived($page.data.restaurant);
 	const featuredDishes = $derived($page.data.featuredDishes ?? []);
@@ -100,6 +100,7 @@
 		}
 
 		isAddingToCart = dish.id;
+		addToCartOptimistic(dish, 1, restaurant.id, restaurant.name);
 
 		try {
 			await addToCartPB(
@@ -117,8 +118,10 @@
 			setTimeout(() => {
 				addToCartAlert = false;
 			}, 2000);
+			await fetchCart();
 		} catch (err) {
 			console.error('Failed to add to cart:', err);
+			await fetchCart();
 		} finally {
 			isAddingToCart = null;
 		}
@@ -290,12 +293,13 @@
 										cafe: 'Café',
 										hotel: 'Hotel'
 									}}
+									{@const storeType = restaurant.type as 'restaurant' | 'bar' | 'cafe' | 'hotel'}
 									<span
 										class="rounded-full px-3 py-1 text-xs font-medium {typeColors[
-											restaurant.type
+												storeType
 										] || 'bg-gray-100 text-gray-700'}"
 									>
-										{typeLabels[restaurant.type] || restaurant.type}
+										{typeLabels[storeType] || restaurant.type}
 									</span>
 								{/if}
 								{#if restaurant?.category}
@@ -699,11 +703,11 @@
 											</span>
 										</div>
 									{/if}
-									<!-- Dish Name Overlay -->
-									<div class="absolute right-0 bottom-0 left-0 p-4">
-										<h3 class="font-semibold !text-white">{dish.name}</h3>
-									</div>
-								</div>
+							<!-- Dish Name Overlay -->
+							<div class="absolute right-0 bottom-0 left-0 p-4">
+								<h3 class="line-clamp-2 break-words font-semibold !text-white">{dish.name}</h3>
+							</div>
+						</div>
 
 								<!-- Content -->
 								<div class="p-4">
@@ -771,7 +775,9 @@
 							<div in:fly={{ y: 20, duration: 300, delay: catIndex * 100 }}>
 								<!-- Category Header -->
 								<div class="mb-4 flex items-center justify-between">
-									<h3 class="font-playfair text-xl font-semibold text-slate-900">{category}</h3>
+									<h3 class="font-playfair min-w-0 flex-1 break-words pr-4 text-xl font-semibold text-slate-900">
+										{category}
+									</h3>
 									{#if categoryDishes.length > 6}
 										<button class="text-sm font-medium text-amber-600 hover:text-amber-700">
 											View All ({categoryDishes.length})
@@ -827,13 +833,13 @@
 													{/if}
 												</div>
 
-												<!-- Dish Info -->
-												<div class="flex flex-1 flex-col p-4">
-													<h4
-														class="text-sm font-semibold text-slate-900 group-hover:text-amber-600"
-													>
-														{dish.name}
-													</h4>
+										<!-- Dish Info -->
+										<div class="flex flex-1 flex-col p-4">
+											<h4
+												class="line-clamp-2 break-words text-sm font-semibold text-slate-900 group-hover:text-amber-600"
+											>
+												{dish.name}
+											</h4>
 													{#if dish.description}
 														<p class="mt-1 line-clamp-2 text-xs text-slate-500">
 															{dish.description}
@@ -934,6 +940,24 @@
 	</section>
 
 	<!-- Footer -->
+	{#if $cart.length > 0}
+		<a
+			href="/checkout"
+			class="fixed right-4 bottom-6 z-40 flex items-center gap-3 rounded-full bg-amber-500 px-4 py-3 text-white shadow-xl transition-transform duration-300 hover:scale-[1.02] hover:bg-amber-600 md:right-6"
+		>
+			<span class="flex h-8 min-w-8 items-center justify-center rounded-full bg-white px-2 text-xs font-bold text-slate-900">
+				{$cart.length}
+			</span>
+			<div class="min-w-0">
+				<p class="text-xs uppercase tracking-wide text-white/80">Cart</p>
+				<p class="text-sm font-semibold">₦{$total.toLocaleString()}</p>
+			</div>
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+			</svg>
+		</a>
+	{/if}
+
 	<footer class="border-t border-slate-200 bg-white py-8">
 		<div class="mx-auto max-w-5xl px-4 text-center">
 			<p class="text-sm text-slate-500">

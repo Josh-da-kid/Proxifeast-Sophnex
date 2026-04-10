@@ -12,12 +12,16 @@
 	let activeTab = $state('overview');
 
 	const customers = data.customerStats ?? [];
-	const userOrdersMap = data.userOrdersMap ?? {};
+	const userOrdersMap: Record<string, any[]> = data.userOrdersMap ?? {};
 	const charts = data.charts ?? {};
 	const stats = data.stats ?? {};
 	const topCustomers = data.topCustomers ?? [];
 	const mostValuableCustomers = data.mostValuableCustomers ?? [];
 	const popularDishes = data.popularDishes ?? [];
+	const recentActiveCustomers = data.recentActiveCustomers ?? [];
+	const atRiskCustomers = data.atRiskCustomers ?? [];
+	const recencyBuckets = data.recencyBuckets ?? {};
+	const spendDistribution = data.spendDistribution ?? {};
 
 	function getCustomerMetrics(customer: any) {
 		const orders = userOrdersMap[customer.id] || [];
@@ -86,6 +90,23 @@
 		selectedCustomer = null;
 	}
 
+	$effect(() => {
+		if (typeof document === 'undefined') return;
+
+		const previousOverflow = document.body.style.overflow;
+		const previousOverscroll = document.body.style.overscrollBehavior;
+
+		if (showCustomerModal) {
+			document.body.style.overflow = 'hidden';
+			document.body.style.overscrollBehavior = 'contain';
+		}
+
+		return () => {
+			document.body.style.overflow = previousOverflow;
+			document.body.style.overscrollBehavior = previousOverscroll;
+		};
+	});
+
 	let revenueChart: Chart | null = null;
 	let tierChart: Chart | null = null;
 	let newReturningChart: Chart | null = null;
@@ -94,7 +115,7 @@
 
 	onMount(() => {
 		// Revenue over time chart
-		const revenueEl = document.getElementById('revenueChart');
+		const revenueEl = document.getElementById('revenueChart') as HTMLCanvasElement | null;
 		const revenueCtx = revenueEl?.getContext('2d');
 		if (revenueCtx && charts.revenueOverTime?.labels?.length > 0) {
 			revenueChart = new Chart(revenueCtx, {
@@ -115,7 +136,7 @@
 		}
 
 		// Tier distribution chart
-		const tierEl = document.getElementById('tierChart');
+		const tierEl = document.getElementById('tierChart') as HTMLCanvasElement | null;
 		const tierCtx = tierEl?.getContext('2d');
 		if (tierCtx && charts.tierDistribution?.labels?.length > 0) {
 			const totalTiers =
@@ -136,7 +157,7 @@
 		}
 
 		// New vs Returning chart
-		const newReturningEl = document.getElementById('newReturningChart');
+		const newReturningEl = document.getElementById('newReturningChart') as HTMLCanvasElement | null;
 		const newReturningCtx = newReturningEl?.getContext('2d');
 		if (newReturningCtx && charts.newVsReturning?.labels?.length > 0) {
 			const total =
@@ -157,7 +178,7 @@
 		}
 
 		// Order time distribution chart
-		const orderTimeEl = document.getElementById('orderTimeChart');
+		const orderTimeEl = document.getElementById('orderTimeChart') as HTMLCanvasElement | null;
 		const orderTimeCtx = orderTimeEl?.getContext('2d');
 		if (orderTimeCtx && charts.orderTimeDistribution?.labels?.length > 0) {
 			orderTimeChart = new Chart(orderTimeCtx, {
@@ -176,7 +197,7 @@
 		}
 
 		// Delivery type chart
-		const deliveryEl = document.getElementById('deliveryChart');
+		const deliveryEl = document.getElementById('deliveryChart') as HTMLCanvasElement | null;
 		const deliveryCtx = deliveryEl?.getContext('2d');
 		if (deliveryCtx && charts.deliveryTypeDistribution?.labels?.length > 0) {
 			const total =
@@ -210,7 +231,7 @@
 </script>
 
 <svelte:head>
-	<title>User Analysis - Proxifeast</title>
+	<title>{data.isSuper ? 'Platform User Analysis' : 'User Analysis'} - Proxifeast</title>
 </svelte:head>
 
 <div class="min-h-screen bg-slate-50">
@@ -219,9 +240,11 @@
 		class="bg-gradient-to-b from-slate-900 via-slate-800 to-slate-700 px-4 py-5 text-white md:py-8"
 	>
 		<div class="mx-auto max-w-7xl">
-			<h1 class="font-playfair text-center text-2xl font-bold md:text-4xl">User Analysis</h1>
+			<h1 class="font-playfair text-center text-2xl font-bold md:text-4xl">
+				{data.isSuper ? 'Platform User Analysis' : 'User Analysis'}
+			</h1>
 			<p class="mt-1 text-center text-sm text-white/80 md:mt-2 md:text-base">
-				Understand your customers better
+				{data.scopeLabel || 'Understand your customers better'}
 			</p>
 		</div>
 	</section>
@@ -573,6 +596,40 @@
 				</div>
 			</section>
 
+			<section class="mt-6 grid gap-4 md:grid-cols-2">
+				<div class="rounded-xl bg-white p-4 shadow-sm md:rounded-2xl md:p-6">
+					<h2 class="mb-3 text-base font-semibold text-slate-900">Customer Recency</h2>
+					<div class="grid grid-cols-2 gap-3">
+						<div class="rounded-lg bg-slate-50 p-3 text-center">
+							<div class="text-xl font-bold text-slate-800">{recencyBuckets.last7Days || 0}</div>
+							<div class="text-xs text-slate-500">Active in 7d</div>
+						</div>
+						<div class="rounded-lg bg-slate-50 p-3 text-center">
+							<div class="text-xl font-bold text-slate-800">{recencyBuckets.last30Days || 0}</div>
+							<div class="text-xs text-slate-500">Active in 30d</div>
+						</div>
+						<div class="rounded-lg bg-slate-50 p-3 text-center">
+							<div class="text-xl font-bold text-slate-800">{recencyBuckets.last90Days || 0}</div>
+							<div class="text-xs text-slate-500">Active in 90d</div>
+						</div>
+						<div class="rounded-lg bg-slate-50 p-3 text-center">
+							<div class="text-xl font-bold text-slate-800">{recencyBuckets.over90Days || 0}</div>
+							<div class="text-xs text-slate-500">Dormant 90+d</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="rounded-xl bg-white p-4 shadow-sm md:rounded-2xl md:p-6">
+					<h2 class="mb-3 text-base font-semibold text-slate-900">Spend Distribution</h2>
+					<div class="space-y-3">
+						<div class="flex items-center justify-between rounded-lg bg-slate-50 p-3"><span class="text-sm text-slate-700">Under ₦10k</span><span class="font-semibold text-slate-900">{spendDistribution.under10k || 0}</span></div>
+						<div class="flex items-center justify-between rounded-lg bg-slate-50 p-3"><span class="text-sm text-slate-700">₦10k - ₦50k</span><span class="font-semibold text-slate-900">{spendDistribution.between10kAnd50k || 0}</span></div>
+						<div class="flex items-center justify-between rounded-lg bg-slate-50 p-3"><span class="text-sm text-slate-700">₦50k - ₦100k</span><span class="font-semibold text-slate-900">{spendDistribution.between50kAnd100k || 0}</span></div>
+						<div class="flex items-center justify-between rounded-lg bg-slate-50 p-3"><span class="text-sm text-slate-700">Over ₦100k</span><span class="font-semibold text-slate-900">{spendDistribution.over100k || 0}</span></div>
+					</div>
+				</div>
+			</section>
+
 			<!-- Popular Dishes -->
 			{#if popularDishes.length > 0}
 				<section class="mt-6">
@@ -630,6 +687,42 @@
 				</section>
 			{/if}
 
+			<section class="mt-6 grid gap-4 md:grid-cols-2">
+				<div class="rounded-xl bg-white p-4 shadow-sm md:rounded-2xl md:p-6">
+					<h2 class="mb-3 text-base font-semibold text-slate-900">Recently Active Customers</h2>
+					<div class="space-y-2">
+						{#each recentActiveCustomers as customer}
+							<button onclick={() => viewCustomerDetails(customer)} class="flex w-full items-center justify-between rounded-lg bg-slate-50 p-3 text-left transition-colors hover:bg-slate-100">
+								<div>
+									<p class="font-medium text-slate-900">{customer.name}</p>
+									<p class="text-xs text-slate-500">{customer.orderCount} orders</p>
+								</div>
+								<p class="text-xs text-slate-500">{customer.lastOrder ? getTimeSince(new Date(customer.lastOrder)) : 'N/A'}</p>
+							</button>
+						{:else}
+							<p class="text-sm text-slate-400">No recent active customers</p>
+						{/each}
+					</div>
+				</div>
+
+				<div class="rounded-xl bg-white p-4 shadow-sm md:rounded-2xl md:p-6">
+					<h2 class="mb-3 text-base font-semibold text-slate-900">At-Risk Customers</h2>
+					<div class="space-y-2">
+						{#each atRiskCustomers as customer}
+							<button onclick={() => viewCustomerDetails(customer)} class="flex w-full items-center justify-between rounded-lg bg-slate-50 p-3 text-left transition-colors hover:bg-slate-100">
+								<div>
+									<p class="font-medium text-slate-900">{customer.name}</p>
+									<p class="text-xs text-slate-500">₦{customer.totalSpent.toLocaleString()}</p>
+								</div>
+								<p class="text-xs text-slate-500">{customer.lastOrder ? getTimeSince(new Date(customer.lastOrder)) : 'N/A'}</p>
+							</button>
+						{:else}
+							<p class="text-sm text-slate-400">No at-risk customers</p>
+						{/each}
+					</div>
+				</div>
+			</section>
+
 			<!-- Tier Breakdown -->
 			<section class="mt-6">
 				<div class="rounded-xl bg-white p-4 shadow-sm md:rounded-2xl md:p-6">
@@ -661,16 +754,21 @@
 <!-- Customer Details Modal -->
 {#if showCustomerModal && selectedCustomer}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+		class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4 overscroll-contain"
 		onkeydown={(e) => e.key === 'Escape' && closeCustomerModal()}
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
 	>
-		<button class="absolute inset-0" aria-label="Close customer details" onclick={closeCustomerModal}></button>
+		<button
+			class="absolute inset-0 z-0"
+			aria-label="Close customer details"
+			onclick={closeCustomerModal}
+		></button>
 		<div
-			class="max-h-[90vh] w-full max-w-lg overflow-auto rounded-2xl bg-white"
+			class="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-2xl bg-white"
 			role="document"
+			onclick={(e) => e.stopPropagation()}
 		>
 			<div class="flex items-center justify-between border-b border-slate-100 p-4">
 				<div class="flex items-center gap-3">
@@ -740,7 +838,7 @@
 			<div class="p-4">
 				<h4 class="mb-2 font-semibold text-slate-900">Recent Orders</h4>
 				{#if selectedCustomer.orders?.length > 0}
-					<div class="max-h-48 space-y-2 overflow-y-auto">
+					<div class="max-h-48 space-y-2 overflow-y-auto overscroll-contain">
 						{#each selectedCustomer.orders.slice(0, 10) as order}
 							<div class="flex items-center justify-between rounded-lg border border-slate-100 p-2">
 								<div>

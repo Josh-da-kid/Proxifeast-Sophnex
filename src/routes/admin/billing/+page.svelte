@@ -142,6 +142,21 @@
 		}
 	});
 
+	$effect(() => {
+		const params = new URLSearchParams(window.location.search);
+		const hasExpiredParam = params.get('expired') === '1';
+		const hasActiveAccess =
+			data.subscriptionStatus === 'active' ||
+			data.subscriptionStatus === 'expiring_soon' ||
+			data.subscriptionStatus === 'test';
+
+		if (hasExpiredParam && hasActiveAccess) {
+			params.delete('expired');
+			const query = params.toString();
+			window.history.replaceState({}, '', query ? `/admin/billing?${query}` : '/admin/billing');
+		}
+	});
+
 	// Show appropriate tab based on subscription status
 	$effect(() => {
 		if (data.subscriptionStatus === 'not_subscribed' || data.subscriptionStatus === 'expired') {
@@ -224,6 +239,11 @@
 		}
 	}
 
+	async function refreshBillingState() {
+		await invalidateAll();
+		await goto('/admin/billing', { replaceState: true, invalidateAll: true });
+	}
+
 	function handleSubscribe() {
 		const PaystackPop = getPaystackPop();
 
@@ -291,7 +311,7 @@
 					console.log('Free trial result:', result);
 					if (result.success) {
 						paymentSuccess = true;
-						await invalidateAll();
+						await refreshBillingState();
 					} else {
 						paymentError = result.error || result.details || 'Failed to create free trial';
 					}
@@ -343,12 +363,12 @@
 							id: data.subscription?.id || null
 						})
 					})
-						.then((res) => res.json())
-						.then(async (result) => {
-							if (result.success) {
-								paymentSuccess = true;
-								await invalidateAll();
-							} else {
+					.then((res) => res.json())
+					.then(async (result) => {
+						if (result.success) {
+							paymentSuccess = true;
+							await refreshBillingState();
+						} else {
 								paymentError = 'Failed to save subscription: ' + (result.error || '');
 							}
 						})
@@ -432,12 +452,12 @@
 							paymentReference: response.reference
 						})
 					})
-						.then((res) => res.json())
-						.then(async (result) => {
-							if (result.success) {
-								paymentSuccess = true;
-								await invalidateAll();
-							} else {
+					.then((res) => res.json())
+					.then(async (result) => {
+						if (result.success) {
+							paymentSuccess = true;
+							await refreshBillingState();
+						} else {
 								paymentError = 'Failed to renew subscription';
 							}
 						})
@@ -479,7 +499,7 @@
 
 			if (result.success) {
 				paymentSuccess = true;
-				await invalidateAll();
+				await refreshBillingState();
 			} else {
 				paymentError = 'Failed to toggle auto-renew: ' + (result.error || '');
 			}
@@ -517,7 +537,7 @@
 
 			if (result.success) {
 				paymentSuccess = true;
-				await invalidateAll();
+				await refreshBillingState();
 			} else {
 				paymentError = 'Failed to delete subscription: ' + (result.error || '');
 			}

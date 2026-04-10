@@ -4,7 +4,7 @@
 	import { page } from '$app/stores';
 	import pb from '$lib/pb';
 	import { onMount, onDestroy } from 'svelte';
-	import { derived, get } from 'svelte/store';
+	import { derived as storeDerived, get } from 'svelte/store';
 	import { fly, fade } from 'svelte/transition';
 	import Notification from '$lib/Notification.svelte';
 	import Carousel from '$lib/Carousel.svelte';
@@ -78,10 +78,10 @@
 		showImageCropper = true;
 	}
 
-	const groupedDishes = $derived.by(() => {
+	const groupedDishes = $derived.by((): Record<string, any[]> => {
 		const sourceDishes =
 			searchInput.trim() || selectedCategoryInput !== 'All' ? filteredDishes : dishes;
-		const groups: Record<string, typeof dishes> = {};
+		const groups: Record<string, any[]> = {};
 		for (const dish of sourceDishes) {
 			if (dish.category) {
 				if (!groups[dish.category]) {
@@ -92,6 +92,10 @@
 		}
 		return groups;
 	});
+
+	const groupedDishEntries = $derived.by(
+		() => Object.entries(groupedDishes).sort((a, b) => a[0].localeCompare(b[0])) as [string, any[]][]
+	);
 
 	function openEditDrawer(dish: any) {
 		selectedDish = {
@@ -120,7 +124,7 @@
 		}
 	});
 
-	const searchSubmitted = derived(page, ($page) => {
+	const searchSubmitted = storeDerived(page, ($page) => {
 		return ($page.url.searchParams.get('search')?.trim() ?? '') !== '';
 	});
 
@@ -145,7 +149,7 @@
 		}
 	});
 
-	export const isLoggedIn = derived(page, ($page) => $page.data.user !== null);
+	export const isLoggedIn = storeDerived(page, ($page) => $page.data.user !== null);
 
 	function clearSearch() {
 		searchInput = '';
@@ -184,7 +188,7 @@
 
 	let modalImage: string | null = $state(null);
 
-	export const user = derived(page, ($page) => $page.data.user);
+	export const user = storeDerived(page, ($page) => $page.data.user);
 </script>
 
 <svelte:head>
@@ -376,19 +380,21 @@
 				</p>
 			</div>
 		{:else}
-			{#each Object.entries(groupedDishes).sort( (a, b) => a[0].localeCompare(b[0]) ) as [category, dishesInCategory]}
-				<section class="mb-10">
+			{#each groupedDishEntries as [category, dishesInCategory]}
+				<section class="relative mb-10">
 					<h2
-						class="font-playfair mb-6 text-xl font-semibold text-slate-800"
+						class="font-playfair mb-6 max-w-72 min-w-0 pr-40 pl-1 text-xl font-semibold text-slate-800 sm:pr-48"
 						in:fly={{ y: 20, duration: 300 }}
 					>
-						{category}
-						<span class="ml-2 text-sm font-normal text-slate-500"
-							>({dishesInCategory.length} dishes)</span
-						>
+						<span class="inline-block max-w-full overflow-x-auto border-b-2 border-current pb-1 whitespace-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+							{category}
+						</span>
+						<span class="mt-2 block text-sm font-normal text-slate-500">
+							{dishesInCategory.length} dishes
+						</span>
 					</h2>
 
-					<Carousel>
+					<Carousel headerAligned={true}>
 						{#each dishesInCategory as dish}
 							<article
 								class="w-72 shrink-0 snap-start rounded-xl bg-white shadow-md transition-all hover:shadow-xl"
@@ -498,7 +504,9 @@
 
 								<!-- Dish Details -->
 								<div class="p-4">
-									<h3 class="font-playfair text-lg font-semibold text-slate-900">{dish.name}</h3>
+									<h3 class="font-playfair line-clamp-2 break-words text-lg font-semibold text-slate-900">
+										{dish.name}
+									</h3>
 									<p class="mt-1 line-clamp-2 text-sm text-slate-500">{dish.description}</p>
 
 									<div class="mt-3 flex items-center justify-between">

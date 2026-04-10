@@ -1,5 +1,8 @@
 import type { RequestHandler } from './$types';
-import { canAdminAccessRestaurant } from '$lib/server/restaurantAccess';
+import {
+	canAdminAccessRestaurant,
+	getScopedRestaurantForRequest
+} from '$lib/server/restaurantAccess';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const formData = await request.formData();
@@ -39,6 +42,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		const reservation = reservations[0];
+		const scoped = await getScopedRestaurantForRequest(
+			locals.pb,
+			request.headers.get('host') || '',
+			reservation.storeId,
+			{ allowSuperFallback: true }
+		);
+
+		if (!scoped.currentRestaurant || !scoped.allowed) {
+			return new Response(JSON.stringify({ error: 'Invalid restaurant context.' }), {
+				status: 403,
+				headers: { 'Content-Type': 'application/json' }
+			});
+		}
 
 		if (isAdminLookup) {
 			if (!locals.user) {

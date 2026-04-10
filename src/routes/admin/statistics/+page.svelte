@@ -3,7 +3,7 @@
 
 	let { data } = $props();
 
-	let statsData = $state(data);
+	let statsData: any = $state(data);
 	let loading = $state(false);
 	let selectedPeriod = $state('30days');
 
@@ -43,6 +43,11 @@
 		if (hour === 0) return '12 AM';
 		if (hour === 12) return '12 PM';
 		return hour > 12 ? `${hour - 12} PM` : `${hour} AM`;
+	}
+
+	function getBarPercent(value: number, values: number[]): number {
+		const max = values.length > 0 ? Math.max(...values, 1) : 1;
+		return Math.round((value / max) * 100);
 	}
 </script>
 
@@ -382,6 +387,155 @@
 									<p class="py-4 text-center text-sm text-slate-500">No status data</p>
 								{/each}
 							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+					<div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+						<h3 class="font-heading mb-4 text-base font-semibold text-slate-900">
+							Restaurant Segments
+						</h3>
+						<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+							<div class="rounded-lg bg-slate-50 p-4">
+								<p class="text-xs tracking-wider text-slate-500 uppercase">Super Restaurants</p>
+								<p class="mt-2 text-2xl font-bold text-slate-900">
+									{statsData.restaurantSegments?.superRestaurants?.count || 0}
+								</p>
+								<p class="mt-2 text-sm text-slate-600">
+									{formatCurrency(statsData.restaurantSegments?.superRestaurants?.revenue || 0)} revenue
+								</p>
+								<p class="text-xs text-slate-500">
+									Avg {formatCurrency(statsData.restaurantSegments?.superRestaurants?.avgRevenue || 0)}
+								</p>
+							</div>
+							<div class="rounded-lg bg-slate-50 p-4">
+								<p class="text-xs tracking-wider text-slate-500 uppercase">Regular Restaurants</p>
+								<p class="mt-2 text-2xl font-bold text-slate-900">
+									{statsData.restaurantSegments?.regularRestaurants?.count || 0}
+								</p>
+								<p class="mt-2 text-sm text-slate-600">
+									{formatCurrency(statsData.restaurantSegments?.regularRestaurants?.revenue || 0)} revenue
+								</p>
+								<p class="text-xs text-slate-500">
+									Avg {formatCurrency(statsData.restaurantSegments?.regularRestaurants?.avgRevenue || 0)}
+								</p>
+							</div>
+						</div>
+					</div>
+
+					<div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+						<h3 class="font-heading mb-4 text-base font-semibold text-slate-900">
+							Customer Health
+						</h3>
+						<div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-500">New</p>
+								<p class="mt-1 text-xl font-bold text-slate-900">{statsData.customerInsights?.newCustomers || 0}</p>
+							</div>
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-500">Returning</p>
+								<p class="mt-1 text-xl font-bold text-slate-900">
+									{statsData.customerInsights?.returningCustomers || 0}
+								</p>
+							</div>
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-500">Retention</p>
+								<p class="mt-1 text-xl font-bold text-slate-900">
+									{statsData.customerInsights?.retentionRate || 0}%
+								</p>
+							</div>
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-500">Avg LTV</p>
+								<p class="mt-1 text-xl font-bold text-slate-900">
+									{formatCurrency(statsData.customerInsights?.avgCustomerLTV || 0)}
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+					<div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+						<h3 class="font-heading mb-4 text-base font-semibold text-slate-900">Top Dishes</h3>
+						<div class="space-y-3">
+							{#each statsData.topDishes || [] as dish, i}
+								<div class="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+									<div class="flex items-center gap-3">
+										<span class="flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700">{i + 1}</span>
+										<div>
+											<p class="font-medium text-slate-900">{dish.name}</p>
+											<p class="text-xs text-slate-500">{dish.quantity} sold</p>
+										</div>
+									</div>
+									<p class="text-sm font-semibold text-slate-900">{formatCurrency(dish.revenue)}</p>
+								</div>
+							{:else}
+								<p class="py-4 text-center text-sm text-slate-500">No dish data available</p>
+							{/each}
+						</div>
+					</div>
+
+					<div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+						<h3 class="font-heading mb-4 text-base font-semibold text-slate-900">Top Customers</h3>
+						<div class="space-y-3">
+							{#each statsData.topCustomers || [] as customer, i}
+								<div class="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+									<div class="flex items-center gap-3">
+										<span class="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700">{i + 1}</span>
+										<div>
+											<p class="font-medium text-slate-900">{customer.name}</p>
+											<p class="text-xs text-slate-500">{customer.orders} orders</p>
+										</div>
+									</div>
+									<p class="text-sm font-semibold text-slate-900">{formatCurrency(customer.revenue)}</p>
+								</div>
+							{:else}
+								<p class="py-4 text-center text-sm text-slate-500">No customer data available</p>
+							{/each}
+						</div>
+					</div>
+				</div>
+
+				<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+					<div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+						<h3 class="font-heading mb-4 text-base font-semibold text-slate-900">Order Mix</h3>
+						<div class="space-y-4">
+							{#each statsData.deliveryBreakdown || [] as item}
+								{@const total = statsData.deliveryBreakdown?.reduce((sum: number, value: any) => sum + value.count, 0) || 1}
+								{@const percent = Math.round((item.count / total) * 100)}
+								<div>
+									<div class="mb-1 flex items-center justify-between text-sm">
+										<span class="text-slate-700">{item.label}</span>
+										<span class="font-medium text-slate-900">{item.count} ({percent}%)</span>
+									</div>
+									<div class="h-2 rounded-full bg-slate-100">
+										<div class="h-2 rounded-full bg-blue-500" style="width: {percent}%"></div>
+									</div>
+								</div>
+							{:else}
+								<p class="py-4 text-center text-sm text-slate-500">No delivery mix available</p>
+							{/each}
+						</div>
+					</div>
+
+					<div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+						<h3 class="font-heading mb-4 text-base font-semibold text-slate-900">Category Mix</h3>
+						<div class="space-y-4">
+							{#each (statsData.categoryBreakdown || []).slice(0, 6) as category}
+								{@const values = (statsData.categoryBreakdown || []).map((item: any) => item.count)}
+								<div>
+									<div class="mb-1 flex items-center justify-between text-sm">
+										<span class="text-slate-700">{category.name}</span>
+										<span class="font-medium text-slate-900">{category.count}</span>
+									</div>
+									<div class="h-2 rounded-full bg-slate-100">
+										<div class="h-2 rounded-full bg-orange-500" style="width: {getBarPercent(category.count, values)}%"></div>
+									</div>
+								</div>
+							{:else}
+								<p class="py-4 text-center text-sm text-slate-500">No category mix available</p>
+							{/each}
 						</div>
 					</div>
 				</div>
@@ -937,6 +1091,154 @@
 							<p class="mt-1 text-xs text-slate-500">
 								{statsData.stats?.peakHourOrders || 0} orders at peak
 							</p>
+						</div>
+					</div>
+				</div>
+
+				<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+					<div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+						<h3 class="font-heading mb-4 text-base font-semibold text-slate-900">
+							Growth Snapshot
+						</h3>
+						<div class="grid grid-cols-2 gap-4">
+							<div class="rounded-lg bg-slate-50 p-4">
+								<p class="text-xs text-slate-500">Last 30 Days</p>
+								<p class="mt-1 text-xl font-bold text-slate-900">
+									{formatCurrency(statsData.trends?.last30DaysRevenue || 0)}
+								</p>
+							</div>
+							<div class="rounded-lg bg-slate-50 p-4">
+								<p class="text-xs text-slate-500">Previous 30 Days</p>
+								<p class="mt-1 text-xl font-bold text-slate-900">
+									{formatCurrency(statsData.trends?.previous30DaysRevenue || 0)}
+								</p>
+							</div>
+							<div class="rounded-lg bg-slate-50 p-4">
+								<p class="text-xs text-slate-500">Revenue Growth</p>
+								<p class="mt-1 text-xl font-bold text-slate-900">{statsData.trends?.revenueGrowth || '0'}%</p>
+							</div>
+							<div class="rounded-lg bg-slate-50 p-4">
+								<p class="text-xs text-slate-500">Avg Customer LTV</p>
+								<p class="mt-1 text-xl font-bold text-slate-900">
+									{formatCurrency(statsData.customerInsights?.avgCustomerLTV || 0)}
+								</p>
+							</div>
+						</div>
+					</div>
+
+					<div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+						<h3 class="font-heading mb-4 text-base font-semibold text-slate-900">
+							Customer Health
+						</h3>
+						<div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-500">Retention</p>
+								<p class="mt-1 text-xl font-bold text-slate-900">
+									{statsData.customerInsights?.retentionRate || 0}%
+								</p>
+							</div>
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-500">Churned</p>
+								<p class="mt-1 text-xl font-bold text-slate-900">
+									{statsData.customerInsights?.churnedCustomers || 0}
+								</p>
+							</div>
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-500">New 30d</p>
+								<p class="mt-1 text-xl font-bold text-slate-900">
+									{statsData.customerInsights?.newUsersLast30Days || 0}
+								</p>
+							</div>
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-500">VIP Customers</p>
+								<p class="mt-1 text-xl font-bold text-slate-900">{statsData.customerInsights?.vipCount || 0}</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+					<div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+						<h3 class="font-heading mb-4 text-base font-semibold text-slate-900">Order Mix</h3>
+						<div class="space-y-4">
+							{#each statsData.deliveryBreakdown || [] as item}
+								{@const total = statsData.deliveryBreakdown?.reduce((sum: number, value: any) => sum + value.count, 0) || 1}
+								{@const percent = Math.round((item.count / total) * 100)}
+								<div>
+									<div class="mb-1 flex items-center justify-between text-sm">
+										<span class="text-slate-700">{item.label}</span>
+										<span class="font-medium text-slate-900">{item.count} ({percent}%)</span>
+									</div>
+									<div class="h-2 rounded-full bg-slate-100">
+										<div class="h-2 rounded-full bg-blue-500" style="width: {percent}%"></div>
+									</div>
+								</div>
+							{:else}
+								<p class="py-4 text-center text-sm text-slate-500">No order mix available</p>
+							{/each}
+						</div>
+					</div>
+
+					<div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+						<h3 class="font-heading mb-4 text-base font-semibold text-slate-900">Order Status</h3>
+						<div class="space-y-4">
+							{#each statsData.statusBreakdown || [] as status}
+								{@const total = statsData.statusBreakdown?.reduce((sum: number, value: any) => sum + value.count, 0) || 1}
+								{@const percent = Math.round((status.count / total) * 100)}
+								<div>
+									<div class="mb-1 flex items-center justify-between text-sm">
+										<span class="text-slate-700 capitalize">{status.status}</span>
+										<span class="font-medium text-slate-900">{status.count} ({percent}%)</span>
+									</div>
+									<div class="h-2 rounded-full bg-slate-100">
+										<div class="h-2 rounded-full bg-emerald-500" style="width: {percent}%"></div>
+									</div>
+								</div>
+							{:else}
+								<p class="py-4 text-center text-sm text-slate-500">No status data available</p>
+							{/each}
+						</div>
+					</div>
+				</div>
+
+				<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+					<div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+						<h3 class="font-heading mb-4 text-base font-semibold text-slate-900">Top Dishes</h3>
+						<div class="space-y-3">
+							{#each statsData.topDishes || [] as dish, i}
+								<div class="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+									<div class="flex items-center gap-3">
+										<span class="flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700">{i + 1}</span>
+										<div>
+											<p class="font-medium text-slate-900">{dish.name}</p>
+											<p class="text-xs text-slate-500">{dish.quantity} sold</p>
+										</div>
+									</div>
+									<p class="text-sm font-semibold text-slate-900">{formatCurrency(dish.revenue)}</p>
+								</div>
+							{:else}
+								<p class="py-4 text-center text-sm text-slate-500">No dish data available</p>
+							{/each}
+						</div>
+					</div>
+
+					<div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+						<h3 class="font-heading mb-4 text-base font-semibold text-slate-900">Top Customers</h3>
+						<div class="space-y-3">
+							{#each statsData.topCustomers || [] as customer, i}
+								<div class="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+									<div class="flex items-center gap-3">
+										<span class="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700">{i + 1}</span>
+										<div>
+											<p class="font-medium text-slate-900">{customer.name}</p>
+											<p class="text-xs text-slate-500">{customer.orders} orders</p>
+										</div>
+									</div>
+									<p class="text-sm font-semibold text-slate-900">{formatCurrency(customer.revenue)}</p>
+								</div>
+							{:else}
+								<p class="py-4 text-center text-sm text-slate-500">No customer data available</p>
+							{/each}
 						</div>
 					</div>
 				</div>

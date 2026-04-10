@@ -1,25 +1,20 @@
 import type { PageServerLoad } from '../$types';
+import { isSuperRestaurant } from '$lib/server/restaurantAccess';
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
 	const layoutData = await parent();
 	const restaurantId = layoutData.restaurantId || null;
+	const restaurant = layoutData.restaurant;
+	const isSuper = isSuperRestaurant(restaurant);
 
 	if (!restaurantId) return getEmptyData();
 
 	try {
-		// Get all users from database
-		const allUsers = await locals.pb.collection('users').getFullList();
-		console.log('Total users in database:', allUsers.length);
-		console.log(
-			'Sample user:',
-			allUsers[0]
-				? { id: allUsers[0].id, email: allUsers[0].email, restaurantIds: allUsers[0].restaurantIds }
-				: 'none'
-		);
-
 		// Get all delivered orders
 		const deliveredOrders = await locals.pb.collection('orders').getFullList({
-			filter: `restaurantId = "${restaurantId}" && status = "Delivered"`,
+			filter: isSuper
+				? `status = "Delivered"`
+				: `restaurantId = "${restaurantId}" && status = "Delivered"`,
 			sort: '-created'
 		});
 		console.log('Found delivered orders:', deliveredOrders.length);
@@ -32,10 +27,15 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 			});
 		}
 
-		// Build customer map from all users
+		const allUsers = await locals.pb.collection('users').getFullList();
+		const scopedUserIds = new Set(deliveredOrders.map((order: any) => order.user).filter(Boolean));
+
+		// Build customer map only for users in the current scope
 		const customerMap: Record<string, any> = {};
 
 		allUsers.forEach((user: any) => {
+			if (!scopedUserIds.has(user.id)) return;
+
 			customerMap[user.id] = {
 				id: user.id,
 				name: user.name || user.username || user.email?.split('@')[0] || 'Unknown',
@@ -273,6 +273,56 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 		}));
 
 		const totalRevenue = customerStats.reduce((sum: number, c: any) => sum + c.totalSpent, 0);
+		const recentActiveCustomers = customerStats
+			.filter((c: any) => c.lastOrder && new Date(c.lastOrder) >= thirtyDaysAgo)
+			.slice(0, 8)
+			.map((c: any) => ({
+				id: c.id,
+				name: c.name,
+				orderCount: c.orderCount,
+				totalSpent: c.totalSpent,
+				lastOrder: c.lastOrder
+			}));
+		const atRiskCustomers = customerStats
+			.filter((c: any) => {
+				if (!c.lastOrder) return false;
+				const daysSince = Math.floor(
+					(Date.now() - new Date(c.lastOrder).getTime()) / (1000 * 60 * 60 * 24)
+				);
+				return daysSince >= 14 && daysSince <= 60;
+			})
+			.slice(0, 8)
+			.map((c: any) => ({
+				id: c.id,
+				name: c.name,
+				orderCount: c.orderCount,
+				totalSpent: c.totalSpent,
+				lastOrder: c.lastOrder
+			}));
+		const recencyBuckets = {
+			last7Days: customerStats.filter(
+				(c: any) => c.lastOrder && Date.now() - new Date(c.lastOrder).getTime() <= 7 * 86400000
+			).length,
+			last30Days: customerStats.filter(
+				(c: any) => c.lastOrder && Date.now() - new Date(c.lastOrder).getTime() <= 30 * 86400000
+			).length,
+			last90Days: customerStats.filter(
+				(c: any) => c.lastOrder && Date.now() - new Date(c.lastOrder).getTime() <= 90 * 86400000
+			).length,
+			over90Days: customerStats.filter(
+				(c: any) => c.lastOrder && Date.now() - new Date(c.lastOrder).getTime() > 90 * 86400000
+			).length
+		};
+		const spendDistribution = {
+			under10k: customerStats.filter((c: any) => c.totalSpent < 10000).length,
+			between10kAnd50k: customerStats.filter(
+				(c: any) => c.totalSpent >= 10000 && c.totalSpent < 50000
+			).length,
+			between50kAnd100k: customerStats.filter(
+				(c: any) => c.totalSpent >= 50000 && c.totalSpent < 100000
+			).length,
+			over100k: customerStats.filter((c: any) => c.totalSpent >= 100000).length
+		};
 
 		console.log('Returning:', {
 			customers: customerStats.length,
@@ -281,6 +331,8 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 		});
 
 		return {
+			isSuper,
+			scopeLabel: isSuper ? 'Platform customers' : `${restaurant?.name || 'Restaurant'} customers`,
 			customerStats,
 			userOrdersMap: Object.fromEntries(
 				Object.entries(customerMap).map(([id, customer]: [string, any]) => [
@@ -298,6 +350,10 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 			topCustomers,
 			mostValuableCustomers,
 			popularDishes,
+			recentActiveCustomers,
+			atRiskCustomers,
+			recencyBuckets,
+			spendDistribution,
 			stats: {
 				totalCustomers: customerStats.length,
 				newCustomers,
@@ -327,6 +383,8 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 
 function getEmptyData() {
 	return {
+		isSuper: false,
+		scopeLabel: 'Restaurant customers',
 		customerStats: [],
 		userOrdersMap: {},
 		charts: {
@@ -339,6 +397,20 @@ function getEmptyData() {
 		topCustomers: [],
 		mostValuableCustomers: [],
 		popularDishes: [],
+		recentActiveCustomers: [],
+		atRiskCustomers: [],
+		recencyBuckets: {
+			last7Days: 0,
+			last30Days: 0,
+			last90Days: 0,
+			over90Days: 0
+		},
+		spendDistribution: {
+			under10k: 0,
+			between10kAnd50k: 0,
+			between50kAnd100k: 0,
+			over100k: 0
+		},
 		stats: {
 			totalCustomers: 0,
 			newCustomers: 0,

@@ -6,12 +6,16 @@
 		children,
 		showArrows = true,
 		showDots = true,
+		showViewToggle = true,
+		headerAligned = false,
 		autoplay = false,
 		autoplayDelay = 5000,
 		scrollSpeed = 300
 	}: {
 		showArrows?: boolean;
 		showDots?: boolean;
+		showViewToggle?: boolean;
+		headerAligned?: boolean;
 		autoplay?: boolean;
 		autoplayDelay?: number;
 		scrollSpeed?: number;
@@ -182,8 +186,8 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <div class="relative mx-auto max-w-7xl">
-	{#if isMounted && itemCount > 1}
-		<div class="mb-4 flex justify-end">
+	{#if showViewToggle && isMounted && itemCount > 1}
+		<div class:carousel-header-toggle={headerAligned} class="mb-4 flex justify-end">
 			<button
 				type="button"
 				onclick={toggleViewMode}
@@ -393,5 +397,19 @@
 		transform: scale(1.3);
 		width: 24px;
 		border-radius: 4px;
+	}
+
+	.carousel-header-toggle {
+		position: absolute;
+		top: -4.25rem;
+		right: 0;
+		margin-bottom: 0;
+		z-index: 6;
+	}
+
+	@media (max-width: 640px) {
+		.carousel-header-toggle {
+			top: -3.75rem;
+		}
 	}
 </style>

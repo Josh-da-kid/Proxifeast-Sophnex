@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { isSuperRestaurant, buildRestaurantFilter } from '$lib/utils/restaurantAccess';
+import { canPublicAccessRestaurant, resolveRestaurantByDomain } from '$lib/server/restaurantAccess';
 
 export const load: PageServerLoad = async ({ locals, url, request }) => {
 	const search = url.searchParams.get('search')?.trim() ?? '';
@@ -8,25 +9,10 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 	const selectedRestaurantId = url.searchParams.get('restaurant')?.trim() ?? '';
 
 	try {
-		// Get current restaurant from domain
 		const host = request.headers.get('host') || '';
-		const domain = host.split(':')[0].replace('www.', '').toLowerCase();
-
-		let currentRestaurant = null;
-		try {
-			currentRestaurant = await locals.pb
-				.collection('restaurants')
-				.getFirstListItem(`domain = "${domain}"`);
-		} catch {
-			// Try super restaurant as fallback
-			try {
-				currentRestaurant = await locals.pb
-					.collection('restaurants')
-					.getFirstListItem('isSuper = true');
-			} catch (e) {
-				console.error('Could not find restaurant for domain:', domain);
-			}
-		}
+		const currentRestaurant = await resolveRestaurantByDomain(locals.pb, host, {
+			allowSuperFallback: true
+		});
 
 		const isSuper = isSuperRestaurant(currentRestaurant);
 
@@ -47,10 +33,14 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 		// Determine which restaurant to filter featured dishes by
 		// If selectedRestaurantId is in URL, use that; otherwise use currentRestaurant
 		let featuredRestaurant = currentRestaurant;
-		if (selectedRestaurantId) {
+		if (selectedRestaurantId && currentRestaurant) {
 			// If there's a selected restaurant in URL, fetch it and use for featured dishes
 			try {
-				featuredRestaurant = await locals.pb.collection('restaurants').getOne(selectedRestaurantId);
+				if (canPublicAccessRestaurant(currentRestaurant, selectedRestaurantId)) {
+					featuredRestaurant = await locals.pb
+						.collection('restaurants')
+						.getOne(selectedRestaurantId);
+				}
 			} catch {
 				// Keep using currentRestaurant if not found
 			}

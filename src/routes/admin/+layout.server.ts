@@ -158,10 +158,9 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 
 		locals.restaurant = restaurant;
 
-		// Use already calculated values from above
-		// User is super if: 1) they have access to a super restaurant, OR 2) the current restaurant is super, OR 3) user record has isSuper flag
+		// The admin scope must follow the current restaurant context.
 		const restaurantIsSuper = isSuperRestaurant(restaurant);
-		const finalIsSuper = userHasSuperAccess || userHasOwnSuperFlag || restaurantIsSuper;
+		const finalIsSuper = restaurantIsSuper;
 
 		locals.isSuper = finalIsSuper;
 
@@ -235,6 +234,27 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		let subscription = null;
 		let subscriptionStatus = 'not_subscribed';
 
+		const deriveSubscriptionStatus = (subs: any) => {
+			const now = new Date();
+			const endDate = subs?.endDate ? new Date(subs.endDate) : null;
+			const sevenDaysFromNow = new Date();
+			sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+
+			if (!subs || !endDate) return 'not_subscribed';
+			if (subs.status === 'test') {
+				return endDate <= now ? 'expired' : 'active';
+			}
+			if (subs.status === 'pending') return 'pending';
+			if (subs.status === 'cancelled' || subs.status === 'inactive') return 'cancelled';
+			if (subs.status === 'active') {
+				if (endDate <= now) return 'expired';
+				if (endDate <= sevenDaysFromNow) return 'expiring_soon';
+				return 'active';
+			}
+
+			return 'not_subscribed';
+		};
+
 		// Check trial status from restaurant collection
 		const trialStatus = restaurant?.subscriptionStatus;
 		const trialEndDate = restaurant?.trialEndDate;
@@ -253,35 +273,19 @@ export const load: LayoutServerLoad = async ({ cookies, url, locals, request }) 
 		} else {
 			// Check existing subscriptions collection
 			try {
-				const subs = await locals.pb
-					.collection('subscriptions')
-					.getFirstListItem(`restaurantId = "${restaurant.id}"`);
-				subscription = subs;
+				const subsResult = await locals.pb.collection('subscriptions').getList(1, 50, {
+					filter: `restaurantId = "${restaurant.id}"`,
+					sort: '-updated,-created'
+				});
+				const subscriptions = subsResult.items || [];
+				subscription =
+					subscriptions.find((item: any) => deriveSubscriptionStatus(item) === 'active') ||
+					subscriptions.find((item: any) => deriveSubscriptionStatus(item) === 'expiring_soon') ||
+					subscriptions.find((item: any) => deriveSubscriptionStatus(item) === 'pending') ||
+					subscriptions[0] ||
+					null;
 
-				const now = new Date();
-				const endDate = new Date(subs.endDate);
-				const sevenDaysFromNow = new Date();
-				sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-
-				if (subs.status === 'test') {
-					if (endDate <= now) {
-						subscriptionStatus = 'expired';
-					} else {
-						subscriptionStatus = 'active';
-					}
-				} else if (subs.status === 'pending') {
-					subscriptionStatus = 'pending';
-				} else if (subs.status === 'cancelled' || subs.status === 'inactive') {
-					subscriptionStatus = 'cancelled';
-				} else if (subs.status === 'active') {
-					if (endDate <= now) {
-						subscriptionStatus = 'expired';
-					} else if (endDate <= sevenDaysFromNow) {
-						subscriptionStatus = 'expiring_soon';
-					} else {
-						subscriptionStatus = 'active';
-					}
-				}
+				subscriptionStatus = deriveSubscriptionStatus(subscription);
 			} catch {
 				subscriptionStatus = 'not_subscribed';
 				subscription = null;

@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { getScopedRestaurantForRequest } from '$lib/server/restaurantAccess';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
 	try {
@@ -11,6 +12,17 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
 		if (!restaurantId || !action) {
 			return json({ error: 'Missing required fields' }, { status: 400 });
+		}
+
+		const scoped = await getScopedRestaurantForRequest(
+			locals.pb,
+			request.headers.get('host') || '',
+			restaurantId,
+			{ allowSuperFallback: true }
+		);
+
+		if (!scoped.currentRestaurant || !scoped.allowed) {
+			return json({ error: 'Invalid restaurant context' }, { status: 403 });
 		}
 
 		const userId = locals.user.id;

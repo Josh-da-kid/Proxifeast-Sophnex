@@ -9,6 +9,21 @@ export const load: PageServerLoad = async ({ locals, url, request, parent }) => 
 
 	// Helper function to check if restaurant is super
 	const isSuperRestaurant = (r: any) => r?.isSuper === true || r?.isSuper === 'true';
+	const deriveSubscriptionStatus = (subscription: any) => {
+		const now = new Date();
+		const endDate = subscription?.endDate ? new Date(subscription.endDate) : null;
+
+		if (!subscription || !endDate) return 'not_subscribed';
+		if (subscription.status === 'test') return endDate <= now ? 'expired' : 'active';
+		if (subscription.status === 'pending') return 'pending';
+		if (subscription.status === 'cancelled' || subscription.status === 'inactive')
+			return 'cancelled';
+		if (endDate <= now) return 'expired';
+
+		const sevenDaysFromNow = new Date();
+		sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+		return endDate <= sevenDaysFromNow ? 'expiring_soon' : 'active';
+	};
 
 	console.log(
 		'Billing - Current restaurant from layout:',
@@ -152,35 +167,21 @@ export const load: PageServerLoad = async ({ locals, url, request, parent }) => 
 			// Fetch all subscriptions for this restaurant in one call
 			const allSubs: any = await locals.pb.collection('subscriptions').getList(1, 50, {
 				filter: `restaurantId = "${restaurant.id}"`,
-				sort: '-created'
+				sort: '-updated,-created'
 			});
 			previousSubscriptions = allSubs.items || [];
 
-			// Use the first subscription (most recent)
+			// Prefer the current effective subscription if multiple records exist.
 			if (previousSubscriptions.length > 0) {
-				subscription = previousSubscriptions[0];
+				subscription =
+					previousSubscriptions.find((item: any) => deriveSubscriptionStatus(item) === 'active') ||
+					previousSubscriptions.find(
+						(item: any) => deriveSubscriptionStatus(item) === 'expiring_soon'
+					) ||
+					previousSubscriptions.find((item: any) => deriveSubscriptionStatus(item) === 'pending') ||
+					previousSubscriptions[0];
 				console.log('Found subscription:', subscription);
-
-				const now = new Date();
-				const endDate = new Date(subscription.endDate);
-				console.log('Subscription endDate:', endDate, 'Now:', now, 'Is expired:', endDate <= now);
-
-				if (subscription.status === 'test') {
-					if (endDate <= now) {
-						subscriptionStatus = 'expired';
-					} else {
-						subscriptionStatus = 'active';
-					}
-				} else if (subscription.status === 'pending') {
-					subscriptionStatus = 'pending';
-				} else if (subscription.status === 'cancelled' || subscription.status === 'inactive') {
-					subscriptionStatus = 'cancelled';
-				} else if (endDate <= now) {
-					subscriptionStatus = 'expired';
-					console.log('Setting status to expired');
-				} else {
-					subscriptionStatus = 'active';
-				}
+				subscriptionStatus = deriveSubscriptionStatus(subscription);
 			} else {
 				subscriptionStatus = 'not_subscribed';
 			}
@@ -229,7 +230,13 @@ export const load: PageServerLoad = async ({ locals, url, request, parent }) => 
 			isAdminForRestaurant: true,
 			paystackKey,
 			supportEmail,
-			expired: !isSuperRestaurantValue && url.searchParams.get('expired') === '1',
+			expired:
+				!isSuperRestaurantValue &&
+				url.searchParams.get('expired') === '1' &&
+				(subscriptionStatus === 'expired' ||
+					subscriptionStatus === 'not_subscribed' ||
+					subscriptionStatus === 'cancelled' ||
+					subscriptionStatus === 'pending'),
 			restaurant: isSuperRestaurantValue ? null : restaurant,
 			subscriptions,
 			restaurants: restaurantsList,
