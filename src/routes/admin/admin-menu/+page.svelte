@@ -382,17 +382,19 @@
 		{:else}
 			{#each groupedDishEntries as [category, dishesInCategory]}
 				<section class="relative mb-10">
-					<h2
-						class="font-playfair mb-6 max-w-72 min-w-0 pr-40 pl-1 text-xl font-semibold text-slate-800 sm:pr-48"
-						in:fly={{ y: 20, duration: 300 }}
-					>
-						<span class="inline-block max-w-full overflow-x-auto border-b-2 border-current pb-1 whitespace-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-							{category}
-						</span>
-						<span class="mt-2 block text-sm font-normal text-slate-500">
-							{dishesInCategory.length} dishes
-						</span>
-					</h2>
+					<div class="mx-auto max-w-7xl px-0">
+						<h2
+							class="font-playfair mb-6 pr-40 pl-4 text-xl font-semibold text-slate-800 sm:pr-48"
+							in:fly={{ y: 20, duration: 300 }}
+						>
+							<span class="inline-block border-b-2 border-current pb-1 whitespace-nowrap">
+								{category}
+							</span>
+							<span class="mt-2 block text-sm font-normal text-slate-500">
+								{dishesInCategory.length} dishes
+							</span>
+						</h2>
+					</div>
 
 					<Carousel headerAligned={true}>
 						{#each dishesInCategory as dish}
