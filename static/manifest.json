@@ -1,7 +1,7 @@
 {
-	"name": "Proxifeast - Food Ordering App",
+	"name": "Proxifeast - Hospitality Platform",
 	"short_name": "Proxifeast",
-	"description": "Order delicious food from your favorite restaurants",
+	"description": "Your complete hospitality solution - order, reserve, and manage",
 	"start_url": "/",
 	"display": "standalone",
 	"background_color": "#ffffff",
@@ -10,7 +10,7 @@
 	"scope": "/",
 	"lang": "en",
 	"dir": "ltr",
-	"categories": ["food", "shopping", "lifestyle"],
+	"categories": ["business", "food", "shopping", "lifestyle", "travel"],
 	"icons": [
 		{
 			"src": "/icons/icon-72x72.png",

@@ -312,7 +312,7 @@
 
 	<!-- Search & Filter -->
 	<section class="container mx-auto px-4 py-6">
-		<form onsubmit={handleSearchSubmit} class="flex flex-col gap-4 md:flex-row md:items-center">
+		<form onsubmit={handleSearchSubmit} class="flex flex-col items-center gap-4 md:flex-row md:justify-center">
 			<div
 				class="flex items-center gap-2 rounded-xl bg-white px-4 py-2 shadow-md shadow-slate-900/5"
 			>
