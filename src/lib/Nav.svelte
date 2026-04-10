@@ -212,25 +212,29 @@
 				</span>
 			</a>
 		{/if}
-		<a href="/reservation" class="nav-link">
-			<span class="flex items-center gap-2">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="16"
-					height="16"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-				>
-					<rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-					<line x1="16" y1="2" x2="16" y2="6" />
-					<line x1="8" y1="2" x2="8" y2="6" />
-					<line x1="3" y1="10" x2="21" y2="10" />
-				</svg>
-				Reservations
-			</span>
-		</a>
+
+		{#if $isSuper || $page.data.restaurant?.orderServices?.tableService}
+			<a href="/reservation" class="nav-link">
+				<span class="flex items-center gap-2">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="16"
+						height="16"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+						<line x1="16" y1="2" x2="16" y2="6" />
+						<line x1="8" y1="2" x2="8" y2="6" />
+						<line x1="3" y1="10" x2="21" y2="10" />
+					</svg>
+					Reservations
+				</span>
+			</a>
+		{/if}
+
 		{#if $isSuper}
 			<a href="/subscriptions" class="nav-link">
 				<span class="flex items-center gap-2">
@@ -699,29 +703,31 @@
 							Contact
 						</a>
 					</li>
-					<li>
-						<a
-							href="/reservation"
-							class="font-medium text-slate-700"
-							onclick={() => (isMenuOpen = false)}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="20"
-								height="20"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
+					{#if $isSuper || $page.data.restaurant?.orderServices?.tableService}
+						<li>
+							<a
+								href="/reservation"
+								class="font-medium text-slate-700"
+								onclick={() => (isMenuOpen = false)}
 							>
-								<rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-								<line x1="16" y1="2" x2="16" y2="6" />
-								<line x1="8" y1="2" x2="8" y2="6" />
-								<line x1="3" y1="10" x2="21" y2="10" />
-							</svg>
-							Reservations
-						</a>
-					</li>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+									<line x1="16" y1="2" x2="16" y2="6" />
+									<line x1="8" y1="2" x2="8" y2="6" />
+									<line x1="3" y1="10" x2="21" y2="10" />
+								</svg>
+								Reservations
+							</a>
+						</li>
+					{/if}
 					<li>
 						<a
 							href="/subscriptions"

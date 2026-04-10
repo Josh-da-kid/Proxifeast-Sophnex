@@ -7,7 +7,7 @@ export const load: LayoutServerLoad = async ({ locals, request, url }) => {
 		const fullHost = request.headers.get('host') || '';
 
 		const restaurant = await resolveRestaurantByDomain(locals.pb, fullHost, {
-			allowSuperFallback: false
+			allowSuperFallback: true
 		}).catch(() => null);
 
 		if (!restaurant) {
@@ -17,6 +17,18 @@ export const load: LayoutServerLoad = async ({ locals, request, url }) => {
 		locals.restaurant = restaurant;
 
 		const isSuper = isSuperRestaurant(restaurant);
+
+		// Fetch orderServices to ensure it's available in page data
+		if (!isSuper) {
+			try {
+				const updatedRestaurant = await locals.pb.collection('restaurants').getOne(restaurant.id, {
+					fields: 'orderServices'
+				});
+				restaurant.orderServices = updatedRestaurant.orderServices;
+			} catch (e) {
+				console.error('Failed to fetch orderServices:', e);
+			}
+		}
 
 		// For non-super restaurants on root path, redirect to their store page
 		// This prevents any flash of content by doing redirect in layout (earliest possible)

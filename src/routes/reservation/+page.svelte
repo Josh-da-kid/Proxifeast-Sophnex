@@ -3,6 +3,18 @@
 	import { page } from '$app/stores';
 
 	let store = $derived($page.data.store);
+	// For non-super stores, use the restaurant from page data
+	let restaurant = $derived($page.data.restaurant);
+	// If no store from URL param, use current restaurant for non-super stores
+	let effectiveStore = $derived(store || restaurant);
+	// Check if this is a super store context
+	let isSuper = $derived($page.data.isSuper ?? false);
+	// Get available restaurants that accept reservations
+	let availableRestaurants = $derived($page.data.availableRestaurants ?? []);
+	// Check if current restaurant accepts reservations
+	let acceptsReservations = $derived($page.data.acceptsReservations ?? effectiveStore?.orderServices?.tableService === true);
+	// Show restaurant list for super stores only
+	let showRestaurantList = $derived(isSuper);
 
 	let name = $state('');
 	let email = $state('');
@@ -37,7 +49,7 @@
 		isSubmitting = true;
 		error = '';
 
-		if (!store) {
+		if (!effectiveStore) {
 			error = 'No store selected. Please access this page from a store.';
 			isSubmitting = false;
 			return;
@@ -45,7 +57,7 @@
 
 		try {
 			const formData = new FormData();
-			formData.append('storeId', store.id);
+			formData.append('storeId', effectiveStore.id);
 			formData.append('type', 'table');
 			formData.append('reservationDate', date);
 			formData.append('checkInTime', time);
@@ -93,7 +105,55 @@
 
 	<!-- Form -->
 	<main class="container mx-auto max-w-3xl px-4 py-8">
-		{#if !store}
+		{#if showRestaurantList && availableRestaurants.length > 0}
+			<div class="mb-8 text-center">
+				<h2 class="text-xl font-semibold text-slate-800">Select a Restaurant</h2>
+				<p class="mt-1 text-slate-600">Choose from available restaurants that accept table reservations</p>
+			</div>
+			<div class="grid gap-4 md:grid-cols-2">
+				{#each availableRestaurants as restaurant}
+					<a
+						href="/reservation?store={restaurant.id}"
+						class="group block rounded-xl border border-slate-200 bg-white p-4 transition hover:border-amber-400 hover:shadow-md"
+					>
+						{#if restaurant.image}
+							<img
+								src={restaurant.image}
+								alt={restaurant.name}
+								class="mb-3 h-32 w-full rounded-lg object-cover"
+							/>
+						{/if}
+						<h3 class="font-semibold text-slate-800 group-hover:text-amber-600">
+							{restaurant.name}
+						</h3>
+						{#if restaurant.restaurantAddress}
+							<p class="mt-1 text-sm text-slate-500">{restaurant.restaurantAddress}</p>
+						{/if}
+						<span class="mt-2 inline-flex items-center text-sm font-medium text-amber-600">
+							Reserve a table
+							<svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+							</svg>
+						</span>
+					</a>
+				{/each}
+			</div>
+		{:else if showRestaurantList}
+			<div class="flex flex-col items-center justify-center py-16 text-center">
+				<div class="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-slate-100">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+					</svg>
+				</div>
+				<h2 class="mb-2 text-2xl font-bold text-slate-800">No Restaurants Available</h2>
+				<p class="max-w-md text-slate-600">
+					There are currently no restaurants accepting table reservations. Check back soon or browse our stores for other services.
+				</p>
+				<a href="/stores" class="mt-6 rounded-full bg-amber-500 px-6 py-3 font-medium text-white transition hover:bg-amber-600">
+					Browse All Stores
+				</a>
+			</div>
+		{:else if !effectiveStore}
 			<div class="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -175,7 +235,7 @@
 				{#if reservationData}
 					<div class="mb-6 rounded-lg bg-slate-50 p-4 text-left">
 						<p class="mb-2 text-sm text-slate-500">Reservation Details:</p>
-						<p class="font-semibold">{store?.name}</p>
+						<p class="font-semibold">{effectiveStore?.name}</p>
 						<p class="text-sm text-slate-600">
 							Date: {new Date(reservationData.reservationDate).toLocaleDateString()}
 						</p>

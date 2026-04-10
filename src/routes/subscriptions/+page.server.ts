@@ -8,8 +8,5 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 		throw error(404, 'Page not found');
 	}
 
-	return {
-		user: locals.user || null,
-		isSuper
-	};
+	return { isSuper };
 };
